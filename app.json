@@ -52,14 +52,16 @@
     },
     "notification": {
       "icon": "./assets/images/android-icon-monochrome-v2.png",
-      "color": "#E6F4FE"
+      "color": "#FFFFFF"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#ffffff"
+          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#FFFFFF",
+          "resizeMode": "contain"
         }
       ],
       "expo-secure-store",
@@ -67,7 +69,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome-v2.png",
-          "color": "#E6F4FE",
+          "color": "#FFFFFF",
           "sounds": [
             "./assets/sounds/attendance_absent_alert.wav",
             "./assets/sounds/notification_default.wav",
@@ -80,7 +82,6 @@
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "@react-native-community/datetimepicker",
-      "./plugins/withNotifee.js",
       "./plugins/withManifestMerger.js",
       "./plugins/withAndroidSounds.js",
       [

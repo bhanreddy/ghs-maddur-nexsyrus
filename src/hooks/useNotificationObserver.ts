@@ -26,6 +26,9 @@ const NOTIFICATION_ROUTES: Record<string, string> = {
   EXPENSE_APPROVED: '/accounts/expenses',
   EXPENSE_REJECTED: '/accounts/expenses',
   PAYROLL_SUCCESS: '/staff/payslip',
+  ACCESS_RESPONSE: '/Screen/access',
+  GIRL_SAFETY_RECEIVED: '/Screen/girl-safety',
+  GIRL_SAFETY_UPDATE: '/Screen/girl-safety',
 };
 
 // Stored when notification tapped before auth is ready

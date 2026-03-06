@@ -107,6 +107,22 @@ export const TELUGU_NOTIFICATION_MAP: Record<string, NotificationTranslation> = 
         title: 'జీతం జమ అయింది',
         body: null,
     },
+
+    // Access Control
+    ACCESS_RESPONSE: {
+        title: 'యాక్సెస్ అభ్యర్థన నవీకరణ',
+        body: null,
+    },
+
+    // Girl Safety
+    GIRL_SAFETY_RECEIVED: {
+        title: 'భద్రతా హెచ్చరిక',
+        body: null,
+    },
+    GIRL_SAFETY_UPDATE: {
+        title: 'భద్రతా నవీకరణ',
+        body: null,
+    },
 };
 
 /**

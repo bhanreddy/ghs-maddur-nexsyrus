@@ -90,12 +90,21 @@ class NotificationManager {
     await this.hydrateSeenIds();
     await this.loadLanguagePreference();
 
+    // Check if previous registration failed — force retry
+    const needsSync = await AsyncStorage.getItem('push_token_needs_sync');
+    if (needsSync === 'true') {
+      console.log('[NotificationManager] Previous sync failed — retrying...');
+      await AsyncStorage.removeItem('fcm_token_last_synced');
+    }
+
     let token: string | undefined;
 
     try {
+      console.log('[NotificationManager] Starting registration...');
       // 1. Create channels first
       if (Platform.OS === 'android') {
         await this.createChannels();
+        console.log('[NotificationManager] Channels created successfully');
       }
 
       if (Platform.OS === 'web') {
@@ -107,12 +116,13 @@ class NotificationManager {
       if (Platform.OS === 'android' && Platform.Version >= 33) {
         try {
           const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+          console.log('[NotificationManager] POST_NOTIFICATIONS permission:', granted);
           if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-
+            console.warn('[NotificationManager] POST_NOTIFICATIONS permission DENIED');
             return undefined;
           }
         } catch (err) {
-
+          console.error('[NotificationManager] Permission request error:', err);
         }
       }
 
@@ -124,13 +134,35 @@ class NotificationManager {
         authStatus === AuthorizationStatus.AUTHORIZED ||
         authStatus === AuthorizationStatus.PROVISIONAL;
 
+      console.log('[NotificationManager] Firebase auth status:', authStatus, 'enabled:', enabled);
       if (!enabled) {
-
+        console.warn('[NotificationManager] Firebase messaging permission NOT enabled');
         return undefined;
       }
 
-      // 4. Get FCM Token
-      token = await getToken(msg);
+      // 4. Get FCM Token — retry up to 3 times with backoff
+      let lastError: any;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          token = await getToken(msg);
+          if (token) {
+            console.log(`[NotificationManager] Token obtained on attempt ${attempt}:`, `${token.substring(0, 20)}...`);
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`[NotificationManager] getToken attempt ${attempt} failed:`, err);
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 2000 * attempt)); // 2s, 4s
+          }
+        }
+      }
+
+      if (!token && lastError) {
+        console.error('[NotificationManager] All token attempts failed:', lastError);
+        await AsyncStorage.setItem('push_token_needs_sync', 'true');
+        return undefined;
+      }
 
       if (token) {
         const lastSyncedToken = await AsyncStorage.getItem('fcm_token_last_synced');
@@ -138,20 +170,26 @@ class NotificationManager {
 
         if (token !== lastSyncedToken || needsSync === 'true') {
           try {
+            console.log('[NotificationManager] Syncing token to backend...');
             await this.syncToken(token);
             await AsyncStorage.setItem('fcm_token_last_synced', token);
             await AsyncStorage.setItem('last_fcm_token', token);
             await AsyncStorage.removeItem('push_token_needs_sync');
+            console.log('[NotificationManager] Token synced successfully');
           } catch (syncErr) {
-
+            console.error('[NotificationManager] Token sync FAILED:', syncErr);
             await AsyncStorage.setItem('push_token_needs_sync', 'true');
           }
+        } else {
+          console.log('[NotificationManager] Token already synced, skipping');
         }
+      } else {
+        console.warn('[NotificationManager] No FCM token returned!');
       }
 
       return token;
     } catch (e) {
-
+      console.error('[NotificationManager] registerForPushNotificationsAsync FAILED:', e);
       return undefined; // Gracefully suppress so it doesn't crash the app thread
     }
   }
@@ -191,7 +229,7 @@ class NotificationManager {
       // Clear all push token state from AsyncStorage
       await AsyncStorage.multiRemove(['fcm_token_last_synced', 'last_fcm_token', 'push_token_needs_sync']);
     } catch (error) {
-
+      console.error('[NotificationManager] unregisterPushToken error:', error);
     }
   }
 
@@ -212,6 +250,7 @@ class NotificationManager {
    *   7. Fire-and-forget persist + translation
    */
   async displayNotification(remoteMessage: any, source: 'foreground' | 'background') {
+    console.log(`[NotificationManager] displayNotification called (${source})`, JSON.stringify(remoteMessage?.data || {}).substring(0, 200));
 
     // 1. Phantom filter
     if (
@@ -317,20 +356,21 @@ class NotificationManager {
     // 1. Foreground: FCM suppresses data-only messages in foreground.
     //    We use expo-notifications to display them manually.
     this.unsubscribeOnMessage = onMessage(msg, async (remoteMessage) => {
-
+      console.log('[NotificationManager] Foreground FCM message received:', remoteMessage?.messageId);
       await this.displayNotification(remoteMessage, 'foreground');
     });
 
     // 2. Token Refresh: Re-sync whenever FCM rotates the token
     this.unsubscribeOnTokenRefresh = onTokenRefresh(msg, async (newToken) => {
-
+      console.log('[NotificationManager] Token refreshed:', newToken ? `${newToken.substring(0, 20)}...` : 'NULL');
       try {
         await this.syncToken(newToken);
         await AsyncStorage.setItem('fcm_token_last_synced', newToken);
         await AsyncStorage.setItem('last_fcm_token', newToken);
         await AsyncStorage.removeItem('push_token_needs_sync');
+        console.log('[NotificationManager] Refreshed token synced');
       } catch (err) {
-
+        console.error('[NotificationManager] Token refresh sync FAILED:', err);
         await AsyncStorage.setItem('push_token_needs_sync', 'true');
       }
     });

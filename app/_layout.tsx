@@ -5,49 +5,22 @@ import { AuthProvider } from '../src/hooks/useAuth';
 import { ThemeProvider, ThemeContext } from '../src/context/ThemeContext';
 import { ThemeProvider as NavThemeProvider, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 
 import { useNotifications } from '../src/hooks/useNotifications';
 import { useAuthGuard } from '../src/hooks/useAuthGuard';
 import { useNotificationObserver } from '../src/hooks/useNotificationObserver';
 import { AuthGate } from '../src/components/AuthGate';
-import messaging from '@react-native-firebase/messaging';
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 
-// Ensure Expo shows heads-up notifications even when the app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true
-  })
-});
-
-// Register background handler early outside the React lifecycle
-// This handler runs when an FCM data-only message arrives while the app is in background/killed.
-// It must display the notification with the correct channel (custom sound) and full data.
-if (Platform.OS !== 'web') {
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-
-    // Import dynamically to avoid issues with module init order
-    const { notificationManager } = require('../src/services/notificationManager');
-
-    // displayNotification handles:
-    // 1. Deduplication (via messageId in AsyncStorage)
-    // 2. Phantom message filtering (empty data + sentTime=0)
-    // 3. Displaying with correct channel (custom sound)
-    // 4. Client-side Telugu translation
-    // 5. Preserving full data payload for deep linking
-    await notificationManager.displayNotification(remoteMessage, 'background');
-  });
-}
+// NOTE: setNotificationHandler is set once in notificationManager.ts (module-level).
+// NOTE: setBackgroundMessageHandler is registered in index.js (the JS entry point)
+//       so it fires even when the app is killed and Android starts a headless JS task.
 
 import { useFonts } from 'expo-font';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import AppSplash from '../src/components/AppSplash';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Keep the splash screen visible while we fetch resources
@@ -57,6 +30,9 @@ export default function Layout() {
   const [loaded, error] = useFonts({
     ...FontAwesome5.font
   });
+
+  const [appReady, setAppReady] = useState(false);
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
 
   // One-time cleanup of stale ML Kit translation cache (remove after one release)
   useEffect(() => {
@@ -70,11 +46,12 @@ export default function Layout() {
 
   useEffect(() => {
     if (loaded || error) {
+      setAppReady(true);
       SplashScreen.hideAsync();
     }
   }, [loaded, error]);
 
-  if (!loaded && !error) {
+  if (!appReady) {
     return null;
   }
 
@@ -82,6 +59,9 @@ export default function Layout() {
     <AuthProvider>
       <ThemeProvider>
         <ThemeSyncWrapper />
+        {showCustomSplash && (
+          <AppSplash onFinish={() => setShowCustomSplash(false)} />
+        )}
       </ThemeProvider>
     </AuthProvider>);
 
