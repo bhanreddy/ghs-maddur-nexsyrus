@@ -35,15 +35,7 @@ export const RELATIONSHIP_TYPES = [
 export const STUDENT_CATEGORIES = [
     { id: 1, name: 'General' },
     { id: 2, name: 'OBC' },
-    { id: 3, name: 'SC' },
-    { id: 4, name: 'ST' },
-    { id: 5, name: 'EWS' },
-    { id: 6, name: 'BC' },
-    { id: 7, name: 'BC-A' },
-    { id: 8, name: 'BC-B' },
-    { id: 9, name: 'BC-C' },
-    { id: 10, name: 'BC-D' },
-    { id: 11, name: 'BC-E' },
+    { id: 3, name: 'SC/ST' },
 ];
 
 export const RELIGIONS = [

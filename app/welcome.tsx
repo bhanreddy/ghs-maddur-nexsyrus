@@ -158,22 +158,6 @@ const PremiumCrest = ({
   );
 };
 
-/* ─── Metric Card ────────────────────────────────────────────────────────── */
-const MetricCard = ({
-  value, label, delay, accentColor, borderColor,
-}: {
-  value: string; label: string; delay: number;
-  accentColor: string; borderColor: string;
-}) => (
-  <Animated.View
-    entering={ZoomIn.delay(delay).duration(380).springify()}
-    style={[styles.metricCard, { borderColor }]}
-  >
-    <Text style={[styles.metricValue, { color: accentColor }]}>{value}</Text>
-    <Text style={styles.metricLabel}>{label}</Text>
-  </Animated.View>
-);
-
 /* ─── Portal Card (secondary roles) ─────────────────────────────────────── */
 interface PortalCardProps {
   icon: React.ReactNode;
@@ -311,22 +295,91 @@ export default function Index() {
 
           <View style={styles.heroContent}>
 
-            {/* ── School pill ─────────────────────────────────── */}
-            <Animated.View
-              entering={FadeInDown.delay(0).duration(500)}
-              style={[styles.schoolPill, {
-                borderColor: C.accentBorder,
-                backgroundColor: "rgba(255,255,255,0.9)",
-              }]}
-            >
-              <View style={[styles.pillLogoRing, { borderColor: C.accentBorder }]}>
-                <Image source={SCHOOL_CONFIG.logo} style={styles.pillLogo} />
-              </View>
-              <Text style={[styles.pillName, { color: C.inkB }]} numberOfLines={1}>
-                {SCHOOL_CONFIG.name}
-              </Text>
-              <LiveDot color={C.c500} />
-            </Animated.View>
+            {/* ── Top row: school pill + Startup India (stacked) ── */}
+            <View style={styles.heroTopRow}>
+              <Animated.View
+                entering={FadeInDown.delay(60).duration(500)}
+                style={[styles.schoolPill, {
+                  borderColor: C.accentBorder,
+                  backgroundColor: "rgba(255,255,255,0.9)",
+                }]}
+              >
+                <View style={[styles.pillLogoRing, { borderColor: C.accentBorder }]}>
+                  <Image source={SCHOOL_CONFIG.logo} style={styles.pillLogo} />
+                </View>
+                <Text style={[styles.pillName, { color: C.inkB }]} numberOfLines={1}>
+                  {SCHOOL_CONFIG.name}
+                </Text>
+                <LiveDot color={C.c500} />
+              </Animated.View>
+
+              <Animated.View
+                entering={FadeInDown.delay(0).duration(520).springify()}
+                style={styles.credHeroWrap}
+              >
+                <LinearGradient
+                  colors={["#FFFFFF", "rgba(255,153,51,0.06)", "#FFFCF8", "rgba(19,136,8,0.04)", "#FFFFFF"]}
+                  locations={[0, 0.22, 0.5, 0.78, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.credHeroCard, { borderColor: C.accentBorder }]}
+                >
+                  <View style={styles.credRibbon}>
+                    <View style={[styles.credRibbonSeg, { backgroundColor: "#FF9933" }]} />
+                    <View style={[
+                      styles.credRibbonSeg,
+                      {
+                        backgroundColor: "#FFFFFF",
+                        borderTopWidth: 0.5,
+                        borderBottomWidth: 0.5,
+                        borderColor: "rgba(0,0,0,0.08)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                    ]}>
+                      <View style={styles.credAshoka} />
+                    </View>
+                    <View style={[styles.credRibbonSeg, { backgroundColor: "#138808" }]} />
+                  </View>
+
+                  <View style={[styles.credLogoRing, styles.credHeroLogoRing, { borderColor: C.accentBorder }]}>
+                    <View style={[styles.credLogoInner, styles.credHeroLogoInner, { borderColor: C.accentSoft }]}>
+                      <Image
+                        source={require("../assets/images/startup-india.png")}
+                        style={styles.credHeroLogo}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.credDivider} />
+
+                  <View style={styles.credText}>
+                    <View style={styles.credEyebrowRow}>
+                      <Ionicons name="star" size={7} color="#FF9933" />
+                      <Text style={styles.credEyebrow}>DPIIT RECOGNIZED</Text>
+                    </View>
+                    <Text style={[styles.credTitle, styles.credHeroTitle, { color: C.ink }]} numberOfLines={1}>
+                      Startup India
+                    </Text>
+                    <View style={styles.credMetaRow}>
+                      <Text style={styles.credSub} numberOfLines={1}>Govt. of India</Text>
+                      <View style={[styles.credMetaDot, { backgroundColor: C.inkD }]} />
+                      <View style={[styles.credVerifiedChip, styles.credHeroVerifiedChip, { backgroundColor: C.accentGlow, borderColor: C.accentBorder }]}>
+                        <Ionicons name="shield-checkmark" size={8} color={C.c600} />
+                        <Text style={[styles.credVerified, { color: C.c600 }]}>Verified</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={[styles.credBadgePill, styles.credHeroBadge, {
+                    backgroundColor: C.accentGlow,
+                    borderColor: C.accentBorder,
+                  }]}>
+                    <Ionicons name="ribbon" size={11} color={C.c600} />
+                  </View>
+                </LinearGradient>
+              </Animated.View>
+            </View>
 
             {/* ── Premium crest (136 px) ───────────────────────── */}
             <Animated.View
@@ -378,49 +431,6 @@ export default function Index() {
                 </Animated.Text>
               ) : null}
             </Animated.View>
-
-            {/* ── Platform headline ───────────────────────────── */}
-            <Animated.View
-              entering={FadeInDown.delay(320).duration(520)}
-              style={styles.headlineBlock}
-            >
-              <View style={styles.headlineRow}>
-                <Text style={[styles.hlBold, { color: C.ink }]}>Smart </Text>
-                <Text style={[styles.hlAccent, { color: C.c500 }]}>School.</Text>
-              </View>
-              <View style={styles.headlineRow}>
-                <Text style={[styles.hlBold, { color: C.ink }]}>Every </Text>
-                <Text style={[styles.hlAccent, { color: C.c500 }]}>Portal.</Text>
-              </View>
-              <Animated.Text
-                entering={FadeInDown.delay(400).duration(440)}
-                style={[styles.heroSub, { color: C.inkC }]}
-              >
-                One unified platform for students, teachers,{"\n"}
-                administrators, finance & transport.
-              </Animated.Text>
-            </Animated.View>
-
-            {/* ── Metrics row ─────────────────────────────────── */}
-            <View style={[styles.metricsRow, { borderColor: C.accentBorder }]}>
-              <MetricCard
-                value="500+" label="Students"
-                delay={440} accentColor={C.c600}
-                borderColor={C.accentBorder}
-              />
-              <View style={[styles.metricsDivider, { backgroundColor: C.accentBorder }]} />
-              <MetricCard
-                value="50+" label="Teachers"
-                delay={510} accentColor={C.c600}
-                borderColor={C.accentBorder}
-              />
-              <View style={[styles.metricsDivider, { backgroundColor: C.accentBorder }]} />
-              <MetricCard
-                value="99%" label="Uptime"
-                delay={580} accentColor={C.c600}
-                borderColor={C.accentBorder}
-              />
-            </View>
 
           </View>
 
@@ -537,87 +547,6 @@ export default function Index() {
 
           </View>
 
-          {/* Help row */}
-          <Animated.View entering={FadeInUp.delay(680).duration(400)} style={styles.helpRow}>
-            <View style={[styles.helpChip, { borderColor: C.border }]}>
-              <Ionicons name="help-circle-outline" size={14} color={C.inkD} />
-              <Text style={styles.helpText}>
-                Need help?{" "}
-                <Text style={[styles.helpLink, { color: C.c600 }]}>
-                  Contact your administrator
-                </Text>
-              </Text>
-            </View>
-          </Animated.View>
-
-          {/* ══ Startup India Recognition (enhanced) ══════════ */}
-          <Animated.View
-            entering={FadeInUp.delay(740).duration(500).springify()}
-            style={styles.credWrap}
-          >
-            <LinearGradient
-              colors={["#FFFFFF", C.accentSoft, "#FFFFFF"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.credCard, { borderColor: C.accentBorder }]}
-            >
-              {/* Indian tricolor ribbon — left edge */}
-              <View style={styles.credRibbon}>
-                <View style={[styles.credRibbonSeg, { backgroundColor: "#FF9933" }]} />
-                <View style={[
-                  styles.credRibbonSeg,
-                  {
-                    backgroundColor: "#FFFFFF",
-                    borderTopWidth: 0.5,
-                    borderBottomWidth: 0.5,
-                    borderColor: "rgba(0,0,0,0.08)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                ]}>
-                  <View style={styles.credAshoka} />
-                </View>
-                <View style={[styles.credRibbonSeg, { backgroundColor: "#138808" }]} />
-              </View>
-
-              {/* Logo in elevated framed ring */}
-              <View style={[styles.credLogoRing, { borderColor: C.accentBorder }]}>
-                <Image
-                  source={require("../assets/images/startup-india.png")}
-                  style={styles.credLogo}
-                />
-              </View>
-
-              {/* Divider */}
-              <View style={styles.credDivider} />
-
-              {/* Text block */}
-              <View style={styles.credText}>
-                <View style={styles.credEyebrowRow}>
-                  <View style={[styles.credEyebrowDot, { backgroundColor: C.c500 }]} />
-                  <Text style={styles.credEyebrow}>DPIIT RECOGNIZED</Text>
-                </View>
-                <Text style={[styles.credTitle, { color: C.ink }]} numberOfLines={1}>
-                  Startup India
-                </Text>
-                <View style={styles.credMetaRow}>
-                  <Text style={styles.credSub}>Government of India</Text>
-                  <View style={[styles.credMetaDot, { backgroundColor: C.inkD }]} />
-                  <Ionicons name="shield-checkmark" size={11} color={C.c600} />
-                  <Text style={[styles.credVerified, { color: C.c600 }]}>Verified</Text>
-                </View>
-              </View>
-
-              {/* Verified badge pill */}
-              <View style={[styles.credBadgePill, {
-                backgroundColor: C.accentGlow,
-                borderColor: C.accentBorder,
-              }]}>
-                <Ionicons name="ribbon-outline" size={13} color={C.c600} />
-              </View>
-            </LinearGradient>
-          </Animated.View>
-
           {/* Footer */}
           <Animated.View entering={FadeInUp.delay(820).duration(400)} style={styles.footer}>
             <View style={[styles.footerRule, { backgroundColor: C.border }]} />
@@ -648,6 +577,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: "center",
   },
+  /* OPTION 1: stacked column (pill on top, cred card full-width below) */
+  heroTopRow: {
+    alignSelf: "stretch",
+    gap: 12,
+    marginBottom: 18,
+  },
   heroCurve: {
     position: "absolute", bottom: -1, left: 0, right: 0,
     height: 28,               // ↓ was 44
@@ -675,10 +610,10 @@ const styles = StyleSheet.create({
   /* School pill */
   schoolPill: {
     flexDirection: "row", alignItems: "center",
-    alignSelf: "flex-start",
+    alignSelf: "flex-start",   // must not stretch full-width in a column
+    flexShrink: 1,
     borderRadius: 100,
     paddingRight: 12, paddingLeft: 4, paddingVertical: 4,
-    marginBottom: 18,         // ↓ was 26
     gap: 8, borderWidth: 1,
     ...Platform.select({
       ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10 },
@@ -692,7 +627,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pillLogo: { width: 22, height: 22, resizeMode: "contain" },
-  pillName: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2, flexShrink: 1, maxWidth: width * 0.44 },
+  /* name can breathe now that it owns its row */
+  pillName: { fontSize: 12, fontWeight: "700", letterSpacing: 0.2, flexShrink: 1, maxWidth: width * 0.6 },
 
   /* Live dot */
   liveDotWrap: { width: 14, height: 14, alignItems: "center", justifyContent: "center" },
@@ -753,35 +689,6 @@ const styles = StyleSheet.create({
     fontSize: 13, fontStyle: "italic", fontWeight: "500",
     textAlign: "center", letterSpacing: 0.3, marginTop: 2,
   },
-
-  /* Headline */
-  headlineBlock: { alignItems: "center", marginBottom: 14 },          // ↓ was 20
-  headlineRow: { flexDirection: "row" },
-  hlBold: { fontSize: 32, fontWeight: "900", letterSpacing: -1, lineHeight: 42 },   // ↓ was 38/50
-  hlAccent: { fontSize: 32, fontWeight: "900", letterSpacing: -1, lineHeight: 42 },
-  heroSub: {
-    fontSize: 13, fontWeight: "400",
-    lineHeight: 20, textAlign: "center", marginTop: 6,
-  },
-
-  /* Metrics */
-  metricsRow: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.94)",
-    borderRadius: 22, borderWidth: 1,
-    paddingVertical: 12, paddingHorizontal: 10,   // ↓ was 16
-    width: "100%",
-    ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.05, shadowRadius: 18 },
-      android: { elevation: 2 },
-    }),
-  },
-  metricCard: {
-    flex: 1, alignItems: "center", gap: 4,
-  },
-  metricValue: { fontSize: 22, fontWeight: "900", letterSpacing: -0.6 },   // ↓ was 24
-  metricLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 1.4, textTransform: "uppercase", color: "#94A3B8" },
-  metricsDivider: { width: 1, height: 32, opacity: 0.5 },
 
   /* ── Body ──────────────────────────────────────────────── */
   body: {
@@ -907,111 +814,180 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center", borderWidth: 1,
   },
 
-  /* Help */
-  helpRow: { alignItems: "center", marginTop: 28, marginBottom: 14 },
-  helpChip: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "rgba(0,0,0,0.025)", borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 9, borderWidth: 1,
-  },
-  helpText: { fontSize: 12, color: "#64748B" },
-  helpLink: { fontWeight: "700" },
-
-  /* ── Startup India (enhanced) ───────────────────────────── */
-  credWrap: {
-    marginTop: 4,
-    marginBottom: 14,
-    borderRadius: 18,
+  /* ── Startup India (hero top row) ───────────────────────── */
+  /* OPTION 1: full-width credential strip below the pill */
+  credHeroWrap: {
+    alignSelf: "stretch",      // was flex:1 / maxWidth: width*0.56
+    borderRadius: 14,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
+        shadowColor: "#1E293B",
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.08,
-        shadowRadius: 20,
+        shadowRadius: 10,
       },
-      android: { elevation: 4 },
+      android: { elevation: 3 },
     }),
   },
-  credCard: {
+  credHeroCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 16,
-    paddingLeft: 20,          // clears the 6px tricolor ribbon
-    paddingRight: 16,
+    gap: 8,
+    paddingVertical: 8,        // was 5
+    paddingLeft: 16,           // was 14
+    paddingRight: 8,
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 14,
     overflow: "hidden",
     position: "relative",
   },
   /* Tricolor ribbon — left edge */
   credRibbon: {
     position: "absolute",
-    left: 0, top: 0, bottom: 0,
+    left: 0,
+    top: 0,
+    bottom: 0,
     width: 6,
     flexDirection: "column",
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
+    overflow: "hidden",
   },
   credRibbonSeg: {
     flex: 1,
   },
   credAshoka: {
-    width: 4, height: 4, borderRadius: 2,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     borderWidth: 0.8,
     borderColor: "#000080",
   },
   /* Logo ring */
   credLogoRing: {
-    width: 56, height: 56, borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
-    alignItems: "center", justifyContent: "center",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     ...Platform.select({
-      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
-      android: { elevation: 2 },
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 10 },
+      android: { elevation: 3 },
     }),
   },
+  credHeroLogoRing: {
+    width: 40,                 // was 34
+    height: 40,                // was 34
+    borderRadius: 12,          // was 10
+  },
+  credHeroLogoInner: {
+    width: 34,                 // was 30
+    height: 34,                // was 30
+    borderRadius: 10,          // was 8
+  },
+  credHeroLogo: {
+    width: 28,                 // was 24
+    height: 28,                // was 24
+    resizeMode: "contain",
+  },
+  credLogoInner: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    backgroundColor: "#FAFAFA",
+  },
   credLogo: {
-    width: 46, height: 46, resizeMode: "contain",
+    width: 42,
+    height: 42,
+    resizeMode: "contain",
   },
   /* Thin center divider */
   credDivider: {
-    width: 1, height: 40,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    width: 1,
+    height: 30,
+    backgroundColor: "rgba(0,0,0,0.07)",
   },
   /* Text */
-  credText: { flex: 1, gap: 3 },
+  credText: { flex: 1, minWidth: 0, gap: 1 },
   credEyebrowRow: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-  },
-  credEyebrowDot: {
-    width: 5, height: 5, borderRadius: 2.5,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   credEyebrow: {
-    fontSize: 9, fontWeight: "800",
-    letterSpacing: 1.8, color: "#94A3B8",
+    fontSize: 7.5,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    color: "#94A3B8",
   },
   credTitle: {
-    fontSize: 16, fontWeight: "900",
-    letterSpacing: -0.3, lineHeight: 21,
+    fontSize: 16,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+    lineHeight: 21,
+  },
+  credHeroTitle: {
+    fontSize: 15,              // was 12
+    lineHeight: 19,            // was 15
   },
   credMetaRow: {
-    flexDirection: "row", alignItems: "center", gap: 5, marginTop: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 1,
   },
   credSub: {
-    fontSize: 11, fontWeight: "500",
-    color: "#64748B", letterSpacing: 0.1,
+    fontSize: 9,
+    fontWeight: "500",
+    color: "#64748B",
+    letterSpacing: 0.1,
+    flexShrink: 1,
   },
   credMetaDot: {
-    width: 2.5, height: 2.5, borderRadius: 1.25, opacity: 0.5,
+    width: 2.5,
+    height: 2.5,
+    borderRadius: 1.25,
+    opacity: 0.5,
+  },
+  credVerifiedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  credHeroVerifiedChip: {
+    paddingHorizontal: 6,      // was 5
+    paddingVertical: 2,        // was 1
+    borderRadius: 9,           // was 8
+    flexShrink: 0,
   },
   credVerified: {
-    fontSize: 10, fontWeight: "800", letterSpacing: 0.4,
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
   /* Right badge */
   credBadgePill: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: "center", justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
+  },
+  credHeroBadge: {
+    width: 28,                 // was 24
+    height: 28,                // was 24
+    borderRadius: 14,          // was 12
+    flexShrink: 0,
   },
 
   /* Footer */

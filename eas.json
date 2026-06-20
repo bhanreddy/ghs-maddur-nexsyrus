@@ -31,8 +31,8 @@
         "buildType": "app-bundle"
       }
     },
-    "school-17-production-apk": {
-      "extends": "school-17",
+    "school-12-production-apk": {
+      "extends": "school-12",
       "distribution": "internal",
       "autoIncrement": true,
       "channel": "production",
@@ -40,21 +40,21 @@
         "buildType": "apk"
       }
     },
-    "school-17": {
+    "school-12": {
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SCHOOL_ID": "17",
-        "EXPO_PUBLIC_SCHOOL_CODE": "SSNAWABPET",
-        "EXPO_PUBLIC_SCHOOL_NAME": "Samskruthe School Nawabpet",
+        "EXPO_PUBLIC_SCHOOL_ID": "12",
+        "EXPO_PUBLIC_SCHOOL_CODE": "SSK",
+        "EXPO_PUBLIC_SCHOOL_NAME": "Slate School Kosgi",
         "EXPO_PUBLIC_API_URL": "https://supabasebackend-551435597195.europe-west1.run.app/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://jztckbupiepiqfrxhszt.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6dGNrYnVwaWVwaXFmcnhoc3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzgyMTYsImV4cCI6MjA4ODcxNDIxNn0.TC6mwwLezkwMmPxkIzRnR7NPyworRVzQ_vXCkRmnz4o"
       }
     },
-    "school-17-production": {
-      "extends": "school-17",
+    "school-12-production": {
+      "extends": "school-12",
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
@@ -64,9 +64,9 @@
     }
   },
   "submit": {
-    "school-17-production": {
+    "school-12-production": {
       "android": {
-        "serviceAccountKeyPath": "./secrets/play-service-account-school-17.json",
+        "serviceAccountKeyPath": "./secrets/play-service-account-school-12.json",
         "track": "internal",
         "releaseStatus": "draft",
         "changesNotSentForReview": false
