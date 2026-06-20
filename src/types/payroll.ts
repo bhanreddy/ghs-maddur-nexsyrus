@@ -5,6 +5,7 @@ export interface PayrollEntry {
     staff_id: string;
     base_salary: number;
     bonus: number;
+    salary_adjustment: number;
     deductions: number;
     net_salary: number;
     status: PayrollStatus;

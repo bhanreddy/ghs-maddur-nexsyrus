@@ -101,7 +101,11 @@ export default function RouteDetailScreen() {
         api.get<LivePayload>(`/transport/routes/${routeId}/live`).catch(() => null),
         api.get<{ direction?: string | null; name?: string }>(`/transport/routes/${routeId}`),
       ]);
-      setStops(Array.isArray(stopsRes) ? stopsRes : []);
+      setStops(
+        Array.isArray(stopsRes)
+          ? [...stopsRes].sort((a, b) => (a.stop_order ?? 0) - (b.stop_order ?? 0))
+          : [],
+      );
       setStudents(Array.isArray(studentsRes) ? studentsRes : []);
       setLiveTrip(liveRes?.trip ?? null);
       setDirection(routeBundle?.direction ?? null);
@@ -149,6 +153,9 @@ export default function RouteDetailScreen() {
 
   const onDragEndStops = async ({ data }: { data: StopRow[] }) => {
     const orderedIds = data.map((s) => s.id);
+    const unchanged = orderedIds.every((id, i) => id === stops[i]?.id);
+    if (unchanged) return;
+
     const prev = stops;
     setStops(data.map((s, i) => ({ ...s, stop_order: i + 1 })));
     try {
@@ -159,6 +166,14 @@ export default function RouteDetailScreen() {
       setStops(prev);
       alertCompat('Error', e?.message || 'Reorder failed');
     }
+  };
+
+  const moveStop = async (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= stops.length || fromIndex === toIndex) return;
+    const reordered = [...stops];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    await onDragEndStops({ data: reordered });
   };
 
   const confirmDeleteRoute = () => {
@@ -377,7 +392,12 @@ export default function RouteDetailScreen() {
 
   const tripChip = tripBadge();
 
-  const renderStop = ({ item, drag, isActive }: RenderItemParams<StopRow>) => (
+  const renderStop = ({ item, drag, isActive, getIndex }: RenderItemParams<StopRow>) => {
+    const index = getIndex?.() ?? stops.findIndex((s) => s.id === item.id);
+    const canMoveUp = index > 0;
+    const canMoveDown = index >= 0 && index < stops.length - 1;
+
+    return (
     <ScaleDecorator>
       <Swipeable
         renderRightActions={() => (
@@ -389,31 +409,62 @@ export default function RouteDetailScreen() {
           </TouchableOpacity>
         )}
       >
-        <TouchableOpacity
-          onLongPress={drag}
-          disabled={isActive}
-          style={[styles.stopCard, isActive && { opacity: 0.9 }]}
-          activeOpacity={0.9}
-        >
+        <View style={[styles.stopCard, isActive && { opacity: 0.9 }]}>
           <View style={styles.orderBadge}>
             <Text style={styles.orderBadgeTxt}>{item.stop_order}</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.stopName}>{item.name}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.stopName} numberOfLines={2}>{item.name || 'Unnamed stop'}</Text>
             <Text style={styles.stopMeta}>{studentCountAtStop(item.id)} student(s)</Text>
           </View>
           <TouchableOpacity
             onPress={() => openEditStopModal(item)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={styles.stopEditBtn}
+            style={styles.stopActionBtn}
           >
             <Ionicons name="create-outline" size={20} color="#4338CA" />
           </TouchableOpacity>
-          <Ionicons name="reorder-three" size={28} color="#94A3B8" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => confirmDeleteStop(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.stopActionBtn}
+          >
+            <Ionicons name="trash-outline" size={20} color="#DC2626" />
+          </TouchableOpacity>
+          <View style={styles.stopReorderCol}>
+            <TouchableOpacity
+              onPress={() => moveStop(index, index - 1)}
+              disabled={!canMoveUp}
+              style={[styles.stopMoveBtn, !canMoveUp && styles.stopMoveBtnDisabled]}
+              hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
+            >
+              <Ionicons name="chevron-up" size={18} color={canMoveUp ? '#4338CA' : '#CBD5E1'} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => moveStop(index, index + 1)}
+              disabled={!canMoveDown}
+              style={[styles.stopMoveBtn, !canMoveDown && styles.stopMoveBtnDisabled]}
+              hitSlop={{ top: 4, bottom: 4, left: 8, right: 8 }}
+            >
+              <Ionicons name="chevron-down" size={18} color={canMoveDown ? '#4338CA' : '#CBD5E1'} />
+            </TouchableOpacity>
+          </View>
+          <Pressable
+            onLongPress={drag}
+            delayLongPress={Platform.OS === 'web' ? 200 : 120}
+            style={({ pressed }) => [
+              styles.dragHandle,
+              pressed && styles.dragHandlePressed,
+              Platform.OS === 'web' && { cursor: 'grab' as const },
+            ]}
+          >
+            <Ionicons name="reorder-three" size={28} color="#94A3B8" />
+          </Pressable>
+        </View>
       </Swipeable>
     </ScaleDecorator>
-  );
+    );
+  };
 
   if (loading && stops.length === 0 && students.length === 0) {
     return (
@@ -454,6 +505,10 @@ export default function RouteDetailScreen() {
           <Ionicons name="create-outline" size={16} color="#4338CA" />
           <Text style={styles.routeEditLinkTxt}>Edit route</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.routeDeleteLink} onPress={confirmDeleteRoute}>
+          <Ionicons name="trash-outline" size={16} color="#DC2626" />
+          <Text style={styles.routeDeleteLinkTxt}>Delete route</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.driverRow}>
@@ -481,6 +536,11 @@ export default function RouteDetailScreen() {
 
       {tab === 'stops' ? (
         <>
+          {stops.length > 1 ? (
+            <Text style={styles.reorderHint}>
+              Use arrows or drag the handle to set stop order
+            </Text>
+          ) : null}
           <DraggableFlatList
             data={stops}
             keyExtractor={(item) => item.id}
@@ -771,6 +831,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF2FF',
   },
   routeEditLinkTxt: { color: '#4338CA', fontWeight: '700', fontSize: 12 },
+  routeDeleteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FEF2F2',
+  },
+  routeDeleteLinkTxt: { color: '#DC2626', fontWeight: '700', fontSize: 12 },
   driverRow: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -796,13 +866,14 @@ const styles = StyleSheet.create({
   stopCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     backgroundColor: '#fff',
     padding: 14,
     borderRadius: 14,
     marginBottom: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#E5E7EB',
+    flexWrap: 'nowrap',
   },
   orderBadge: {
     width: 32,
@@ -815,9 +886,33 @@ const styles = StyleSheet.create({
   orderBadgeTxt: { fontWeight: '800', color: '#4338CA', fontSize: 14 },
   stopName: { fontSize: 16, fontWeight: '700', color: '#111827' },
   stopMeta: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  stopEditBtn: {
+  stopActionBtn: {
     padding: 4,
+  },
+  stopReorderCol: {
+    alignItems: 'center',
     marginRight: 4,
+  },
+  stopMoveBtn: {
+    padding: 2,
+  },
+  stopMoveBtnDisabled: {
+    opacity: 0.35,
+  },
+  dragHandle: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    justifyContent: 'center',
+  },
+  dragHandlePressed: {
+    opacity: 0.7,
+  },
+  reorderHint: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginHorizontal: 16,
+    marginBottom: 4,
   },
   fieldLabel: {
     fontSize: 12,

@@ -1,6 +1,6 @@
 import React from 'react';
 import PayrollScreen from '../../src/components/payroll/PayrollScreen';
 
-export default function AccountsPayroll() {
-  return <PayrollScreen title="Payroll" />;
+export default function AdminPayroll() {
+  return <PayrollScreen isAdmin title="Payroll" />;
 }

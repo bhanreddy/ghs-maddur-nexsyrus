@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import AppDatePicker from '@/src/components/AppDatePicker';
 
@@ -25,6 +25,9 @@ export default function SetClassFeeScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [feeMode, setFeeMode] = useState<FeeMode>('per_class');
+  const [pendingFeeMode, setPendingFeeMode] = useState<FeeMode | null>(null);
+  const loadFeeModeSeq = useRef(0);
+  const displayFeeMode = pendingFeeMode ?? feeMode;
   const [missingSections, setMissingSections] = useState<any[]>([]);
   const [configuredFees, setConfiguredFees] = useState<FeeStructure[]>([]);
   const [listClassFilter, setListClassFilter] = useState('');
@@ -53,15 +56,27 @@ export default function SetClassFeeScreen() {
   }, [classSections, selectedClassId, selectedYearId]);
 
   const loadFeeMode = useCallback(async (yearId?: string) => {
+    const seq = ++loadFeeModeSeq.current;
     try {
-      const result = await FeeService.listStructures(yearId);
-      setFeeMode(result.fee_mode);
+      const [mode, result] = await Promise.all([
+        FeeService.getFeeMode(),
+        FeeService.listStructures(yearId),
+      ]);
+      if (seq !== loadFeeModeSeq.current) return;
+
+      const structures = result.structures ?? [];
+      const hasSectionRows = structures.some((s) => s.section_id);
+      const resolvedMode: FeeMode =
+        mode === 'per_section' || hasSectionRows ? 'per_section' : 'per_class';
+
+      setFeeMode(resolvedMode);
       setMissingSections(result.missing_sections ?? []);
-      setConfiguredFees(result.structures ?? []);
+      setConfiguredFees(structures);
     } catch {
+      if (seq !== loadFeeModeSeq.current) return;
       const mode = await FeeService.getFeeMode().catch(() => 'per_class' as FeeMode);
+      if (seq !== loadFeeModeSeq.current) return;
       setFeeMode(mode);
-      setConfiguredFees([]);
     }
   }, []);
 
@@ -77,7 +92,7 @@ export default function SetClassFeeScreen() {
 
     (async () => {
       try {
-        const sectionArg = feeMode === 'per_section' ? selectedSectionId || undefined : undefined;
+        const sectionArg = displayFeeMode === 'per_section' ? selectedSectionId || undefined : undefined;
         const structures = await FeeService.getStructureByClass(
           selectedClassId,
           selectedYearId,
@@ -95,7 +110,7 @@ export default function SetClassFeeScreen() {
     })();
 
     return () => { cancelled = true; };
-  }, [selectedClassId, selectedYearId, feeTypeId, selectedSectionId, feeMode]);
+  }, [selectedClassId, selectedYearId, feeTypeId, selectedSectionId, displayFeeMode]);
 
   useEffect(() => {
     if (!selectedYearId) return;
@@ -106,7 +121,7 @@ export default function SetClassFeeScreen() {
   }, [selectedYearId, loadFeeMode]);
 
   useEffect(() => {
-    if (feeMode !== 'per_section') {
+    if (displayFeeMode !== 'per_section') {
       setSelectedSectionId('');
       return;
     }
@@ -117,7 +132,7 @@ export default function SetClassFeeScreen() {
     if (!sectionsForClass.some((s) => s.section_id === selectedSectionId)) {
       setSelectedSectionId(sectionsForClass[0].section_id);
     }
-  }, [feeMode, sectionsForClass, selectedSectionId]);
+  }, [displayFeeMode, sectionsForClass, selectedSectionId]);
 
   const loadInitialData = async () => {
     try {
@@ -137,7 +152,6 @@ export default function SetClassFeeScreen() {
         });
         setSelectedYearId(current?.id || yearsData[0].id);
       }
-      await loadFeeMode();
     } catch {
       alertCompat('Error', 'Failed to load configuration data');
     } finally {
@@ -146,14 +160,19 @@ export default function SetClassFeeScreen() {
   };
 
   const confirmFeeModeChange = (nextMode: FeeMode) => {
-    if (nextMode === feeMode) return;
+    if (nextMode === feeMode) {
+      setPendingFeeMode(null);
+      return;
+    }
+
+    setPendingFeeMode(nextMode);
 
     if (nextMode === 'per_section') {
       alertCompat(
         'Switch to Per Section?',
         'This will copy class fees to each section and remove class-level fee structures. Each section can then be edited individually. Continue?',
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: 'Cancel', style: 'cancel', onPress: () => setPendingFeeMode(null) },
           { text: 'Continue', onPress: () => void applyFeeModeChange('per_section') },
         ]
       );
@@ -164,7 +183,7 @@ export default function SetClassFeeScreen() {
       'Switch to Per Class?',
       'Section-level fee structures will be removed. One fee applies to the entire class. Existing payments are kept.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel', onPress: () => setPendingFeeMode(null) },
         { text: 'Switch', onPress: () => void applyFeeModeChange('per_class') },
       ]
     );
@@ -175,6 +194,7 @@ export default function SetClassFeeScreen() {
       setModeSaving(true);
       const result = await FeeService.setFeeMode(nextMode);
       setFeeMode(result.fee_mode);
+      setPendingFeeMode(null);
       await loadFeeMode(selectedYearId);
       alertCompat(
         'Success',
@@ -183,6 +203,7 @@ export default function SetClassFeeScreen() {
           : 'Per-class mode enabled.'
       );
     } catch (error: any) {
+      setPendingFeeMode(null);
       alertCompat('Error', error?.message || error?.response?.data?.error || 'Failed to update fee mode');
     } finally {
       setModeSaving(false);
@@ -212,6 +233,10 @@ export default function SetClassFeeScreen() {
   const handleSubmit = async () => {
     if (!selectedClassId || !amount || !feeTypeId || !selectedYearId) {
       alertCompat('Error', 'Please fill all required fields');
+      return;
+    }
+    if (pendingFeeMode && pendingFeeMode !== feeMode) {
+      alertCompat('Error', 'Please confirm the fee mode change before saving fees.');
       return;
     }
     if (feeMode === 'per_section' && !selectedSectionId) {
@@ -331,7 +356,7 @@ export default function SetClassFeeScreen() {
           <Text style={styles.sectionTitle}>Fee Mode</Text>
           <View style={styles.modeRow}>
             <View style={styles.modeLabels}>
-              <Text style={[styles.modeLabel, feeMode === 'per_class' && styles.modeLabelActive]}>
+              <Text style={[styles.modeLabel, displayFeeMode === 'per_class' && styles.modeLabelActive]}>
                 Per Class
               </Text>
               <Text style={[styles.modeHint, { color: isDark ? '#64748B' : '#94A3B8' }]}>
@@ -339,13 +364,13 @@ export default function SetClassFeeScreen() {
               </Text>
             </View>
             <Switch
-              value={feeMode === 'per_section'}
+              value={displayFeeMode === 'per_section'}
               onValueChange={(on) => confirmFeeModeChange(on ? 'per_section' : 'per_class')}
               disabled={modeSaving}
               trackColor={{ false: '#CBD5E1', true: ADMIN_THEME.colors.primary }}
             />
             <View style={styles.modeLabels}>
-              <Text style={[styles.modeLabel, feeMode === 'per_section' && styles.modeLabelActive]}>
+              <Text style={[styles.modeLabel, displayFeeMode === 'per_section' && styles.modeLabelActive]}>
                 Per Section
               </Text>
               <Text style={[styles.modeHint, { color: isDark ? '#64748B' : '#94A3B8' }]}>
@@ -361,7 +386,7 @@ export default function SetClassFeeScreen() {
           ) : null}
         </View>
 
-        {feeMode === 'per_section' && missingForSelection.length > 0 ? (
+        {displayFeeMode === 'per_section' && missingForSelection.length > 0 ? (
           <View style={[styles.card, styles.warningCard]}>
             <View style={styles.warningHeader}>
               <Ionicons name="warning-outline" size={18} color="#D97706" />
@@ -396,7 +421,7 @@ export default function SetClassFeeScreen() {
             ))}
           </ScrollView>
 
-          {feeMode === 'per_section' ? (
+          {displayFeeMode === 'per_section' ? (
             <>
               <Text style={styles.label}>Select Section</Text>
               {sectionsForClass.length === 0 ? (
@@ -546,7 +571,7 @@ export default function SetClassFeeScreen() {
           <Text style={styles.listSubtitle}>
             Fees already set for{' '}
             {academicYears.find((y) => y.id === selectedYearId)?.code ?? 'this year'}
-            {feeMode === 'per_section' ? ' (per section)' : ' (per class)'}
+            {displayFeeMode === 'per_section' ? ' (per section)' : ' (per class)'}
           </Text>
 
           <Text style={styles.label}>Filter by Class</Text>
@@ -590,7 +615,7 @@ export default function SetClassFeeScreen() {
                   <View style={styles.feeRowMain}>
                     <Text style={styles.feeRowClass}>
                       {fee.class_name ?? 'Class'}
-                      {feeMode === 'per_section' && fee.section_name ? ` · ${fee.section_name}` : ''}
+                      {displayFeeMode === 'per_section' && fee.section_name ? ` · ${fee.section_name}` : ''}
                     </Text>
                     <Text style={styles.feeRowType}>{fee.fee_type ?? 'Fee'}</Text>
                   </View>

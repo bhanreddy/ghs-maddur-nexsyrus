@@ -28,19 +28,38 @@ export interface AdminDashboardStats {
     // Add other relevant stats
 }
 
+export interface AccountsPortalStaffMember {
+    staff_id: string;
+    first_name?: string;
+    last_name?: string;
+    display_name?: string;
+    staff_code?: string;
+    designation?: string | null;
+    email?: string | null;
+    user_id?: string | null;
+    has_login: boolean;
+    has_accounts_access: boolean;
+    is_elevated: boolean;
+}
+
+export interface AccountsStaffCreationSetting {
+    enabled: boolean;
+    message?: string;
+}
+
 export interface AdminFinanceStats {
     today_collection: number;
     monthly_collection: number;
     collected_total: number;
     pending_dues: number;
     defaulter_count: number;
-    recent_transactions?: Array<{
+    recent_transactions?: {
         id: string;
         amount: number;
         payment_method?: string;
         paid_at?: string;
         student_name?: string;
-    }>;
+    }[];
 }
 
 // --- Mock Data (Temporary until Backend Endpoints are ready) ---
@@ -95,5 +114,28 @@ export const AdminService = {
      */
     updateAccountsDashboardConfig: async (config: Record<string, boolean>): Promise<{ config: Record<string, boolean> }> => {
         return api.put<{ config: Record<string, boolean> }>('/admin/accounts-dashboard-config', { config });
-    }
+    },
+
+    getAccountsPortalStaff: async (): Promise<AccountsPortalStaffMember[]> => {
+        const res = await api.get<{ staff: AccountsPortalStaffMember[] }>('/admin/accounts-portal-staff');
+        return Array.isArray(res?.staff) ? res.staff : [];
+    },
+
+    setAccountsPortalAccess: async (
+        staffId: string,
+        enabled: boolean,
+    ): Promise<{ staff_id: string; has_accounts_access: boolean; message: string }> => {
+        return api.put<{ staff_id: string; has_accounts_access: boolean; message: string }>(
+            `/admin/accounts-portal-staff/${staffId}`,
+            { enabled },
+        );
+    },
+
+    getAccountsStaffCreationSetting: async (): Promise<AccountsStaffCreationSetting> => {
+        return api.get<AccountsStaffCreationSetting>('/admin/accounts-staff-creation');
+    },
+
+    setAccountsStaffCreationEnabled: async (enabled: boolean): Promise<AccountsStaffCreationSetting> => {
+        return api.put<AccountsStaffCreationSetting>('/admin/accounts-staff-creation', { enabled });
+    },
 };

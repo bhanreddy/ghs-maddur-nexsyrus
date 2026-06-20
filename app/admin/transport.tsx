@@ -251,6 +251,32 @@ export default function AdminTransport() {
     }
   };
 
+  const handleDeleteRoute = (route: RouteRow) => {
+    alertCompat(
+      'Delete Route',
+      `Delete "${route.name}"? All stops and student assignments on this route will be removed. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setCreating(true);
+              await api.delete(`/transport/routes/${route.id}`);
+              await fetchRoutes();
+              alertCompat('Done', 'Route deleted');
+            } catch (e: any) {
+              alertCompat('Error', e?.message || 'Could not delete route');
+            } finally {
+              setCreating(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const openAssignModal = async (bus: BusItem) => {
     setAssignBusId(bus.id);
     setAssignDriverId(null);
@@ -449,14 +475,26 @@ export default function AdminTransport() {
               </View>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.routeEditBtn}
-            onPress={() => openEditRouteModal(item)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="create-outline" size={16} color="#4338CA" />
-            <Text style={styles.editActionText}>Edit Route</Text>
-          </TouchableOpacity>
+          <View style={styles.busActionsRow}>
+            <TouchableOpacity
+              style={[styles.editActionBtn, styles.busActionBtn]}
+              onPress={() => openEditRouteModal(item)}
+              disabled={creating}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="create-outline" size={16} color="#4338CA" />
+              <Text style={styles.editActionText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.deleteActionBtn, styles.busActionBtn]}
+              onPress={() => handleDeleteRoute(item)}
+              disabled={creating}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={16} color="#DC2626" />
+              <Text style={styles.deleteActionText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
     );

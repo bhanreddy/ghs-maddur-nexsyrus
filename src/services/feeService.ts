@@ -14,17 +14,25 @@ import {
 export { FeeType };
 export type { FeeMode, FeeStructureListResponse };
 
+function inferFeeMode(payload: any, structures: FeeStructure[]): FeeMode {
+    if (payload?.fee_mode === 'per_section') return 'per_section';
+    if (payload?.fee_mode === 'per_class') return 'per_class';
+    if (structures.some((s) => s.section_id)) return 'per_section';
+    return 'per_class';
+}
+
 function parseStructurePayload(result: any): FeeStructureListResponse {
     if (Array.isArray(result)) {
-        return { fee_mode: 'per_class', structures: result };
+        return { fee_mode: inferFeeMode(null, result), structures: result };
     }
     const payload = result?.structures != null ? result : result?.data ?? result;
     if (Array.isArray(payload)) {
-        return { fee_mode: 'per_class', structures: payload };
+        return { fee_mode: inferFeeMode(null, payload), structures: payload };
     }
+    const structures = payload?.structures ?? [];
     return {
-        fee_mode: payload?.fee_mode === 'per_section' ? 'per_section' : 'per_class',
-        structures: payload?.structures ?? [],
+        fee_mode: inferFeeMode(payload, structures),
+        structures,
         missing_sections: payload?.missing_sections ?? [],
     };
 }

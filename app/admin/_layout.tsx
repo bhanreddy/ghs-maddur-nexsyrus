@@ -18,6 +18,7 @@ export default function AdminLayout() {
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="upi-settings" />
                 <Stack.Screen name="academic-year-upgrade" />
+                <Stack.Screen name="payroll" />
             </Stack>
     );
 }

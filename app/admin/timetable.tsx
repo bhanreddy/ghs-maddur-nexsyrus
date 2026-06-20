@@ -198,6 +198,23 @@ const minsToTime = (totalMins: number): string => {
 
 const isBreakPeriod = (name: string) => /break|lunch|recess|interval/i.test(name || '');
 
+/** Teaching period index (1-based), excluding breaks — used for display labels only. */
+const getTeachingPeriodNumber = (periods: Period[], index: number): number => {
+  let n = 0;
+  for (let i = 0; i <= index; i++) {
+    const p = periods[i];
+    if (!p) continue;
+    if (p.is_break || isBreakPeriod(p.name)) continue;
+    n++;
+  }
+  return n;
+};
+
+const countTeachingPeriods = (periods: Period[]) =>
+  periods.filter((p) => !p.is_break && !isBreakPeriod(p.name)).length;
+
+const nextDefaultPeriodName = (periods: Period[]) => `Period ${countTeachingPeriods(periods) + 1}`;
+
 // ─── Animated Row ──────────────────────────────────────────────────────────────
 function AnimatedRow({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -624,34 +641,35 @@ export default function TimetableManagement() {
 
   const getSlotForPeriod = (periodNumber: number) => slots.find(s => s.period_number === periodNumber);
 
-  const openManagePeriods = () => {
-    setEditedPeriods(JSON.parse(JSON.stringify(periods)));
-    setManagePeriodsVisible(true);
+  const openManagePeriods = async () => {
+    try {
+      setActionLoading(true);
+      const fresh = await TimetableService.getPeriods();
+      setPeriods(fresh);
+      setEditedPeriods(JSON.parse(JSON.stringify(fresh)));
+      setManagePeriodsVisible(true);
+    } catch (error: any) {
+      alertCompat('Error', error?.message || 'Failed to load timings');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleSavePeriods = async () => {
     try {
       setActionLoading(true);
-      const isTempId = (id: string) => !id || id.startsWith('temp_');
-      const payload: Period[] = [];
-      for (const p of editedPeriods) {
-        if (isTempId(p.id)) {
-          const created = await TimetableService.createPeriod({
-            name: p.name,
-            start_time: p.start_time,
-            end_time: p.end_time,
-            is_break: isBreakPeriod(p.name),
-          });
-          payload.push({
-            ...created,
-            name: p.name,
-            start_time: p.start_time,
-            end_time: p.end_time,
-            sort_order: p.sort_order,
-            is_break: isBreakPeriod(p.name),
-          });
-        } else {
-          payload.push({ ...p, is_break: p.is_break ?? isBreakPeriod(p.name) });
+      const payload: Period[] = editedPeriods.map((p, index) => ({
+        ...p,
+        name: p.name?.trim(),
+        sort_order: index + 1,
+        is_break: p.is_break === true || isBreakPeriod(p.name),
+      }));
+
+      for (const p of payload) {
+        if (!p.name?.trim()) {
+          alertCompat('Validation', 'Every period and break needs a name before saving.');
+          setActionLoading(false);
+          return;
         }
       }
       await TimetableService.updatePeriods(payload);
@@ -663,6 +681,15 @@ export default function TimetableManagement() {
         await reloadSlotsForCurrentSelection(classSectionId, yearId);
       }
     } catch (error: any) {
+      if (String(error?.message || '').includes('no longer exist')) {
+        const fresh = await TimetableService.getPeriods().catch(() => null);
+        if (fresh) {
+          setPeriods(fresh);
+          setEditedPeriods(JSON.parse(JSON.stringify(fresh)));
+          alertCompat('Timings Refreshed', 'The timing structure changed in the database. Please review the refreshed timings and save again.');
+          return;
+        }
+      }
       alertCompat('Error', error?.message || 'Failed to update periods');
     } finally { setActionLoading(false); }
   };
@@ -693,6 +720,41 @@ export default function TimetableManagement() {
         end_time: minsToTime(prevEnd + safeDur),
       };
     }
+    setEditedPeriods(updated);
+  };
+
+  // Insert a teaching period after the given index
+  const insertPeriodAfter = (afterIndex: number) => {
+    const updated = [...editedPeriods];
+    const prevEnd = getMins(updated[afterIndex].end_time);
+    const periodDuration = 40;
+    const newPeriod: Period = {
+      id: `temp_period_${Date.now()}`,
+      name: nextDefaultPeriodName(updated),
+      start_time: minsToTime(prevEnd),
+      end_time: minsToTime(prevEnd + periodDuration),
+      sort_order: afterIndex + 2,
+      is_break: false,
+    } as Period;
+    updated.splice(afterIndex + 1, 0, newPeriod);
+    for (let i = afterIndex + 2; i < updated.length; i++) {
+      const pEnd = getMins(updated[i - 1].end_time);
+      const d = getMins(updated[i].end_time) - getMins(updated[i].start_time);
+      const sd = d > 0 ? d : 40;
+      updated[i] = { ...updated[i], start_time: minsToTime(pEnd), end_time: minsToTime(pEnd + sd) };
+    }
+    updated.forEach((p, i) => { p.sort_order = i + 1; });
+    setEditedPeriods(updated);
+  };
+
+  const updatePeriodName = (index: number, name: string) => {
+    const updated = [...editedPeriods];
+    const isBreak = isBreakPeriod(name);
+    updated[index] = {
+      ...updated[index],
+      name,
+      is_break: isBreak ? true : false,
+    };
     setEditedPeriods(updated);
   };
 
@@ -738,6 +800,23 @@ export default function TimetableManagement() {
     setEditedPeriods(updated);
   };
 
+  const removePeriodAt = (index: number) => {
+    const period = editedPeriods[index];
+    if (!period || period.is_break || isBreakPeriod(period.name)) return;
+    alertCompat(
+      'Remove Period',
+      `Remove "${period.name}"? Timetable slots for this slot will be cleared when you save.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => removeBreak(index),
+        },
+      ],
+    );
+  };
+
   // Adjust the start time of the first period, then cascade everything
   const adjustStartTime = (delta: number) => {
     const updated = [...editedPeriods];
@@ -770,8 +849,18 @@ export default function TimetableManagement() {
     if (!editingPeriod) return;
     try {
       setActionLoading(true);
-      await TimetableService.updatePeriods([editingPeriod]);
-      setPeriods(periods.map(p => p.id === editingPeriod.id ? editingPeriod : p));
+      const payload = periods.map((p, index) => {
+        const next = p.id === editingPeriod.id ? editingPeriod : p;
+        return {
+          ...next,
+          name: next.name?.trim(),
+          sort_order: index + 1,
+          is_break: next.is_break === true || isBreakPeriod(next.name),
+        };
+      });
+      await TimetableService.updatePeriods(payload);
+      const fresh = await TimetableService.getPeriods();
+      setPeriods(fresh);
       setEditPeriodModalVisible(false);
       alertCompat('Success', 'Period updated');
       await reloadSlotsForCurrentSelection();
@@ -832,9 +921,11 @@ export default function TimetableManagement() {
   }, [periods]);
 
   // ─── Slot Row ─────────────────────────────────────────────────────────────────
-  const renderSlotRow = (period: Period, slot: TimetableSlot | undefined, index: number) => {
+  const renderSlotRow = (period: Period, slot: TimetableSlot | undefined, index: number, sortedPeriods: Period[]) => {
     const isFilled = !!slot;
     const isLive = livePeriodId === period.id;
+    const isBreak = period.is_break || isBreakPeriod(period.name);
+    const teachingNum = isBreak ? null : getTeachingPeriodNumber(sortedPeriods, index);
     const subj = isFilled ? subjectPalette(slot!.subject_id || slot!.subject_name || '', isDark) : null;
     const duration = getDurationLabel(period.start_time, period.end_time);
 
@@ -851,7 +942,7 @@ export default function TimetableManagement() {
             activeOpacity={0.65}
           >
             <View style={[styles.periodBadge, isFilled && styles.periodBadgeFilled]}>
-              <Text style={styles.periodBadgeText}>{period.sort_order}</Text>
+              <Text style={styles.periodBadgeText}>{teachingNum ?? period.sort_order}</Text>
             </View>
             <Text style={styles.periodTime}>{fmt(period.start_time)}</Text>
             <View style={styles.periodTimeDivider} />
@@ -955,9 +1046,13 @@ export default function TimetableManagement() {
     const rows: React.ReactNode[] = [];
     for (let i = 0; i < sorted.length; i++) {
       const period = sorted[i];
-      rows.push(renderSlotRow(period, getSlotForPeriod(period.sort_order), i));
-      if (i < sorted.length - 1 && sorted[i + 1].start_time > period.end_time) {
-        rows.push(renderBreakRow(period.end_time, sorted[i + 1].start_time, `break-${i}`));
+      if (period.is_break || isBreakPeriod(period.name)) {
+        rows.push(renderBreakRow(period.start_time, period.end_time, `break-${period.id}`));
+      } else {
+        rows.push(renderSlotRow(period, getSlotForPeriod(period.sort_order), i, sorted));
+      }
+      if (i < sorted.length - 1 && getMins(sorted[i + 1].start_time) > getMins(period.end_time)) {
+        rows.push(renderBreakRow(period.end_time, sorted[i + 1].start_time, `gap-${i}`));
       }
     }
     return rows;
@@ -1029,7 +1124,12 @@ export default function TimetableManagement() {
             {academicYears.length > 1 && (
               <View style={{ marginBottom: 12 }}>
                 <SectionLabel title="Academic Year" icon="calendar-outline" c={c} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                  style={styles.chipScroller}
+                  contentContainerStyle={styles.chipRow}
+                >
                   {academicYears.map(y => (
                     <TouchableOpacity
                       key={y.id}
@@ -1048,10 +1148,15 @@ export default function TimetableManagement() {
               </View>
             )}
 
-            <View style={styles.selectorRow}>
-              <View style={styles.selectorGroup}>
+            <View style={styles.selectorStack}>
+              <View style={styles.selectorBlock}>
                 <SectionLabel title="Class" icon="school-outline" c={c} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                  style={styles.chipScroller}
+                  contentContainerStyle={styles.chipRow}
+                >
                   {classes.map(cl => (
                     <TouchableOpacity
                       key={cl.id}
@@ -1067,11 +1172,14 @@ export default function TimetableManagement() {
                 </ScrollView>
               </View>
 
-              <View style={styles.selectorDivider} />
-
-              <View style={styles.selectorGroup}>
+              <View style={styles.selectorBlock}>
                 <SectionLabel title="Section" icon="grid-outline" c={c} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                  style={styles.chipScroller}
+                  contentContainerStyle={styles.chipRow}
+                >
                   {sections.map(s => (
                     <TouchableOpacity
                       key={s.id}
@@ -1118,7 +1226,12 @@ export default function TimetableManagement() {
               </Text>
 
               {timetableMode === 'per_day' && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8, marginTop: 10 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={Platform.OS === 'web'}
+                  style={styles.chipScroller}
+                  contentContainerStyle={[styles.chipRow, { marginTop: 10 }]}
+                >
                   {TIMETABLE_DAYS.map((d) => (
                     <TouchableOpacity
                       key={d}
@@ -1496,7 +1609,7 @@ export default function TimetableManagement() {
               <View style={styles.modalTitleGroup}>
                 <Text style={styles.modalTitle}>Manage Timings</Text>
                 <View style={styles.modalBadge}>
-                  <Text style={styles.modalBadgeText}>{editedPeriods.length} periods</Text>
+                  <Text style={styles.modalBadgeText}>{countTeachingPeriods(editedPeriods)} periods</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => setManagePeriodsVisible(false)} style={styles.modalCloseBtn}>
@@ -1527,7 +1640,8 @@ export default function TimetableManagement() {
               {editedPeriods.map((period, index) => {
                 const durationMins = getMins(period.end_time) - getMins(period.start_time);
                 const duration = getDurationLabel(period.start_time, period.end_time);
-                const isBreak = isBreakPeriod(period.name);
+                const isBreak = period.is_break || isBreakPeriod(period.name);
+                const teachingNum = isBreak ? null : getTeachingPeriodNumber(editedPeriods, index);
 
                 return (
                   <React.Fragment key={period.id}>
@@ -1536,23 +1650,28 @@ export default function TimetableManagement() {
                         {isBreak ? (
                           <Ionicons name="cafe-outline" size={12} color={c.onAccent} />
                         ) : (
-                          <Text style={styles.bulkPeriodNum}>{index + 1}</Text>
+                          <Text style={styles.bulkPeriodNum}>{teachingNum}</Text>
                         )}
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={styles.bulkHeaderRow}>
-                          <Text style={[styles.bulkPeriodName, isBreak && styles.bulkPeriodNameBreak]}>
-                            {period.name}
-                          </Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <AppTextInput
+                            style={[styles.bulkPeriodNameInput, isBreak && styles.bulkPeriodNameBreak]}
+                            value={period.name}
+                            onChangeText={(text) => updatePeriodName(index, text)}
+                            placeholder={isBreak ? 'Break' : `Period ${teachingNum}`}
+                            placeholderTextColor={c.textMuted}
+                          />
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                             <Text style={[styles.timeRangeLabel, isBreak && styles.timeRangeLabelBreak]}>
                               {fmt(period.start_time)} – {fmt(period.end_time)}
                             </Text>
-                            {isBreak && (
-                              <TouchableOpacity onPress={() => removeBreak(index)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                                <Ionicons name="trash-outline" size={14} color={c.danger} />
-                              </TouchableOpacity>
-                            )}
+                            <TouchableOpacity
+                              onPress={() => (isBreak ? removeBreak(index) : removePeriodAt(index))}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <Ionicons name="trash-outline" size={14} color={c.danger} />
+                            </TouchableOpacity>
                           </View>
                         </View>
 
@@ -1581,20 +1700,36 @@ export default function TimetableManagement() {
                       </View>
                     </View>
 
-                    {/* Add Break button between periods */}
-                    {index < editedPeriods.length - 1 && !isBreak && !isBreakPeriod(editedPeriods[index + 1]?.name) && (
-                      <TouchableOpacity style={styles.addBreakBtn} onPress={() => insertBreakAfter(index)}>
-                        <View style={styles.addBreakLine} />
-                        <View style={styles.addBreakPill}>
-                          <Ionicons name="cafe-outline" size={10} color={c.warning} />
-                          <Text style={styles.addBreakText}>Add Break</Text>
-                        </View>
-                        <View style={styles.addBreakLine} />
-                      </TouchableOpacity>
+                    {index < editedPeriods.length - 1 && (
+                      <View style={styles.addSlotActions}>
+                        <TouchableOpacity style={styles.addSlotBtn} onPress={() => insertPeriodAfter(index)}>
+                          <View style={styles.addBreakLine} />
+                          <View style={[styles.addBreakPill, styles.addPeriodPill]}>
+                            <Ionicons name="add-circle-outline" size={10} color={c.accent} />
+                            <Text style={[styles.addBreakText, styles.addPeriodText]}>Add Period</Text>
+                          </View>
+                          <View style={styles.addBreakLine} />
+                        </TouchableOpacity>
+                        {!isBreak && !isBreakPeriod(editedPeriods[index + 1]?.name) && (
+                          <TouchableOpacity style={styles.addSlotBtn} onPress={() => insertBreakAfter(index)}>
+                            <View style={styles.addBreakLine} />
+                            <View style={styles.addBreakPill}>
+                              <Ionicons name="cafe-outline" size={10} color={c.warning} />
+                              <Text style={styles.addBreakText}>Add Break</Text>
+                            </View>
+                            <View style={styles.addBreakLine} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     )}
                   </React.Fragment>
                 );
               })}
+
+              <TouchableOpacity style={styles.addPeriodFooterBtn} onPress={() => insertPeriodAfter(editedPeriods.length - 1)}>
+                <Ionicons name="add-circle-outline" size={16} color={c.accent} />
+                <Text style={styles.addPeriodFooterText}>Add Period at End</Text>
+              </TouchableOpacity>
             </ScrollView>
 
             <View style={styles.modalActions}>
@@ -1835,8 +1970,19 @@ const getStyles = (c: Tokens) =>
       borderTopColor: c.borderSoft,
     },
 
+    selectorStack: { gap: 12 },
+    selectorBlock: { width: '100%', minWidth: 0 },
+    chipScroller: Platform.select({
+      web: { width: '100%', overflowX: 'auto', flexGrow: 0 } as const,
+      default: { flexGrow: 0 },
+    }),
+    chipRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingRight: 8,
+    },
     selectorRow: { flexDirection: 'row' },
-    selectorGroup: { flex: 1 },
+    selectorGroup: { flex: 1, minWidth: 0 },
     selectorDivider: {
       width: 1,
       backgroundColor: c.borderSoft,
@@ -1851,6 +1997,7 @@ const getStyles = (c: Tokens) =>
       backgroundColor: c.chipBg,
       borderWidth: 1,
       borderColor: c.chipBorder,
+      flexShrink: 0,
     },
     chipCurrentYear: {
       borderColor: c.success,
@@ -2599,6 +2746,21 @@ const getStyles = (c: Tokens) =>
       color: c.textSecondary,
       marginBottom: 8,
     },
+    bulkPeriodNameInput: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '700',
+      color: c.textPrimary,
+      marginBottom: 8,
+      marginRight: 8,
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.borderSoft,
+      backgroundColor: c.chipBg,
+      minWidth: 0,
+    },
     bulkPeriodNameBreak: { color: c.warningText },
     bulkPeriodRowBreak: {
       backgroundColor: c.warningSoft,
@@ -2721,6 +2883,42 @@ const getStyles = (c: Tokens) =>
       fontSize: 10,
       fontWeight: '700',
       color: c.warning,
+    },
+    addSlotActions: {
+      gap: 6,
+      marginBottom: 10,
+      marginTop: -4,
+    },
+    addSlotBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 4,
+    },
+    addPeriodPill: {
+      backgroundColor: c.accentSoft,
+      borderColor: c.accentSoftBorder,
+    },
+    addPeriodText: {
+      color: c.accentText,
+    },
+    addPeriodFooterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginTop: 4,
+      marginBottom: 8,
+      paddingVertical: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.accentSoftBorder,
+      backgroundColor: c.accentSoft,
+    },
+    addPeriodFooterText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: c.accentText,
     },
 
     // Action Buttons

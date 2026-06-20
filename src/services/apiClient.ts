@@ -359,9 +359,12 @@ async function apiRequestInner<T>(
       // Handle validation errors (422) and B1-style 400 (school_id required)
       if (response.status === 422 || response.status === 400) {
         const rawError = errorData.error || errorData.message;
-        const message = rawError === 'school_id is required'
+        const baseMessage = rawError === 'school_id is required'
           ? 'Tenant context missing. Please restart the app and try again.'
           : (errorData.message || rawError || 'Validation failed');
+        const message = errorData.details && !baseMessage.includes(errorData.details)
+          ? `${baseMessage}\n\n${errorData.details}`
+          : baseMessage;
         if (!silent) {
           alertFn('Error', message);
         }

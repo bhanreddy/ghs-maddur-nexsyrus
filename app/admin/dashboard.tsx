@@ -98,6 +98,7 @@ const ACTION_CARD_VISUALS: Record<string, ActionCardVisual> = {
   '/admin/fees/adjustments':           { g: ['#365314', '#84CC16'], accent: '#BEF264', badge: '#A3E635', rim: 'rgba(190,242,100,0.42)', orb: 'rgba(132,204,22,0.27)', wash: 'rgba(236,252,203,0.17)', label: '#ECFCCB', shadow: '#65A30D' },
   '/admin/upi-settings':               { g: ['#134E4A', '#14B8A6'], accent: '#5EEAD4', badge: '#2DD4BF', rim: 'rgba(94,234,212,0.44)', orb: 'rgba(20,184,166,0.28)', wash: 'rgba(204,251,241,0.17)', label: '#CCFBF1', shadow: '#0D9488' },
   '/admin/fees/visibility':            { g: ['#334155', '#64748B'], accent: '#CBD5E1', badge: '#94A3B8', rim: 'rgba(203,213,225,0.40)', orb: 'rgba(100,116,139,0.24)', wash: 'rgba(241,245,249,0.14)', label: '#F1F5F9', shadow: '#475569' },
+  '/admin/payroll':                    { g: ['#312E81', '#6366F1'], accent: '#A5B4FC', badge: '#818CF8', rim: 'rgba(165,180,252,0.48)', orb: 'rgba(99,102,241,0.31)', wash: 'rgba(224,231,255,0.18)', label: '#E0E7FF', shadow: '#4F46E5' },
 
   // Insights/reporting: high-signal analytic cards.
   '/admin/reports':                    { g: ['#4C1D95', '#9333EA'], accent: '#D8B4FE', badge: '#C084FC', rim: 'rgba(216,180,254,0.46)', orb: 'rgba(147,51,234,0.30)', wash: 'rgba(243,232,255,0.18)', label: '#F3E8FF', shadow: '#7E22CE' },
@@ -936,6 +937,7 @@ export default function AdminDashboard() {
     { title: 'Fee Adjustments',                                            icon: 'cut-outline',                 route: '/admin/fees/adjustments',           tier: 'FINANCE',  gradient: ['#365314', '#84CC16'], category: 'Finance' },
     { title: 'UPI Settings',                                               icon: 'qr-code-outline',             route: '/admin/upi-settings',               tier: 'FINANCE',  gradient: ['#0F766E', '#06B6D4'], category: 'Finance' },
     { title: 'Dashboard Visibility',                                       icon: 'eye-outline',                 route: '/admin/fees/visibility',            tier: 'FINANCE',  gradient: ['#166534', '#65A30D'], category: 'Finance' },
+    { title: 'Payroll',                                                    icon: 'card-outline',                route: '/admin/payroll',                    tier: 'FINANCE',  gradient: ['#312E81', '#6366F1'], category: 'Finance' },
 
     // Analytics/AI: distinct violet-to-blue highlights
     { title: t('admin_dashboard_v2.view_reports', 'Reports'),             icon: 'bar-chart-outline',           route: '/admin/reports',                    tier: 'ACADEMIC', gradient: ['#581C87', '#7C3AED'], category: 'Analytics' },
@@ -947,7 +949,7 @@ export default function AdminDashboard() {
     { title: t('admin_dashboard_v2.transport', 'Transport'),              icon: 'bus-outline',                 route: '/admin/transport',                  tier: 'OPS',      gradient: ['#92400E', '#EAB308'], category: 'Ops' },
     { title: t('admin_dashboard_v2.leaves', 'Leaves'),                    icon: 'document-text-outline',       route: '/admin/leaves',                     tier: 'OPS',      gradient: ['#9A3412', '#FB923C'], category: 'HR' },
     { title: t('admin_dashboard_v2.manage_staff', 'Staff'),               icon: 'people-outline',              route: '/admin/manage-staff',               tier: 'OPS',      gradient: ['#7C3AED', '#EC4899'], category: 'HR' },
-    { title: t('admin_dashboard_v2.add_accounts_staff', 'Add Staff'),     icon: 'person-add-outline',          route: '/admin/add-accounts-staff',         tier: 'OPS',      gradient: ['#BE123C', '#F97316'], category: 'HR' },
+    { title: t('admin_dashboard_v2.add_accounts_staff', 'Accounts Portal'), icon: 'wallet-outline',              route: '/admin/add-accounts-staff',         tier: 'OPS',      gradient: ['#BE123C', '#F97316'], category: 'HR' },
 
     // Admin/security: highest-risk action uses the strongest warning gradient
     { title: 'Access Requests',                                            icon: 'key-outline',                 route: '/admin/access-requests',            tier: 'ADMIN',    gradient: ['#881337', '#E11D48'], category: 'Security', badge: pendingRequestsCount },
