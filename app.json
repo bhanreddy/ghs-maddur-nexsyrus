@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Chaitanya Vidyaniketan School Nancharla",
-    "slug": "cvsnancharla",
+    "name": "Slate School Kosgi",
+    "slug": "slateschool",
     "version": "1.0.0",
     "platforms": [
       "android",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.chaitanyavidyanikethan",
+      "bundleIdentifier": "com.nexsyrussims.slateschool",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.chaitanyavidyanikethan",
+      "package": "com.nexsyrussims.slateschool",
       "jsEngine": "hermes",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
@@ -113,7 +113,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "2f2ecffb-0ed6-48f6-a03a-660edea039b3"
+        "projectId": "092e54fd-6629-4c8c-ab8d-a21a3ea7633c"
       }
     },
     "owner": "nexsyrus"
