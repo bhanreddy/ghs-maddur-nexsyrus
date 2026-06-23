@@ -2,25 +2,25 @@ import { ViewStyle } from "react-native";
 
 export const ADMIN_THEME = {
     colors: {
-        primary: '#2563EB', // Blue
-        secondary: '#7C3AED', // Purple
+        primary: '#002448', // Deep Navy (logo circle)
+        secondary: '#CFA141', // Gold (logo lettering)
         success: '#10B981', // Emerald
         warning: '#F59E0B', // Amber
         danger: '#EF4444', // Rose
-        info: '#3B82F6', // Sky
+        info: '#003D6B', // Navy blue
         background: {
-            app: '#F5F3FF', // Violet 50
+            app: '#F5F7FA', // Navy-tinted neutral
             surface: '#FFFFFF',
-            subtle: '#FAF5FF', // Purple 50
+            subtle: '#EEF2F7',
         },
         text: {
-            primary: '#111827', // Gray 900
-            secondary: '#4B5563', // Gray 600
-            muted: '#9CA3AF', // Gray 400
+            primary: '#062341', // Navy
+            secondary: '#3D5166', // Muted navy
+            muted: '#6B7D8F', // Soft slate
             inverse: '#FFFFFF',
         },
-        border: '#DDD6FE', // Violet 200
-        icon: '#6B7280',
+        border: '#D4DEE8', // Navy-tinted border
+        icon: '#3D5166',
     },
     spacing: {
         xs: 4,
@@ -53,7 +53,7 @@ export const ADMIN_THEME = {
             elevation: 4,
         } as ViewStyle,
         lg: {
-            shadowColor: "#6366F1", // Colored shadow for emphasis
+            shadowColor: "#002448", // Colored shadow for emphasis
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.15,
             shadowRadius: 20,

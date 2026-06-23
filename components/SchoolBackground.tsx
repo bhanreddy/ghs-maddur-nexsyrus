@@ -36,8 +36,8 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
 const THEME = {
-  light: { cream: '#F5F3FF', gold: '#7C3AED' },
-  dark:  { cream: '#1E1B4B', gold: '#A78BFA' },
+  light: { cream: '#F5F7FA', gold: '#CFA141' },
+  dark:  { cream: '#000E1A', gold: '#E0B84D' },
 } as const;
 
 // ─── Component ───────────────────────────────────────────────────────────────
