@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Slate School Kosgi",
-    "slug": "slateschool",
+    "name": "Samskruthe School Nawabpet",
+    "slug": "samskrutheschoolnawabpet",
     "version": "1.0.0",
     "platforms": [
       "android",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.slateschool",
+      "bundleIdentifier": "com.nexsyrussims.samskrutheschool",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.slateschool",
+      "package": "com.nexsyrussims.samskrutheschool",
       "jsEngine": "hermes",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
@@ -113,7 +113,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "092e54fd-6629-4c8c-ab8d-a21a3ea7633c"
+        "projectId": "06802539-5f1f-4aa9-abd9-17350b5e65a7"
       }
     },
     "owner": "nexsyrus"
