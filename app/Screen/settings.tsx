@@ -4,6 +4,7 @@ import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import StudentHeader from '../../src/components/StudentHeader';
+import AccountSwitcherSheet from '../../src/components/AccountSwitcherSheet';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -119,6 +120,7 @@ export default function Settings() {
     const { t, i18n } = useTranslation();
     const styles = React.useMemo(() => getStyles(theme.colors), [theme]);
     const [updating, setUpdating] = useState(false);
+    const [switcherOpen, setSwitcherOpen] = useState(false);
 
     const handlePress = (item: string) =>
         alertCompat(item, 'This feature will be available in the next update.');
@@ -179,6 +181,18 @@ export default function Settings() {
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
+
+                {/* ── Accounts ── */}
+                <Group title={t('settings.accounts', 'Accounts')} delay={130} colors={theme.colors}>
+                    <SettingRow
+                        icon="people-circle"
+                        iconColor="#2563EB" iconBg="#EFF6FF"
+                        label={t('settings.switch_account', 'Switch / Manage accounts')}
+                        isLast
+                        onPress={() => setSwitcherOpen(true)}
+                        rightElement={chevron}
+                    />
+                </Group>
 
                 {/* ── General ── */}
                 <Group title={t('settings.general', 'General')} delay={170} colors={theme.colors}>
@@ -295,6 +309,8 @@ export default function Settings() {
                 </Animated.View>
 
             </ScrollView>
+
+            <AccountSwitcherSheet visible={switcherOpen} onClose={() => setSwitcherOpen(false)} />
         </View>
     );
 }

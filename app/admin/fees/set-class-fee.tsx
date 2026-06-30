@@ -196,12 +196,12 @@ export default function SetClassFeeScreen() {
       setFeeMode(result.fee_mode);
       setPendingFeeMode(null);
       await loadFeeMode(selectedYearId);
-      alertCompat(
-        'Success',
-        nextMode === 'per_section'
+      const migrationNote =
+        result.migration ??
+        (nextMode === 'per_section'
           ? `Per-section mode enabled. ${result.seeded_count ?? 0} section fee(s) added; paid amounts preserved.`
-          : 'Per-class mode enabled. Paid amounts preserved.'
-      );
+          : 'Per-class mode enabled. Paid amounts preserved.');
+      alertCompat('Success', migrationNote);
     } catch (error: any) {
       setPendingFeeMode(null);
       alertCompat('Error', error?.message || error?.response?.data?.error || 'Failed to update fee mode');

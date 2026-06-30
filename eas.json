@@ -31,8 +31,8 @@
         "buildType": "app-bundle"
       }
     },
-    "school-1-production-apk": {
-      "extends": "school-1",
+    "school-18-production-apk": {
+      "extends": "school-18",
       "distribution": "internal",
       "autoIncrement": true,
       "channel": "production",
@@ -40,21 +40,21 @@
         "buildType": "apk"
       }
     },
-    "school-1": {
+    "school-18": {
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SCHOOL_ID": "1",
-        "EXPO_PUBLIC_SCHOOL_CODE": "DEFAULT",
-        "EXPO_PUBLIC_SCHOOL_NAME": "Default School",
+        "EXPO_PUBLIC_SCHOOL_ID": "18",
+        "EXPO_PUBLIC_SCHOOL_CODE": "NMMS",
+        "EXPO_PUBLIC_SCHOOL_NAME": "New Master Minds School Gokafasalwad",
         "EXPO_PUBLIC_API_URL": "https://supabasebackend-551435597195.europe-west1.run.app/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://jztckbupiepiqfrxhszt.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6dGNrYnVwaWVwaXFmcnhoc3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzgyMTYsImV4cCI6MjA4ODcxNDIxNn0.TC6mwwLezkwMmPxkIzRnR7NPyworRVzQ_vXCkRmnz4o"
       }
     },
-    "school-1-production": {
-      "extends": "school-1",
+    "school-18-production": {
+      "extends": "school-18",
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
@@ -64,9 +64,9 @@
     }
   },
   "submit": {
-    "school-1-production": {
+    "school-18-production": {
       "android": {
-        "serviceAccountKeyPath": "./secrets/play-service-account-school-1.json",
+        "serviceAccountKeyPath": "./secrets/play-service-account-school-18.json",
         "track": "internal",
         "releaseStatus": "draft",
         "changesNotSentForReview": false

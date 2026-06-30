@@ -137,9 +137,8 @@ export const FeeService = {
         return result?.fee_mode === 'per_section' ? 'per_section' : 'per_class';
     },
 
-    setFeeMode: async (feeMode: FeeMode): Promise<{ fee_mode: FeeMode; seeded_count?: number }> => {
-        const { SCHOOL_ID } = await import('../constants/school');
-        return api.patch(`/schools/${SCHOOL_ID}/fee-mode`, { fee_mode: feeMode });
+    setFeeMode: async (feeMode: FeeMode): Promise<{ fee_mode: FeeMode; seeded_count?: number; migration?: string }> => {
+        return api.patch('/fees/fee-mode', { fee_mode: feeMode });
     },
 
     /**

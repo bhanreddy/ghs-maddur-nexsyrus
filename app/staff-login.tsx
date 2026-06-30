@@ -172,7 +172,7 @@ const StaffLoginScreen: React.FC = () => {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1, backgroundColor: C.bg }}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}

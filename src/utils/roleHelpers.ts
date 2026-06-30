@@ -50,6 +50,25 @@ export function isStudentRole(roleCode: string | null | undefined): boolean {
   return roleCode === 'student' || roleCode === 'students';
 }
 
+/**
+ * Roles whose session must NEVER be auto-logged-out.
+ *
+ * Parent (student), admin, driver, and staff/teacher/principal logins stay
+ * signed in until the user manually taps Logout. A failed token refresh, a
+ * transient 401, or a Supabase SIGNED_OUT event (refresh-token rejection) must
+ * NOT evict these roles — the app keeps the cached session and keeps retrying.
+ *
+ * The ONLY role deliberately excluded is `accountant` (Accounts department
+ * login), which retains its school-hours / short-lived session restrictions.
+ *
+ * Unknown/empty roles default to persistent so an ambiguous role is never
+ * accidentally logged out.
+ */
+export function isPersistentSessionRole(roleCode: string | null | undefined): boolean {
+  if (!roleCode) return true;
+  return roleCode !== 'accountant' && roleCode !== 'accounts';
+}
+
 /** Roles allowed to sign in through the Staff portal login screen. */
 export function isStaffLoginAllowedRole(roleCode: string | null | undefined): boolean {
   if (!roleCode) return false;

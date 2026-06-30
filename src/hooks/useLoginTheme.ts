@@ -19,15 +19,15 @@ export const useLoginTheme = () => {
     // ── Backgrounds ───────────────────────────────────────────────────────
     bg: c.background,
     surface: c.surface,
-    surfaceAlt: isDark ? c.card : '#F4F1FA',
+    surfaceAlt: isDark ? c.card : '#FFF5F0',
 
     // ── Accent family ─────────────────────────────────────────────────────
     accent: c.primary,
-    accentLight: isDark ? 'rgba(180,143,217,0.12)' : '#F0EBF7',
+    accentLight: isDark ? 'rgba(212,175,55,0.12)' : '#FFF8ED',
     accentDark: c.primaryDark,
-    accentDeep: isDark ? c.primaryDark : '#2A1145',
-    accentGlow: isDark ? 'rgba(180,143,217,0.10)' : 'rgba(102,89,144,0.08)',
-    accentBorder: isDark ? 'rgba(180,143,217,0.25)' : 'rgba(102,89,144,0.18)',
+    accentDeep: isDark ? c.primaryDark : '#2D0810',
+    accentGlow: isDark ? 'rgba(212,175,55,0.10)' : 'rgba(93,16,29,0.08)',
+    accentBorder: isDark ? 'rgba(212,175,55,0.25)' : 'rgba(93,16,29,0.18)',
 
     // ── Ink (text) hierarchy ──────────────────────────────────────────────
     ink: c.textStrong,

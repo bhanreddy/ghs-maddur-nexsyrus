@@ -6,6 +6,7 @@ import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from './apiClient';
 import { translateNotification } from './notificationTranslations';
+import { registerAllVaultedAccountsForPush } from './pushFanout';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -185,23 +186,23 @@ class NotificationManager {
       }
 
       if (token) {
-        const lastSyncedToken = await AsyncStorage.getItem('fcm_token_last_synced');
-        const needsSync = await AsyncStorage.getItem('push_token_needs_sync');
-
-        if (token !== lastSyncedToken || needsSync === 'true') {
-          try {
-            if (__DEV__) console.log('[NotificationManager] Syncing token to backend...');
-            await this.syncToken(token);
-            await AsyncStorage.setItem('fcm_token_last_synced', token);
-            await AsyncStorage.setItem('last_fcm_token', token);
-            await AsyncStorage.removeItem('push_token_needs_sync');
-            if (__DEV__) console.log('[NotificationManager] Token synced successfully');
-          } catch (syncErr) {
-            if (__DEV__) console.error('[NotificationManager] Token sync FAILED:', syncErr);
-            await AsyncStorage.setItem('push_token_needs_sync', 'true');
-          }
-        } else {
-          if (__DEV__) console.log('[NotificationManager] Token already synced, skipping');
+        // Phase 3a: fan out to ALL vaulted accounts via /notifications/register-multi
+        // (idempotent upserts). Runs UNCONDITIONALLY — deliberately not gated by the
+        // single-token dedup — because the set of vaulted accounts can change even
+        // when the FCM token itself does not (an account added in a previous session,
+        // or a prior partial failure that needs re-registering). This replaces the old
+        // single-account this.syncToken(token), whose backend route purges the token
+        // from sibling accounts and would defeat fan-out.
+        try {
+          if (__DEV__) console.log('[NotificationManager] Fanning out FCM token to all vaulted accounts...');
+          await registerAllVaultedAccountsForPush(token);
+          await AsyncStorage.setItem('fcm_token_last_synced', token);
+          await AsyncStorage.setItem('last_fcm_token', token);
+          await AsyncStorage.removeItem('push_token_needs_sync');
+          if (__DEV__) console.log('[NotificationManager] Fan-out complete');
+        } catch (syncErr) {
+          if (__DEV__) console.error('[NotificationManager] Fan-out FAILED:', syncErr);
+          await AsyncStorage.setItem('push_token_needs_sync', 'true');
         }
       } else {
         console.warn('[NotificationManager] No FCM token returned!');
@@ -214,6 +215,12 @@ class NotificationManager {
     }
   }
 
+  /**
+   * @deprecated Phase 3a — single-account register superseded by the fan-out path
+   * (registerAllVaultedAccountsForPush). Kept for reference; no longer called by
+   * the registration flow because /notifications/register purges the token from
+   * sibling accounts, which would defeat multi-account fan-out.
+   */
   async syncToken(token: string) {
     // Read user's language preference and send with token
     const languageCode = (await AsyncStorage.getItem('appLanguage')) || 'en';
@@ -223,6 +230,27 @@ class NotificationManager {
       platform: Platform.OS,
       language_code: languageCode
     }, { silent: true });
+  }
+
+  /**
+   * Phase 3a — re-run the multi-account fan-out using the last cached FCM token.
+   * Used by call sites that don't already hold a fresh token (e.g. post-addAccount,
+   * where the active account — and thus the FCM registration trigger — is unchanged).
+   * No-op if no token has been obtained yet.
+   */
+  async fanOutRegister(): Promise<void> {
+    try {
+      const token =
+        (await AsyncStorage.getItem('last_fcm_token')) ||
+        (await AsyncStorage.getItem('fcm_token_last_synced'));
+      if (!token) {
+        if (__DEV__) console.log('[NotificationManager] fanOutRegister: no cached FCM token yet, skipping');
+        return;
+      }
+      await registerAllVaultedAccountsForPush(token);
+    } catch (e) {
+      if (__DEV__) console.warn('[NotificationManager] fanOutRegister failed:', e);
+    }
   }
 
   /**
@@ -392,11 +420,12 @@ class NotificationManager {
     this.unsubscribeOnTokenRefresh = onTokenRefresh(msg, async (newToken) => {
       if (__DEV__) console.log('[NotificationManager] Token refreshed:', newToken ? `${newToken.substring(0, 20)}...` : 'NULL');
       try {
-        await this.syncToken(newToken);
+        // Phase 3a: FCM rotated → re-register the new token under ALL vaulted accounts.
+        await registerAllVaultedAccountsForPush(newToken);
         await AsyncStorage.setItem('fcm_token_last_synced', newToken);
         await AsyncStorage.setItem('last_fcm_token', newToken);
         await AsyncStorage.removeItem('push_token_needs_sync');
-        if (__DEV__) console.log('[NotificationManager] Refreshed token synced');
+        if (__DEV__) console.log('[NotificationManager] Refreshed token fanned out');
       } catch (err) {
         if (__DEV__) console.error('[NotificationManager] Token refresh sync FAILED:', err);
         await AsyncStorage.setItem('push_token_needs_sync', 'true');

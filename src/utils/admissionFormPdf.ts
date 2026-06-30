@@ -119,8 +119,8 @@ export function buildAdmissionFormData(input: {
 
 // ─── HTML builder ────────────────────────────────────────────────────────────
 const C = schoolTheme.light.colors;
-const PRIMARY = C.primary;          // deep purple
-const SECONDARY = SCHOOL_CONFIG.theme.accent; // cerulean
+const PRIMARY = C.primary;          // maroon brand
+const SECONDARY = SCHOOL_CONFIG.theme.accent; // gold trim
 const INK = C.textStrong;
 const MUTED = C.textSecondary;
 const BORDER = C.border;

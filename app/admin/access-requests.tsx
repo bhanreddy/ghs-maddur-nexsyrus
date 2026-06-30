@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Switch, ActivityIndicator } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import AdminHeader from '../../src/components/AdminHeader';
 import { ADMIN_THEME } from '../../src/constants/adminTheme';
-import { AccessControlService, AccessRequest } from '../../src/services/accessControlService';
+import { AccessControlService, AccessRequest, AccountantOverride } from '../../src/services/accessControlService';
 import { useAuth } from '../../src/hooks/useAuth';
 import PremiumButton from '../../src/components/PremiumButton';
 import { supabase } from '../../src/services/supabaseConfig';
+import * as Haptics from '../../src/utils/haptics';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+
+type Tab = 'pending' | 'history' | 'standing';
 
 export default function AccessRequestsScreen() {
     const router = useRouter();
     const { t } = useTranslation();
     const { user } = useAuth();
     const [requests, setRequests] = useState<AccessRequest[]>([]);
+    const [accountants, setAccountants] = useState<AccountantOverride[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+    const [togglingId, setTogglingId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<Tab>('pending');
 
     const loadRequests = async (tab: 'pending' | 'history') => {
         setLoading(true);
@@ -35,8 +40,24 @@ export default function AccessRequestsScreen() {
         }
     };
 
+    const loadAccountants = async () => {
+        setLoading(true);
+        try {
+            const data = await AccessControlService.getAccountants();
+            setAccountants(data);
+        } catch (error) {
+            console.error('Failed to load accountants:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        loadRequests(activeTab);
+        if (activeTab === 'standing') {
+            loadAccountants();
+        } else {
+            loadRequests(activeTab);
+        }
     }, [activeTab]);
 
     useEffect(() => {
@@ -44,7 +65,9 @@ export default function AccessRequestsScreen() {
         const channel = supabase
             .channel('access_requests_changes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'access_requests' }, payload => {
-                loadRequests(activeTab); // Reload to get fresh joined data based on current tab
+                if (activeTab !== 'standing') {
+                    loadRequests(activeTab); // Reload to get fresh joined data based on current tab
+                }
             })
             .subscribe();
 
@@ -52,6 +75,45 @@ export default function AccessRequestsScreen() {
             supabase.removeChannel(channel);
         };
     }, [activeTab]);
+
+    const applyStandingAccess = async (item: AccountantOverride, enabled: boolean) => {
+        setTogglingId(item.user_id);
+        try {
+            const res = await AccessControlService.setStandingAccess(item.user_id, enabled);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            // Optimistically reflect the new state; granted_by is the current admin.
+            setAccountants(prev => prev.map(a => a.user_id === item.user_id
+                ? {
+                    ...a,
+                    enabled: res.enabled,
+                    granted_at: res.granted_at,
+                    granted_by_name: res.enabled ? (user?.displayName || 'You') : null,
+                  }
+                : a));
+        } catch (error: any) {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            alertCompat('Error', error.message || 'Failed to update standing access');
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
+    const handleStandingToggle = (item: AccountantOverride, next: boolean) => {
+        if (togglingId) return;
+        if (next) {
+            // Security-relevant: confirm before granting a permanent bypass.
+            alertCompat(
+                'Always allow access?',
+                `${item.display_name} will be able to sign in at any time — including after 5 PM and on weekends — until you turn this off.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Enable', style: 'destructive', onPress: () => applyStandingAccess(item, true) },
+                ]
+            );
+        } else {
+            applyStandingAccess(item, false);
+        }
+    };
 
     const handleGrant = async (request: AccessRequest) => {
         if (!user) return;
@@ -147,6 +209,58 @@ export default function AccessRequestsScreen() {
         );
     };
 
+    const renderAccountant = ({ item, index }: { item: AccountantOverride, index: number }) => {
+        const isToggling = togglingId === item.user_id;
+        const grantedDate = item.granted_at
+            ? new Date(item.granted_at).toLocaleDateString() + ' ' + new Date(item.granted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : null;
+
+        return (
+            <Animated.View entering={FadeInUp.delay(index * 60).springify().damping(15)}>
+                <View style={styles.card}>
+                    <View style={styles.standingRow}>
+                        <View style={styles.userInfo}>
+                            <View style={[styles.avatar, item.enabled && styles.avatarActive]}>
+                                <Text style={[styles.avatarText, item.enabled && styles.avatarTextActive]}>
+                                    {item.display_name?.charAt(0) || 'A'}
+                                </Text>
+                            </View>
+                            <View style={{ flexShrink: 1 }}>
+                                <Text style={styles.userName}>{item.display_name || 'Unknown User'}</Text>
+                                {!!item.email && <Text style={styles.timestamp}>{item.email}</Text>}
+                            </View>
+                        </View>
+                        {isToggling ? (
+                            <ActivityIndicator color={ADMIN_THEME.colors.primary} style={{ marginLeft: 12 }} />
+                        ) : (
+                            <Switch
+                                value={item.enabled}
+                                onValueChange={(next) => handleStandingToggle(item, next)}
+                                trackColor={{ false: '#D1D5DB', true: '#A7F3D0' }}
+                                thumbColor={item.enabled ? ADMIN_THEME.colors.success : '#F9FAFB'}
+                                ios_backgroundColor="#D1D5DB"
+                            />
+                        )}
+                    </View>
+
+                    {item.enabled ? (
+                        <View style={styles.grantInfoBox}>
+                            <Ionicons name="shield-checkmark" size={16} color="#059669" />
+                            <Text style={styles.grantInfoText}>
+                                Always allowed{item.granted_by_name ? ` · by ${item.granted_by_name}` : ''}{grantedDate ? ` · ${grantedDate}` : ''}
+                            </Text>
+                        </View>
+                    ) : (
+                        <View style={styles.grantInfoBoxMuted}>
+                            <Ionicons name="time-outline" size={16} color={ADMIN_THEME.colors.text.muted} />
+                            <Text style={styles.grantInfoTextMuted}>Restricted to school hours (default)</Text>
+                        </View>
+                    )}
+                </View>
+            </Animated.View>
+        );
+    };
+
     return (
         <View style={styles.container}>
             <AdminHeader title="Access Requests" showBackButton />
@@ -175,33 +289,71 @@ export default function AccessRequestsScreen() {
                     />
                     <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>History</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.tabButton, activeTab === 'standing' && styles.activeTabButton]}
+                    onPress={() => setActiveTab('standing')}
+                >
+                    <Ionicons
+                        name="infinite-outline"
+                        size={20}
+                        color={activeTab === 'standing' ? ADMIN_THEME.colors.primary : ADMIN_THEME.colors.text.secondary}
+                    />
+                    <Text style={[styles.tabText, activeTab === 'standing' && styles.activeTabText]}>Always Allow</Text>
+                </TouchableOpacity>
             </View>
 
-            <FlatList
-                data={requests}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    !loading ? (
-                        <View style={styles.emptyState}>
-                            <Ionicons 
-                                name={activeTab === 'pending' ? 'shield-checkmark-outline' : 'document-text-outline'} 
-                                size={64} 
-                                color={ADMIN_THEME.colors.border} 
-                            />
-                            <Text style={styles.emptyTitle}>
-                                {activeTab === 'pending' ? 'No pending requests' : 'No history found'}
-                            </Text>
-                            <Text style={styles.emptyDesc}>
-                                {activeTab === 'pending' 
-                                    ? 'All out-of-hours access requests are currently resolved.' 
-                                    : 'There are no past access requests.'}
+            {activeTab === 'standing' ? (
+                <FlatList
+                    data={accountants}
+                    keyExtractor={(item) => item.user_id}
+                    renderItem={renderAccountant}
+                    contentContainerStyle={styles.listContent}
+                    ListHeaderComponent={
+                        <View style={styles.standingIntro}>
+                            <Text style={styles.standingIntroTitle}>Standing after-hours access</Text>
+                            <Text style={styles.standingIntroText}>
+                                When ON, this accountant can sign in at any time — including after 5 PM and on weekends — until you turn it off. This is separate from one-time access grants.
                             </Text>
                         </View>
-                    ) : null
-                }
-            />
+                    }
+                    ListEmptyComponent={
+                        !loading ? (
+                            <View style={styles.emptyState}>
+                                <Ionicons name="people-outline" size={64} color={ADMIN_THEME.colors.border} />
+                                <Text style={styles.emptyTitle}>No accountants found</Text>
+                                <Text style={styles.emptyDesc}>There are no accounts-role users in this school yet.</Text>
+                            </View>
+                        ) : null
+                    }
+                />
+            ) : (
+                <FlatList
+                    data={requests}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        !loading ? (
+                            <View style={styles.emptyState}>
+                                <Ionicons
+                                    name={activeTab === 'pending' ? 'shield-checkmark-outline' : 'document-text-outline'}
+                                    size={64}
+                                    color={ADMIN_THEME.colors.border}
+                                />
+                                <Text style={styles.emptyTitle}>
+                                    {activeTab === 'pending' ? 'No pending requests' : 'No history found'}
+                                </Text>
+                                <Text style={styles.emptyDesc}>
+                                    {activeTab === 'pending'
+                                        ? 'All out-of-hours access requests are currently resolved.'
+                                        : 'There are no past access requests.'}
+                                </Text>
+                            </View>
+                        ) : null
+                    }
+                />
+            )}
         </View>
     );
 }
@@ -373,5 +525,62 @@ const styles = StyleSheet.create({
     statusBadgeText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    standingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    avatarActive: {
+        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    },
+    avatarTextActive: {
+        color: '#059669',
+    },
+    grantInfoBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 12,
+        backgroundColor: '#ECFDF5',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    grantInfoText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#059669',
+        flexShrink: 1,
+    },
+    grantInfoBoxMuted: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 12,
+        paddingHorizontal: 4,
+    },
+    grantInfoTextMuted: {
+        fontSize: 12,
+        color: ADMIN_THEME.colors.text.muted,
+    },
+    standingIntro: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: ADMIN_THEME.colors.border,
+    },
+    standingIntroTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: ADMIN_THEME.colors.text.primary,
+        marginBottom: 6,
+    },
+    standingIntroText: {
+        fontSize: 13,
+        lineHeight: 19,
+        color: ADMIN_THEME.colors.text.secondary,
     },
 });

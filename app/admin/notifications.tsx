@@ -589,7 +589,7 @@ function DeliveryStatusModal({
   const remaining = status.remaining_count ?? Math.max(total - accounted, 0);
   const progressRatio =
     total > 0 ? Math.min(accounted / total, 1) : isProcessing ? 0 : 1;
-  const progressPercent = `${Math.round(progressRatio * 100)}%`;
+  const progressPercent = `${Math.round(progressRatio * 100)}%` as `${number}%`;
   const successRate = accounted > 0 ? Math.round((sent / accounted) * 100) : 0;
   const canRetry = status.status === 'completed' && failed > 0;
   const allClean = status.status === 'completed' && failed === 0 && noDevice === 0;

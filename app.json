@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Nexsyrus School IMS",
-    "slug": "schoolims",
+    "name": "New Master Minds School Gokafasalwad",
+    "slug": "newmastermindsschoolgokafasalwad",
     "version": "1.0.0",
     "platforms": [
       "android",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.testapp.app",
+      "bundleIdentifier": "com.nexsyrussims.nmsgokafasalwad",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -31,15 +31,15 @@
       }
     },
     "android": {
-      "package": "com.testapp.app",
+      "package": "com.nexsyrussims.nmsgokafasalwad",
       "jsEngine": "hermes",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "enableShrinkResources": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/icon-v2.png",
         "backgroundColor": "#E6F4FE",
-        "monochromeImage": "./assets/images/icon.png"
+        "monochromeImage": "./assets/images/icon-v2.png"
       },
       "useNextNotificationsApi": true,
       "permissions": [
@@ -116,9 +116,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": ""
+        "projectId": "e51574e5-1701-4e8c-828d-32ca5f3fe8ea"
       }
     },
-    "owner": "bhan_reddy"
+    "owner": "nexsyrus1"
   }
 }

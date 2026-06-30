@@ -16,6 +16,16 @@ export interface AccessRequest {
     };
 }
 
+export interface AccountantOverride {
+    user_id: string;
+    display_name: string;
+    email: string | null;
+    enabled: boolean;
+    granted_at: string | null;
+    granted_by: string | null;
+    granted_by_name: string | null;
+}
+
 export const AccessControlService = {
     checkTempAccess: async (department: string): Promise<boolean> => {
         // Check if there is an active grant that hasn't expired
@@ -211,5 +221,25 @@ export const AccessControlService = {
         }
 
         return updatedRequest;
-    }
+    },
+
+    // ── Standing "Always allow access" override ────────────────────────────
+    // Persistent per-accountant bypass of the after-hours/weekend gate.
+    // Distinct from the one-time grantAccess/temp_access_grants flow above.
+    // Server enforces admin-only + same-school + accounts-role; never trust the
+    // client. School scope is derived server-side from the JWT.
+
+    // apiClient already unwraps the { success, school_id, data } envelope,
+    // so these receive the inner payload directly.
+    getAccountants: async (): Promise<AccountantOverride[]> => {
+        const res = await api.get<{ accountants: AccountantOverride[] }>('/admin/account-access');
+        return res?.accountants ?? [];
+    },
+
+    setStandingAccess: async (
+        userId: string,
+        enabled: boolean
+    ): Promise<{ user_id: string; enabled: boolean; granted_at: string | null; message: string }> => {
+        return api.patch(`/admin/account-access/${userId}`, { enabled });
+    },
 };

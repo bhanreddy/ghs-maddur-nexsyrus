@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { supabase } from '../services/supabaseConfig';
-import { AuthService, clearAuthState } from '../services/authService';
+import { AuthService, clearAuthState, isInternalSessionSwap } from '../services/authService';
 import { AuthSession, ValidatedUser } from '../types/auth';
 import { SCHOOL_ID } from '../constants/school';
 import { registerLogoutCallback } from '../services/apiClient';
-import { isStudentRole } from '../utils/roleHelpers';
+import { isStudentRole, isPersistentSessionRole } from '../utils/roleHelpers';
 import { getBackupRefreshToken, clearBackupRefreshToken } from '../services/secureTokenStore';
 import { SessionPolicy } from '../services/sessionPolicyService';
+import { notificationManager } from '../services/notificationManager';
+import * as accountVault from '../services/accountVault';
 
 interface AuthContextType {
   session: AuthSession | null;
@@ -20,6 +22,10 @@ interface AuthContextType {
   signIn: typeof AuthService.signIn;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  /** Phase 2 — seamlessly switch the live + active account (no password prompt). */
+  switchAccount: (userId: string) => Promise<{ session?: AuthSession; error?: string }>;
+  /** Phase 1/2 — add another account to the vault; active account stays unchanged. */
+  addAccount: (email: string, password: string) => Promise<{ session?: AuthSession; error?: string }>;
   authChecked: boolean;
   isAppLocked?: boolean;
 }
@@ -35,6 +41,8 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: 'Not initialized' }),
   signOut: async () => {},
   refreshSession: async () => {},
+  switchAccount: async () => ({ error: 'Not initialized' }),
+  addAccount: async () => ({ error: 'Not initialized' }),
   authChecked: false,
   isAppLocked: false,
 });
@@ -46,6 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const backoffDelay = useRef(1000); // Start at 1s
   const justSignedIn = useRef(false); // Guard against TOKEN_REFRESHED race after sign-in
+  // Raised only during an explicit user-initiated signOut(). The Supabase
+  // SIGNED_OUT event also fires when a refresh token is rejected — we must NOT
+  // honor that for persistent roles, only when the user actually tapped Logout.
+  const manualSignOut = useRef(false);
   const sessionRef = useRef<AuthSession | null>(null);
   sessionRef.current = session;
 
@@ -56,7 +68,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     console.log('[AUTH_OUT]', 'manual_logout', new Date().toISOString());
+    // Mark this as a deliberate logout so the onAuthStateChange SIGNED_OUT
+    // handler is allowed to clear state. Reset shortly after the supabase
+    // signOut()'s event has been processed.
+    manualSignOut.current = true;
+    setTimeout(() => { manualSignOut.current = false; }, 5000);
     setLoading(true);
+    // Capture the signing-out account's userId BEFORE the session is cleared —
+    // this is the exact key the vault is stored under (buildVaultAccount uses
+    // validatedUser.userId). sessionRef.current is always the latest session
+    // (the 401 logout-callback closure may otherwise be stale).
+    const signingOutUserId = sessionRef.current?.validatedUser?.userId ?? null;
+
+    // Phase 3a stopgap (two independent, best-effort cleanups — each in its own
+    // try/catch so a failure in one never skips the other, and neither blocks logout):
+    //
+    //  (1) Remove THIS account's push-token registration from the backend. The
+    //      /notifications/unregister route derives user_id from the bearer and
+    //      deletes WHERE user_id = <this user> AND fcm_token — siblings untouched.
+    //      Must run BEFORE AuthService.signOut() clears the session, else there is
+    //      no bearer and the DELETE is skipped.
+    //
+    //  (2) Remove THIS account from the local vault entirely. Without this, a later
+    //      fan-out re-trigger (cold start / FCM rotation / addAccount) would rebuild
+    //      the registration we just deleted in (1), because the signed-out account
+    //      would still be sitting in the vault. removeAccount() is scoped to this one
+    //      userId only — never the whole vault, never siblings.
+    //
+    // This is intentionally NARROWER than full Phase 3b (account-removal UX): it just
+    // means "this device is no longer logged into this specific account at all". Wired
+    // ONLY here — never in switchAccount/addAccount, which stay purely additive.
+    try {
+      await notificationManager.unregisterPushToken();
+    } catch (e) {
+      if (__DEV__) console.warn('[useAuth] push unregister on sign-out failed (non-fatal):', e);
+    }
+    if (signingOutUserId) {
+      try {
+        await accountVault.removeAccount(signingOutUserId);
+      } catch (e) {
+        if (__DEV__) console.warn('[useAuth] vault removeAccount on sign-out failed (non-fatal):', e);
+      }
+    }
+
     await AuthService.signOut();
     // Clear student backup keys on explicit sign-out
     await clearBackupRefreshToken();
@@ -65,10 +119,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   };
 
+  // Persistent roles (parent/student, admin, driver, staff) NEVER auto-logout on
+  // a failed refresh — they retry forever with capped backoff and keep the
+  // cached session untouched. Only `accountant` (Accounts dept) is cleared after
+  // a few retries, preserving its school-hours restriction. See
+  // isPersistentSessionRole().
+  const handleRefreshFailure = (currentRole: string | null) => {
+    if (isPersistentSessionRole(currentRole)) {
+      // Infinite retry, capped at 60s. Session is preserved untouched.
+      const nextDelay = Math.min(backoffDelay.current * 2, 60000);
+      backoffDelay.current = nextDelay;
+      console.warn(`[useAuth] Refresh failed for persistent role "${currentRole}". Retrying in ${nextDelay}ms (session preserved, no logout)...`);
+      setTimeout(() => handleRefresh(currentRole), nextDelay);
+    } else if (backoffDelay.current <= 4000) {
+      // accountant: retry a few times, then clear.
+      const nextDelay = backoffDelay.current * 2;
+      backoffDelay.current = nextDelay;
+      console.warn(`[useAuth] Refresh failed for "${currentRole}". Retrying in ${nextDelay}ms...`);
+      setTimeout(() => handleRefresh(currentRole), nextDelay);
+    } else {
+      // Retries exhausted for non-persistent role — clear session.
+      void (async () => {
+        await clearAuthState();
+        setSession(null);
+        backoffDelay.current = 1000; // Reset for next login
+      })();
+    }
+  };
+
   // Core refresh logic invoked internally or explicitly.
-  // Layer A fix: ALL roles now use exponential backoff on refresh failure
-  // instead of immediately clearing session. Only confirmed fatal errors
-  // (invalid_grant, user_not_found) trigger session clear.
   const handleRefresh = async (currentRole: string | null) => {
     try {
       const newSession = await AuthService.refreshSession();
@@ -80,44 +159,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // AuthService.refreshSession already differentiates: it only returns
         // null after clearing auth state for fatal errors OR on transient
         // failures where no prior session exists.
-        // For student role: always retry with backoff regardless.
-        if (isStudentRole(currentRole)) {
-          const nextDelay = backoffDelay.current * 2;
-          backoffDelay.current = Math.min(nextDelay, 60000); // Cap at 60s
-          console.warn(`[useAuth] Student refresh failed. Retrying in ${backoffDelay.current}ms...`);
-          setTimeout(() => handleRefresh('student'), backoffDelay.current);
-        } else {
-          // Non-student roles: retry with backoff up to 3 attempts, then clear.
-          // This fixes the "immediate logout on transient 401" bug.
-          if (backoffDelay.current <= 4000) {
-            const nextDelay = backoffDelay.current * 2;
-            backoffDelay.current = nextDelay;
-            console.warn(`[useAuth] Non-student refresh failed. Retrying in ${backoffDelay.current}ms...`);
-            setTimeout(() => handleRefresh(currentRole), backoffDelay.current);
-          } else {
-            // Retries exhausted for non-student — clear session
-            await clearAuthState();
-            setSession(null);
-            backoffDelay.current = 1000; // Reset for next login
-          }
-        }
+        handleRefreshFailure(currentRole);
       }
     } catch {
-      if (isStudentRole(currentRole)) {
-        const nextDelay = backoffDelay.current * 2;
-        backoffDelay.current = Math.min(nextDelay, 60000);
-        setTimeout(() => handleRefresh('student'), backoffDelay.current);
-      } else {
-        if (backoffDelay.current <= 4000) {
-          const nextDelay = backoffDelay.current * 2;
-          backoffDelay.current = nextDelay;
-          setTimeout(() => handleRefresh(currentRole), backoffDelay.current);
-        } else {
-          await clearAuthState();
-          setSession(null);
-          backoffDelay.current = 1000;
-        }
-      }
+      handleRefreshFailure(currentRole);
     }
   };
 
@@ -233,12 +278,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 4. Subscribe to auth state changes from Supabase directly
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+        // Phase 2: suppress events fired as a side effect of OUR OWN internal
+        // setSession()/signInWithPassword() during switchAccount / addAccount-
+        // restore. Without this, an expired-token setSession emits TOKEN_REFRESHED
+        // which would trigger handleRefresh mid-switch (a stray refresh + state
+        // write that fights the switch). The guard is a module-level counter held
+        // for the exact duration of the swap, so it is precise (no arbitrary
+        // timer) and stays raised across rapid/nested swaps until the last ends.
+        if (isInternalSessionSwap()) {
+          if (__DEV__) console.log(`[useAuth] Suppressing ${event} during internal session swap`);
+          return;
+        }
         if (event === 'SIGNED_OUT') {
-          // Always clear on explicit sign out — this is deliberate.
-          // Student offline persistence applies to TOKEN_REFRESH
-          // failures only, handled in handleRefresh().
-          await clearAuthState();
-          setSession(null);
+          // Supabase fires SIGNED_OUT both on a real user logout AND when it
+          // gives up on a rejected/expired refresh token. We must only honor it
+          // when the user actually tapped Logout (manualSignOut). For persistent
+          // roles (parent/admin/driver/staff) an unsolicited SIGNED_OUT is
+          // treated as a transient token problem: keep the cached session and
+          // let handleRefresh's infinite backoff recover it — never evict.
+          const roleCode = sessionRef.current?.validatedUser?.role?.code || null;
+          if (manualSignOut.current || !isPersistentSessionRole(roleCode)) {
+            await clearAuthState();
+            setSession(null);
+          } else {
+            console.warn(`[useAuth] Ignoring unsolicited SIGNED_OUT for persistent role "${roleCode}" — preserving session, scheduling recovery.`);
+            void handleRefresh(roleCode);
+          }
         } else if (event === 'TOKEN_REFRESHED') {
           // Skip if we just signed in — Supabase fires TOKEN_REFRESHED
           // immediately after sign-in which races with the sign-in flow
@@ -293,8 +358,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await handleRefresh(role);
   };
 
+  // Phase 2 — seamless account switch. The heavy lifting (setSession, silent
+  // refresh-token recovery, vault pointer update, auth_session persistence,
+  // serialization, and event suppression) lives in AuthService.switchAccount.
+  // Here we only mirror the result into the provider's in-memory state. We do
+  // NOT toggle global `loading` — that would gate the router/_layout and cause a
+  // full-screen flash, defeating the "seamless" goal; the session swap itself is
+  // what the UI re-renders against.
+  const switchAccount = async (userId: string) => {
+    const result = await AuthService.switchAccount(userId);
+    if (result.session) {
+      setSession(result.session);
+      const roleCode = result.session.validatedUser?.role?.code;
+      if (roleCode) {
+        await SessionPolicy.startSession(roleCode as any);
+      }
+    }
+    // NOTE: cold start / login / switch already re-trigger push fan-out via
+    // useNotifications' [user] dependency (session change → user change). No
+    // explicit fan-out needed here.
+    return result;
+  };
+
+  // Phase 3a — adding an account does NOT change the active `user`, so
+  // useNotifications won't re-fire. Trigger the multi-account push fan-out
+  // explicitly (fire-and-forget) so the newly-added child starts receiving
+  // notifications immediately. AuthService.addAccount itself is unchanged.
+  const addAccount = async (email: string, password: string) => {
+    const result = await AuthService.addAccount(email, password);
+    if (result.session) {
+      void notificationManager.fanOutRegister();
+    }
+    return result;
+  };
+
   return (
-    <AuthContext.Provider value={{ session, loading, authChecked, isAppLocked: false, user, role, isStudent, schoolId, signIn, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ session, loading, authChecked, isAppLocked: false, user, role, isStudent, schoolId, signIn, signOut, refreshSession, switchAccount, addAccount }}>
       {children}
     </AuthContext.Provider>
   );

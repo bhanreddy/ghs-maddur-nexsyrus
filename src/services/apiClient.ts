@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import * as SecureStore from 'expo-secure-store';
+import type { Session } from '@supabase/supabase-js';
 import { Alert, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { showAlert } from '../components/CustomAlert';
-import { API_URL, SCHOOL_ID } from '../constants/school';
-import { isStudentRole } from '../utils/roleHelpers';
+import { API_URL, SCHOOL_ID, SUPABASE_ANON_KEY, SUPABASE_URL } from '../constants/school';
+import { isPersistentSessionRole } from '../utils/roleHelpers';
 import { SessionPolicy } from './sessionPolicyService';
 import { SecureTokenStore } from './secureTokenStore';
 import { supabase } from './supabaseConfig';
@@ -48,7 +49,7 @@ function alertFn(title: string, message: string) {
 /** school_id for all API requests — from build-time env. Never hardcode. */
 const SCHOOL_ID_PARAM = String(SCHOOL_ID);
 
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   const url = API_URL.trim();
   // Web browser: ensure we use localhost (not Android emulator address)
   if (Platform.OS === 'web' && url.includes('10.0.2.2')) {
@@ -65,6 +66,7 @@ const API_BASE_URL = getApiBaseUrl();
 
 const TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const EXPIRY_SKEW_SECONDS = 60;
 
 // ── Token storage helpers ──────────────────────────────────────────────
 // Use SecureStore for tokens to guarantee encryption on device.
@@ -107,6 +109,93 @@ export async function clearTokens(): Promise<void> {
   await tokenDelete('user_id').catch(() => { });
   await tokenDelete('user_role').catch(() => { });
   await tokenDelete('session_expiry').catch(() => { });
+}
+
+let liveSessionRepairPromise: Promise<Session | null> | null = null;
+
+async function refreshStoredSupabaseSession(refreshToken: string): Promise<Session | null> {
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!resp.ok) {
+      if (__DEV__) console.warn('[apiClient] stored session repair refresh failed:', resp.status);
+      return null;
+    }
+
+    const data = await resp.json();
+    if (!data?.access_token || !data?.refresh_token) return null;
+    return data as Session;
+  } catch (e) {
+    if (__DEV__) console.warn('[apiClient] stored session repair refresh error:', e);
+    return null;
+  }
+}
+
+async function restoreLiveSessionFromStoredAuth(): Promise<Session | null> {
+  if (liveSessionRepairPromise) return liveSessionRepairPromise;
+
+  liveSessionRepairPromise = (async (): Promise<Session | null> => {
+    try {
+      const raw = await SecureTokenStore.getItem('auth_session');
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+      const stored = parsed?.supabaseSession as Session | undefined;
+      if (!stored?.access_token || !stored?.refresh_token) return null;
+
+      const nowS = Math.floor(Date.now() / 1000);
+      const expiresAt =
+        typeof stored.expires_at === 'number'
+          ? stored.expires_at
+          : typeof parsed?.tokenExpiresAt === 'number'
+          ? Math.floor(parsed.tokenExpiresAt / 1000)
+          : 0;
+
+      let sessionForSet = stored;
+      if (!expiresAt || expiresAt <= nowS + EXPIRY_SKEW_SECONDS) {
+        const refreshed = await refreshStoredSupabaseSession(stored.refresh_token);
+        if (!refreshed) return null;
+        sessionForSet = { ...stored, ...refreshed };
+      }
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: sessionForSet.access_token,
+        refresh_token: sessionForSet.refresh_token,
+      });
+
+      if (error || !data?.session) {
+        if (__DEV__) console.warn('[apiClient] stored session repair setSession failed:', error?.message);
+        return null;
+      }
+
+      await setTokens(data.session.access_token, data.session.refresh_token);
+      if (parsed?.validatedUser) {
+        parsed.supabaseSession = data.session;
+        parsed.tokenExpiresAt = data.session.expires_at
+          ? data.session.expires_at * 1000
+          : Date.now() + 3600000;
+        await SecureTokenStore.setItem('auth_session', JSON.stringify(parsed));
+      }
+
+      if (__DEV__) console.log('[apiClient] repaired missing Supabase session from stored auth_session');
+      return data.session;
+    } catch (e) {
+      if (__DEV__) console.warn('[apiClient] stored session repair failed:', e);
+      return null;
+    }
+  })().finally(() => {
+    liveSessionRepairPromise = null;
+  });
+
+  return liveSessionRepairPromise;
 }
 
 // Global Logout Callback to avoid circular dependency
@@ -188,7 +277,8 @@ async function apiRequestInner<T>(
   : Promise<T> {
   const { silent, _isRetry, _retryCount = 0, _multipart, timeoutMs = 60000, ...fetchOptions } = options;
   const isMultipart = _multipart === true;
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session: liveSession } } = await supabase.auth.getSession();
+  const session = liveSession ?? await restoreLiveSessionFromStoredAuth();
   const token = session?.access_token ?? null;
 
   if (__DEV__) {
@@ -319,13 +409,14 @@ async function apiRequestInner<T>(
           return null as T;
         }
 
-        // ── Student 401 guard ──────────────────────────────────────────
-        // Student sessions NEVER expire. A 401 for a student means a
-        // server/network issue, NOT an auth issue. Show a retry toast
-        // and reject without triggering any logout flow.
+        // ── Persistent-role 401 guard ──────────────────────────────────
+        // Parent/student, admin, driver and staff sessions NEVER expire. A 401
+        // for these roles means a server/network/token-refresh hiccup, NOT a
+        // real auth failure. Show a retry toast and reject WITHOUT triggering
+        // any logout flow. Only `accountant` propagates a session-expired error.
         const storedRole = await resolveStoredRole();
-        if (isStudentRole(storedRole)) {
-          if (__DEV__) console.log('[apiClient] 401 for student — suppressing logout, showing retry toast');
+        if (isPersistentSessionRole(storedRole)) {
+          if (__DEV__) console.log(`[apiClient] 401 for persistent role "${storedRole}" — suppressing logout, showing retry toast`);
           Toast.show({
             type: 'error',
             text1: 'Connection issue',
@@ -335,9 +426,8 @@ async function apiRequestInner<T>(
           throw new APIError('Connection issue. Please try again.', 401, undefined, requestId);
         }
 
-        // Non-student roles: propagate 401 as session-expired error.
-        // The caller (or useAuth's handleRefresh via TOKEN_REFRESHED event)
-        // will decide whether to retry or logout.
+        // accountant: propagate 401 as session-expired error. The caller (or
+        // useAuth's handleRefresh via TOKEN_REFRESHED event) decides next steps.
         throw new APIError('Session expired. Please login again.', 401, undefined, requestId);
       }
 

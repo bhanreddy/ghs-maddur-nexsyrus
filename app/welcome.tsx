@@ -258,7 +258,9 @@ export default function Index() {
   }, [loading, user]);
 
   if (loading || user || !studentCheckDone) {
-    return <View style={{ flex: 1, backgroundColor: C.page }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: C.page }} />
+    );
   }
 
   return (
