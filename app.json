@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Geetanjali High School Maddur",
-    "slug": "geetanjalihighschoolmaddur",
-    "version": "1.5.0",
+    "name": "Slate School Kosgi",
+    "slug": "slateschool",
+    "version": "1.0.0",
     "platforms": [
       "android",
       "ios",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.geetanjalihighschool",
+      "bundleIdentifier": "com.nexsyrussims.slateschool",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -31,9 +31,9 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.geetanjalihighschool",
+      "package": "com.nexsyrussims.slateschool",
       "jsEngine": "hermes",
-      "versionCode": 5,
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "enableShrinkResources": true,
       "adaptiveIcon": {
@@ -51,11 +51,8 @@
         "RECEIVE_BOOT_COMPLETED"
       ]
     },
-    "web": {
-      "favicon": "./assets/images/icon-v2.png"
-    },
     "notification": {
-      "icon": "./assets/images/icon-v2.png",
+      "icon": "./assets/images/icon.png",
       "color": "#FFFFFF"
     },
     "plugins": [
@@ -116,7 +113,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5e99bce0-6c29-4767-9f70-10ea0ea9582f"
+        "projectId": "092e54fd-6629-4c8c-ab8d-a21a3ea7633c"
       }
     },
     "owner": "nexsyrus"
