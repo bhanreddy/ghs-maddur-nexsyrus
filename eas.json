@@ -31,8 +31,8 @@
         "buildType": "app-bundle"
       }
     },
-    "school-13-production-apk": {
-      "extends": "school-13",
+    "school-16-production-apk": {
+      "extends": "school-16",
       "distribution": "internal",
       "autoIncrement": true,
       "channel": "production",
@@ -40,21 +40,21 @@
         "buildType": "apk"
       }
     },
-    "school-13": {
+    "school-16": {
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SCHOOL_ID": "13",
-        "EXPO_PUBLIC_SCHOOL_CODE": "SSNAWABPET",
-        "EXPO_PUBLIC_SCHOOL_NAME": "Samskruthe School Nawabpet",
+        "EXPO_PUBLIC_SCHOOL_ID": "16",
+        "EXPO_PUBLIC_SCHOOL_CODE": "VMS",
+        "EXPO_PUBLIC_SCHOOL_NAME": "Vikas Model School Balampet",
         "EXPO_PUBLIC_API_URL": "https://simsapi.nexsyrus.com/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://jztckbupiepiqfrxhszt.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6dGNrYnVwaWVwaXFmcnhoc3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzgyMTYsImV4cCI6MjA4ODcxNDIxNn0.TC6mwwLezkwMmPxkIzRnR7NPyworRVzQ_vXCkRmnz4o"
       }
     },
-    "school-13-production": {
-      "extends": "school-13",
+    "school-16-production": {
+      "extends": "school-16",
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
@@ -64,9 +64,9 @@
     }
   },
   "submit": {
-    "school-13-production": {
+    "school-16-production": {
       "android": {
-        "serviceAccountKeyPath": "./secrets/play-service-account-school-13.json",
+        "serviceAccountKeyPath": "./secrets/play-service-account-school-16.json",
         "track": "internal",
         "releaseStatus": "draft",
         "changesNotSentForReview": false
