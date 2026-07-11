@@ -9,10 +9,10 @@ import ClayIconButton from './ClayIconButton';
 import { SCHOOL_NAME } from '../constants/school';
 import { schoolColorWithAlpha } from '../constants/schoolConfig';
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../hooks/useAuth';
 import { Spacing } from '../theme/themes';
 
 import Animated, { SharedValue, useAnimatedStyle, interpolateColor, interpolate, Extrapolation } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface StaffHeaderProps {
     title: string;
@@ -38,7 +38,7 @@ const StaffHeader: React.FC<StaffHeaderProps> = ({
     const router = useRouter();
     const { theme, isDark } = useTheme();
     const [menuVisible, setMenuVisible] = useState(false);
-    const insets = useSafeAreaInsets();
+    const { user } = useAuth();
 
     const accent = theme.colors.primary;
 
@@ -101,7 +101,10 @@ const StaffHeader: React.FC<StaffHeaderProps> = ({
         <Animated.View style={[
             styles.container,
             styles.claySlab,
-            { paddingTop: insets.top, shadowColor: accent },
+            // Safe-area inset is already applied globally (stackShell sits below
+            // the school ribbon), so re-adding insets.top here double-counted it
+            // and left a gap under the ribbon. Only a small breathing pad is needed.
+            { paddingTop: isWeb ? 12 : Spacing.xs, shadowColor: accent },
             isAbsolute && styles.absoluteHeader,
             animatedStyle
         ]}>
@@ -155,7 +158,7 @@ const StaffHeader: React.FC<StaffHeaderProps> = ({
                 </View>
             </View>
 
-            <MenuOverlay visible={menuVisible} onClose={() => setMenuVisible(false)} userType="staff" />
+            <MenuOverlay visible={menuVisible} onClose={() => setMenuVisible(false)} userType="staff" photoUrl={user?.photoUrl} />
         </Animated.View>
     );
 };

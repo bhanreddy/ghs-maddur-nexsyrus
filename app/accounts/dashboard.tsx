@@ -157,53 +157,60 @@ const WebStatCard = ({ card, loading, isDark, theme }: any) => (
 // ─── WEB Grid Item ─────────────────────────────────────────────────────────────
 const WebGridItem = ({ item, router, itemW, isDark }: any) => {
   const scale = useSharedValue(1);
-  const glow = useSharedValue(0);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: interpolate(glow.value, [0, 1], [0, 1], Extrapolation.CLAMP) }));
   const IconLib = item.library;
 
   return (
     <Animated.View style={[{ width: itemW }, animStyle]}>
       <Pressable
-        onPressIn={() => { scale.value = withSpring(0.93, { damping: 14, stiffness: 320 }); glow.value = withTiming(1, { duration: 120 }); }}
-        onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 200 }); glow.value = withTiming(0, { duration: 250 }); }}
+        onPressIn={() => { scale.value = withSpring(0.95, { damping: 14, stiffness: 320 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 200 }); }}
         onPress={() => router.push(item.route)}
         style={{
-          borderRadius: 18, overflow: 'hidden',
-          shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: isDark ? 0.40 : 0.15, shadowRadius: 14, elevation: 8
+          borderRadius: 24, overflow: 'hidden',
+          backgroundColor: item.color[0],
+          borderWidth: 0,
+          borderTopWidth: 1.5,
+          borderTopColor: 'rgba(255,255,255,0.45)',
+          borderBottomWidth: 3.5,
+          borderBottomColor: 'rgba(0,0,0,0.3)',
+          shadowColor: item.color[0],
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: isDark ? 0.4 : 0.25,
+          shadowRadius: 12,
+          elevation: 6,
+          position: 'relative',
         }}>
-        <LinearGradient
-          colors={item.color}
-          style={{
-            borderRadius: 18, padding: 14, height: 120,
-            justifyContent: 'space-between',
-            borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
-            borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.32)'
-          }}
-          start={{ x: 0.1, y: 0 }} end={{ x: 0.95, y: 1 }}>
+        {/* Dual Depth Clay Glare */}
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
 
-          <DotGrid />
-          <View style={{ position: 'absolute', top: 0, left: 10, right: 10, height: 1.5, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          <View style={{ position: 'absolute', right: -20, bottom: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)' }} />
-          <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 18 }, glowStyle]} />
-
-          <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.35)' }}>
-            <IconLib name={item.icon} size={18} color="#fff" />
+        <View style={{ padding: 18, height: 120, justifyContent: 'space-between', zIndex: 2 }}>
+          <View style={{ 
+            width: 44, height: 44, borderRadius: 14, 
+            backgroundColor: 'rgba(255,255,255,0.2)', 
+            alignItems: 'center', justifyContent: 'center', 
+            borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.45)', 
+            borderBottomWidth: 1.2, borderBottomColor: 'rgba(0,0,0,0.15)' 
+          }}>
+            <IconLib name={item.icon} size={22} color="#FFFFFF" />
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <Text style={{
-              flex: 1, color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: -0.1, lineHeight: 14,
-              textShadowColor: 'rgba(0,0,0,0.30)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4
+              flex: 1, color: '#FFFFFF', fontSize: 14, fontWeight: '800', letterSpacing: 0.2, lineHeight: 18,
+              textShadowColor: 'rgba(0,0,0,0.15)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2
             }} numberOfLines={2}>
               {item.title}
             </Text>
-            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', marginLeft: 4, flexShrink: 0 }}>
-              <Ionicons name="chevron-forward" size={9} color="rgba(255,255,255,0.7)" />
-            </View>
           </View>
-        </LinearGradient>
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -212,35 +219,55 @@ const WebGridItem = ({ item, router, itemW, isDark }: any) => {
 // ─── Mobile GridItem ──────────────────────────────────────────────────────────
 const MobileGridItem = ({ item, index, router, styles, isDark, GRID_ITEM_W }: any) => {
   const scale = useSharedValue(1);
-  const glow = useSharedValue(0);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: interpolate(glow.value, [0, 1], [0, 1], Extrapolation.CLAMP) }));
   const IconLib = item.library;
 
   return (
     <Animated.View entering={FadeInDown.delay(300 + index * 55).duration(500).springify()}
-      style={[styles.gridItemWrapper, { width: GRID_ITEM_W, height: GRID_ITEM_W + 16 }]}>
+      style={[{ width: GRID_ITEM_W, height: GRID_ITEM_W + 16 }]}>
       <Animated.View style={[{ flex: 1 }, animStyle]}>
-        <Pressable style={styles.gridItem}
-          onPressIn={() => { scale.value = withSpring(0.88, { damping: 14, stiffness: 320 }); glow.value = withTiming(1, { duration: 120 }); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-          onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 180 }); glow.value = withTiming(0, { duration: 250 }); }}
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push(item.route); }}>
-          <LinearGradient colors={item.color as [string, string]} style={styles.gridGradient} start={{ x: 0.1, y: 0 }} end={{ x: 0.95, y: 1 }}>
-            <DotGrid />
-            <View style={styles.topHighlight} />
-            <View style={[styles.bgArc, { width: GRID_ITEM_W * 0.85, height: GRID_ITEM_W * 0.85, borderRadius: GRID_ITEM_W * 0.425 }]} />
-            <View style={styles.cornerOrb} />
-            <Animated.View style={[styles.pressGlow, glowStyle]} />
-            <View style={styles.iconRingOuter}>
-              <View style={[styles.iconRingInner, { borderColor: 'rgba(255,255,255,0.40)' }]}>
-                <IconLib name={item.icon as any} size={20} color="#fff" />
-              </View>
+        <Pressable
+          onPressIn={() => { scale.value = withSpring(0.95, { damping: 14, stiffness: 320 }); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+          onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 180 }); }}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push(item.route); }}
+          style={{
+            flex: 1,
+            borderRadius: 24, overflow: 'hidden',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255,255,255,0.25)',
+            borderBottomWidth: 4,
+            borderBottomColor: 'rgba(0,0,0,0.2)',
+            shadowColor: item.color[0],
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
+          }}>
+          
+          {/* Vibrant Background Gradient */}
+          <LinearGradient
+            colors={item.color}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Clay Inner Highlight */}
+          <LinearGradient
+            colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
+            pointerEvents="none"
+          />
+
+          <View style={{ padding: 14, flex: 1, justifyContent: 'space-between' }}>
+            <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' }}>
+              <IconLib name={item.icon} size={18} color={item.color[isDark ? 1 : 0]} />
             </View>
-            <View style={styles.labelRow}>
-              <Text style={styles.gridLabel} numberOfLines={2}>{item.title}</Text>
-              <View style={styles.chevronWrap}><Ionicons name="chevron-forward" size={9} color="rgba(255,255,255,0.65)" /></View>
+            <View>
+              <Text style={{
+                color: isDark ? '#fff' : '#2A3142', fontSize: 11, fontWeight: '700', letterSpacing: -0.1, lineHeight: 14
+              }} numberOfLines={2}>
+                {item.title}
+              </Text>
             </View>
-          </LinearGradient>
+          </View>
         </Pressable>
       </Animated.View>
     </Animated.View>
@@ -438,59 +465,93 @@ const WebTransactionsSection = ({ transactions, loading, isDark, theme, router }
       </Pressable>
     </View>
 
-    <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.045)' : 'rgba(255,255,255,0.95)', borderRadius: 20, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.06)', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: isDark ? 0.20 : 0.05, shadowRadius: 14, elevation: 5 }}>
-      {/* Table header */}
-      <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)', backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.018)' }}>
-        {['Student', 'Class · Type', 'Date', 'Amount'].map((h, i) => (
-          <Text key={h} style={{ flex: i === 0 ? 2 : 1, fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase', textAlign: i === 3 ? 'right' : 'left' }}>{h}</Text>
-        ))}
+    <View style={{ 
+      backgroundColor: isDark ? '#1C1F2A' : '#FFFFFF', 
+      borderRadius: 24, 
+      borderWidth: 0,
+      borderTopWidth: 1.5, borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)',
+      borderBottomWidth: 3.5, borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.06)',
+      shadowColor: isDark ? '#000' : '#6B7A99', 
+      shadowOffset: { width: 0, height: 6 }, 
+      shadowOpacity: isDark ? 0.22 : 0.08, 
+      shadowRadius: 10, 
+      elevation: 3, 
+      position: 'relative'
+    }}>
+      <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+        <LinearGradient
+          colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
       </View>
 
-      {loading
-        ? [1, 2, 3, 4].map(i => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', gap: 12 }}>
-            <ShimmerBar width={36} height={36} borderRadius={10} />
-            <View style={{ flex: 2, gap: 6 }}><ShimmerBar width={100} height={11} /><ShimmerBar width={70} height={9} /></View>
-            <ShimmerBar width={60} height={10} style={{ flex: 1 } as any} />
-            <ShimmerBar width={50} height={10} style={{ flex: 1 } as any} />
-            <ShimmerBar width={70} height={14} style={{ flex: 1 } as any} />
-          </View>
-        ))
-        : transactions.map((tx: any, index: number) => {
-          const accent = AVATAR_PALETTE[index % AVATAR_PALETTE.length];
-          return (
-            <Animated.View key={tx.id} entering={FadeInDown.delay(index * 50).duration(350)}>
-              <Pressable
-                onPress={() => router.push('/accounts/receipts')}
-                style={({ pressed }: any) => ({ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: index < transactions.length - 1 ? 1 : 0, borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : 'transparent' })}>
-                <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: accent + '18', borderWidth: 1.5, borderColor: accent + '35', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: accent }}>{tx.name?.[0]?.toUpperCase() ?? '?'}</Text>
-                  </View>
-                  <Text style={{ fontSize: 13.5, fontWeight: '700', color: theme.colors.text }}>{tx.name}</Text>
-                </View>
-                <View style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                  <View style={{ backgroundColor: accent + '18', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: accent, letterSpacing: 0.3 }}>{tx.class}</Text>
-                  </View>
-                  <Text style={{ fontSize: 11.5, color: theme.colors.textSecondary, fontWeight: '500' }}>{tx.type}</Text>
-                </View>
-                <Text style={{ flex: 1, fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' }}>{tx.time}</Text>
-                <Text style={{ flex: 1, fontSize: 14, fontWeight: '800', color: theme.colors.success, textAlign: 'right' }}>{tx.amount}</Text>
-              </Pressable>
-            </Animated.View>
-          );
-        })
-      }
-
-      {!loading && transactions.length === 0 && (
-        <View style={{ alignItems: 'center', paddingVertical: 36, gap: 8 }}>
-          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)' }}>
-            <FontAwesome5 name="receipt" size={20} color={theme.colors.textSecondary} />
-          </View>
-          <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>No recent transactions</Text>
+      <View style={{ position: 'relative', zIndex: 2 }}>
+        {/* Table header */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 22, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', backgroundColor: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(249,250,251,0.6)', borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+          {['Student', 'Class · Type', 'Date', 'Amount'].map((h, i) => (
+            <Text key={h} style={{ flex: i === 0 ? 2 : 1, fontSize: 10, fontWeight: '800', color: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280', letterSpacing: 0.8, textTransform: 'uppercase', textAlign: i === 3 ? 'right' : 'left' }}>{h}</Text>
+          ))}
         </View>
-      )}
+
+        {loading
+          ? [1, 2, 3, 4].map(i => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', gap: 12 }}>
+              <ShimmerBar width={36} height={36} borderRadius={10} />
+              <View style={{ flex: 2, gap: 6 }}><ShimmerBar width={100} height={11} /><ShimmerBar width={70} height={9} /></View>
+              <ShimmerBar width={60} height={10} style={{ flex: 1 } as any} />
+              <ShimmerBar width={50} height={10} style={{ flex: 1 } as any} />
+              <ShimmerBar width={70} height={14} style={{ flex: 1 } as any} />
+            </View>
+          ))
+          : transactions.map((tx: any, index: number) => {
+            const accent = AVATAR_PALETTE[index % AVATAR_PALETTE.length];
+            return (
+              <Animated.View key={tx.id} entering={FadeInDown.delay(index * 50).duration(350)}>
+                <Pressable
+                  onPress={() => router.push('/accounts/receipts')}
+                  style={({ pressed }: any) => ({ 
+                    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, paddingVertical: 12, 
+                    borderBottomWidth: index < transactions.length - 1 ? 1 : 0, 
+                    borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', 
+                    backgroundColor: pressed ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : 'transparent' 
+                  })}>
+                  <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <View style={{ 
+                      width: 40, height: 40, borderRadius: 12, 
+                      backgroundColor: accent, 
+                      borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.4)',
+                      borderBottomWidth: 1.2, borderBottomColor: 'rgba(0,0,0,0.2)',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0 
+                    }}>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: '#FFFFFF', textShadowColor: 'rgba(0,0,0,0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>{tx.name?.[0]?.toUpperCase() ?? '?'}</Text>
+                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>{tx.name}</Text>
+                  </View>
+                  <View style={{ flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                    <View style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDark ? 'rgba(255,255,255,0.7)' : '#4B5563', letterSpacing: 0.3 }}>{tx.class}</Text>
+                    </View>
+                    <Text style={{ fontSize: 11.5, color: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280', fontWeight: '600' }}>{tx.type}</Text>
+                  </View>
+                  <Text style={{ flex: 1, fontSize: 12, color: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280', fontWeight: '500' }}>{tx.time}</Text>
+                  <Text style={{ flex: 1, fontSize: 14, fontWeight: '800', color: theme.colors.success, textAlign: 'right' }}>{tx.amount}</Text>
+                </Pressable>
+              </Animated.View>
+            );
+          })
+        }
+
+        {!loading && transactions.length === 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: 36, gap: 8 }}>
+            <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)' }}>
+              <FontAwesome5 name="receipt" size={20} color={isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF'} />
+            </View>
+            <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>No recent transactions</Text>
+          </View>
+        )}
+      </View>
     </View>
   </View>
 );

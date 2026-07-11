@@ -195,12 +195,18 @@ function ThemeSyncWrapper() {
             <AuthGate>
               <Stack
                 screenOptions={{
-                  ...getSchoolHeader(),
                   headerShown: false,
                   animation: 'slide_from_right',
                   contentStyle: { backgroundColor: theme.colors.background },
                 }}
-              />
+              >
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="driver" options={{ headerShown: false }} />
+                <Stack.Screen name="admin" options={{ headerShown: false }} />
+                <Stack.Screen name="staff" options={{ headerShown: false }} />
+                <Stack.Screen name="accounts" options={{ headerShown: false }} />
+                <Stack.Screen name="Screen" options={{ headerShown: false }} />
+              </Stack>
             </AuthGate>
           </View>
           {!isWeb ? <SchoolRibbon /> : null}

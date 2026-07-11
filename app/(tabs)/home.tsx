@@ -25,7 +25,6 @@ import { StatusBar } from 'expo-status-bar';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Dimensions,
   Platform,
   Pressable,
   RefreshControl,
@@ -33,6 +32,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  Image,
 } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -59,11 +59,13 @@ import { StudentDashboardResponse } from '../../src/services/studentService';
 import { isStudentRole } from '../../src/utils/roleHelpers';
 import { AttendanceSummary } from '../../src/types/models';
 import { t_field } from '../../src/utils/lang';
+import { getMediaUrl } from '../../src/utils/media';
 
-const { width } = Dimensions.get('window');
 const H_PAD = 20;
 const GAP = 12;
-const CARD_W = (width - H_PAD * 2 - GAP) / 2;
+// Premium apps present as a centered column on desktop — never a full-bleed 2000px stretch.
+// The hero, body and quick-action grid all size against this cap on wide web.
+const CONTENT_MAX_W = 720;
 const IS_WEB = Platform.OS === 'web';
 
 /* ═══════════════════════════════════════════
@@ -74,19 +76,19 @@ const tokens = {
   space: { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 10: 40 },
 } as const;
 
-const palette = (isDark: boolean) => ({
-  bg: isDark ? '#06080E' : '#EEF2F8',
-  surface: isDark ? '#0D1117' : '#FFFFFF',
-  surfaceElevated: isDark ? '#141822' : '#FFFFFF',
-  border: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
-  borderStrong: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.10)',
-  textPrimary: isDark ? 'rgba(255,255,255,0.94)' : '#0F172A',
-  textSecondary: isDark ? 'rgba(255,255,255,0.62)' : '#475569',
-  textTertiary: isDark ? 'rgba(255,255,255,0.38)' : '#94A3B8',
-  accent: '#6366F1',
-  success: isDark ? '#34D399' : '#059669',
-  warning: isDark ? '#FBBF24' : '#D97706',
-  danger: isDark ? '#F87171' : '#DC2626',
+const palette = (theme: any) => ({
+  bg: theme.colors.background,
+  surface: theme.colors.surface,
+  surfaceElevated: theme.colors.card,
+  border: theme.colors.borderLight,
+  borderStrong: theme.colors.border,
+  textPrimary: theme.colors.textStrong,
+  textSecondary: theme.colors.textSecondary,
+  textTertiary: theme.colors.textMuted,
+  accent: theme.colors.primary,
+  success: theme.colors.success,
+  warning: theme.colors.warning,
+  danger: theme.colors.danger,
 });
 
 type ReactNativeSvgModule = typeof import('react-native-svg');
@@ -115,8 +117,8 @@ const homeTabs: HomeTab[] = [
     translationKey: 'announcements.title', title: 'Announcements',
     subtitleKey: 'dashboard.featureSubtitles.school_updates',
     ionIcon: 'megaphone-outline',
-    grad: ['#3730A3', '#4F46E5', '#818CF8'],
-    shadow: '#4F46E5',
+    grad: ['#312E81', '#4338CA', '#818CF8'], // Indigo 900, Indigo 700
+    shadow: '#3730A3', // Indigo 800
     feature: 'quick.announcements',
   },
   {
@@ -124,8 +126,8 @@ const homeTabs: HomeTab[] = [
     translationKey: 'complaints.title', title: 'Complaints',
     subtitleKey: 'dashboard.featureSubtitles.raise_concern',
     ionIcon: 'alert-circle-outline',
-    grad: ['#991B1B', '#DC2626', '#F87171'],
-    shadow: '#DC2626',
+    grad: ['#7F1D1D', '#B91C1C', '#F87171'], // Red 900, Red 700
+    shadow: '#991B1B', // Red 800
     feature: 'quick.complaints',
   },
   {
@@ -133,8 +135,8 @@ const homeTabs: HomeTab[] = [
     translationKey: 'lifeValues', title: 'Life Values',
     subtitleKey: 'dashboard.featureSubtitles.character_growth',
     ionIcon: 'heart-outline',
-    grad: ['#065F46', '#10B981', '#6EE7B7'],
-    shadow: '#10B981',
+    grad: ['#022C22', '#047857', '#6EE7B7'], // Emerald 900, Emerald 700
+    shadow: '#064E3B', // Emerald 800
     feature: 'quick.life_values',
   },
   {
@@ -142,8 +144,8 @@ const homeTabs: HomeTab[] = [
     translationKey: 'admin_dashboard.transport', title: 'Transport',
     subtitleKey: 'dashboard.featureSubtitles.live_bus',
     ionIcon: 'bus-outline',
-    grad: ['#B45309', '#F59E0B', '#FCD34D'],
-    shadow: '#F59E0B',
+    grad: ['#78350F', '#B45309', '#FCD34D'], // Amber 900, Amber 700
+    shadow: '#92400E', // Amber 800
     feature: 'quick.transport',
   },
   {
@@ -151,8 +153,8 @@ const homeTabs: HomeTab[] = [
     translationKey: 'scienceProjects', title: 'Science Projects',
     subtitleKey: 'dashboard.featureSubtitles.lab_innovation',
     ionIcon: 'flask-outline',
-    grad: ['#075985', '#0EA5E9', '#7DD3FC'],
-    shadow: '#0EA5E9',
+    grad: ['#082F49', '#0369A1', '#7DD3FC'], // Sky 900, Sky 700
+    shadow: '#075985', // Sky 800
     feature: 'quick.science_projects',
   },
   {
@@ -160,9 +162,18 @@ const homeTabs: HomeTab[] = [
     translationKey: 'menu.profile', title: 'Student Profile',
     subtitleKey: 'dashboard.featureSubtitles.personal_details',
     ionIcon: 'person-circle-outline',
-    grad: ['#9F1239', '#E11D48', '#FDA4AF'],
-    shadow: '#E11D48',
+    grad: ['#881337', '#BE123C', '#FDA4AF'], // Rose 900, Rose 700
+    shadow: '#9F1239', // Rose 800
     feature: 'quick.profile',
+  },
+  {
+    key: 'messenger',
+    translationKey: 'messages.title', title: 'Messages',
+    subtitleKey: 'dashboard.featureSubtitles.in_app_chat',
+    ionIcon: 'chatbubble-ellipses-outline',
+    grad: ['#312E81', '#4338CA', '#818CF8'], // Indigo 900, Indigo 700
+    shadow: '#3730A3', // Indigo 800
+    feature: 'comm.messenger', // Requires comm.messenger feature flag
   },
 ];
 
@@ -175,7 +186,103 @@ const routeMap: Record<string, string> = {
   lifeValues: '/Screen/lifeValues',
   projects: '/Screen/scienceProjects',
   test: '/Screen/weekendTest',
+  messenger: '/Screen/messages',
 };
+
+interface ClayViewProps {
+  children: React.ReactNode;
+  color?: string;
+  radius?: number;
+  style?: any;
+  flat?: boolean;
+}
+
+function ClayView({ children, color = '#FFFFFF', radius = 20, style, flat }: ClayViewProps) {
+  const { isDark } = useTheme();
+
+  if (Platform.OS === 'ios' && !flat) {
+    return (
+      <View style={[
+        {
+          borderRadius: radius,
+          shadowColor: isDark ? '#000000' : '#94A3B8',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: isDark ? 0.35 : 0.12,
+          shadowRadius: 10,
+        },
+        style
+      ]}>
+        <View style={{
+          backgroundColor: color,
+          borderRadius: radius,
+          overflow: 'hidden',
+          borderBottomWidth: 1.5,
+          borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(76,90,120,0.08)',
+          flex: 1,
+        }}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {children}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: color,
+          borderRadius: radius,
+          overflow: 'hidden',
+          borderBottomWidth: 1.5,
+          borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(76,90,120,0.08)',
+        },
+        !flat && Platform.select({ android: { elevation: 3 }, default: {} }),
+        style,
+      ]}
+    >
+      <LinearGradient
+        colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.6, y: 0.9 }}
+        style={[StyleSheet.absoluteFill, { borderRadius: radius }]}
+        pointerEvents="none"
+      />
+      {children}
+    </View>
+  );
+}
+
+function PressScale({ children, onPress, style, disabled, activeScale = 0.98 }: any) {
+  const scale = useSharedValue(1);
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  return (
+    <Pressable
+      disabled={disabled}
+      onPressIn={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        scale.value = withSpring(activeScale, { damping: 15, stiffness: 200 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+      }}
+      onPress={onPress}
+      style={style}
+    >
+      <Animated.View style={anim}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 /* ═══════════════════════════════════════════
    RING
@@ -277,8 +384,8 @@ const sp = StyleSheet.create({
    • Icon chip 44 → 50, glyph 22 → 24 (icon = anchor)
    • All v7 depth tricks preserved
 ═══════════════════════════════════════════ */
-const FeatureCard = ({ tab, isDark, onPress }: {
-  tab: HomeTab & { title: string }; isDark: boolean; onPress: () => void;
+const FeatureCard = ({ tab, isDark, onPress, cardWidth }: {
+  tab: HomeTab & { title: string }; isDark: boolean; onPress: () => void; cardWidth: number;
 }) => {
   const scale = useSharedValue(1);
   const pressGlow = useSharedValue(0);
@@ -287,53 +394,52 @@ const FeatureCard = ({ tab, isDark, onPress }: {
   const animGlow = useAnimatedStyle(() => ({ opacity: pressGlow.value }));
 
   return (
-    <Animated.View style={[{ width: CARD_W }, animCard]}>
+    <Animated.View style={[{ width: cardWidth }, animCard]}>
       <Pressable
         onPressIn={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          scale.value = withSpring(0.95, { damping: 14, mass: 0.4 });
+          scale.value = withTiming(0.97, { duration: 150 });
           pressGlow.value = withTiming(1, { duration: 160 });
         }}
         onPressOut={() => {
-          scale.value = withSpring(1, { damping: 14, mass: 0.4 });
+          scale.value = withTiming(1, { duration: 150 });
           pressGlow.value = withTiming(0, { duration: 240 });
         }}
         onPress={onPress}
       >
         <View style={[fc.shell, {
+          backgroundColor: isDark ? tab.grad[0] : tab.grad[1],
+          borderWidth: 1,
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.45)',
           ...Platform.select({
             ios: {
               shadowColor: tab.shadow,
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: isDark ? 0.35 : 0.30,
-              shadowRadius: 18,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isDark ? 0.45 : 0.28,
+              shadowRadius: 12,
             },
-            android: { elevation: 8 },
+            android: { elevation: 6 },
+            web: {
+              boxShadow: `0px 8px 18px ${tab.shadow}33, -5px -5px 12px ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.85)'}, inset 2px 2px 4px rgba(255, 255, 255, 0.45), inset -2.5px -2.5px 5px rgba(0, 0, 0, 0.16)`
+            }
           }),
         }]}>
-          {/* Base 3-stop gradient — diagonal for depth */}
+          {/* Tactile claymorphic highlight linear gradient matching staff dashboard */}
           <LinearGradient
-            colors={tab.grad}
-            locations={[0, 0.55, 1]}
-            start={{ x: 0, y: 1 }}
-            end={{ x: 1, y: 0 }}
-            style={fc.card}
-          >
-            {/* Top-left RADIAL light highlight */}
-            <View style={fc.lightHighlight} pointerEvents="none" />
+            colors={isDark ? ['rgba(255, 255, 255, 0.05)', 'rgba(0, 0, 0, 0.15)'] : ['rgba(255, 255, 255, 0.26)', 'rgba(0, 0, 0, 0.06)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: tokens.radius['xl'] }]}
+            pointerEvents="none"
+          />
 
-            {/* Bottom-right soft darkening */}
-            <View style={fc.softShade} pointerEvents="none" />
+          {/* Press state glow */}
+          <Animated.View
+            pointerEvents="none"
+            style={[fc.pressGlow, animGlow]}
+          />
 
-            {/* 1px inner highlight along top edge */}
-            <View style={fc.innerEdge} pointerEvents="none" />
-
-            {/* Press state glow */}
-            <Animated.View
-              pointerEvents="none"
-              style={[fc.pressGlow, animGlow]}
-            />
-
+          <View style={fc.card}>
             {/* Header row: icon chip + arrow */}
             <View style={fc.headerRow}>
               <View style={fc.iconChipWrap}>
@@ -355,7 +461,7 @@ const FeatureCard = ({ tab, isDark, onPress }: {
 
             {/* Title only */}
             <Text style={fc.title} numberOfLines={2}>{tab.title}</Text>
-          </LinearGradient>
+          </View>
         </View>
       </Pressable>
     </Animated.View>
@@ -366,6 +472,8 @@ const fc = StyleSheet.create({
   shell: {
     borderRadius: tokens.radius['xl'],
     backgroundColor: 'transparent',
+    position: 'relative',
+    overflow: Platform.OS === 'web' ? 'hidden' : 'visible',
   },
   card: {
     borderRadius: tokens.radius['xl'],
@@ -373,27 +481,6 @@ const fc = StyleSheet.create({
     minHeight: 128,
     overflow: 'hidden',
     justifyContent: 'space-between',
-  },
-  lightHighlight: {
-    position: 'absolute',
-    top: -30, left: -30,
-    width: 110, height: 110,
-    borderRadius: 55,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    opacity: 0.9,
-  },
-  softShade: {
-    position: 'absolute',
-    bottom: -40, right: -40,
-    width: 110, height: 110,
-    borderRadius: 55,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-  innerEdge: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.30)',
   },
   pressGlow: {
     position: 'absolute',
@@ -446,14 +533,13 @@ const fc = StyleSheet.create({
    ANNOUNCEMENT CARD — warm for fresh, muted for stale
 ═══════════════════════════════════════════ */
 const AnnouncementCard = ({
-  notice, isDark, isFresh, onPress,
+  notice, isFresh, onPress,
 }: {
-  notice: any; isDark: boolean; isFresh: boolean; onPress: () => void;
+  notice: any; isFresh: boolean; onPress: () => void;
 }) => {
   const { t } = useTranslation();
-  const P = palette(isDark);
-  const scale = useSharedValue(1);
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const { theme, isDark } = useTheme();
+  const P = palette(theme);
 
   const accent = isFresh ? '#F97316' : (isDark ? '#64748B' : '#94A3B8');
   const timeAgo = notice.created_at ? getTimeAgo(new Date(notice.created_at), t) : '';
@@ -464,80 +550,61 @@ const AnnouncementCard = ({
     : (isDark ? ['#0D1117', '#0D1117'] as const : ['#FFFFFF', '#F8FAFC'] as const);
 
   return (
-    <Animated.View style={anim}>
-      <Pressable
-        onPressIn={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          scale.value = withSpring(0.98, { damping: 14 });
-        }}
-        onPressOut={() => { scale.value = withSpring(1, { damping: 14 }); }}
-        onPress={onPress}
+    <PressScale onPress={onPress}>
+      <ClayView
+        color={warmBg[0]}
+        radius={20}
+        style={[an.card, { borderColor: isFresh ? 'rgba(249,115,22,0.30)' : P.border }]}
       >
+        {/* Left accent bar */}
         <LinearGradient
-          colors={warmBg}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[an.card, {
-            borderColor: isFresh ? (isDark ? 'rgba(249,115,22,0.28)' : 'rgba(249,115,22,0.30)') : P.border,
-            ...Platform.select({
-              ios: {
-                shadowColor: isFresh ? '#F97316' : (isDark ? '#000' : '#0F172A'),
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: isFresh ? (isDark ? 0.22 : 0.15) : (isDark ? 0.28 : 0.05),
-                shadowRadius: 14,
-              },
-              android: { elevation: isFresh ? 6 : 3 },
-            }),
-          }]}
-        >
-          {/* Left accent bar */}
-          <LinearGradient
-            colors={[accent, accent + '55']}
-            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-            style={an.leftBar}
-          />
+          colors={[accent, accent + '55']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={an.leftBar}
+        />
 
-          <View style={an.body}>
-            {/* Meta row */}
-            <View style={an.metaRow}>
-              {isFresh ? (
-                <View style={[an.livePill, { backgroundColor: 'rgba(249,115,22,0.16)' }]}>
-                  <View style={[an.liveDot, { backgroundColor: '#F97316' }]} />
-                  <Text style={an.liveTxt}>{t('studentHome.tagNewAnnouncement').toUpperCase()}</Text>
-                </View>
-              ) : (
-                <View style={[an.stalePill, { backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : 'rgba(148,163,184,0.16)' }]}>
-                  <Ionicons name="megaphone" size={10} color={P.textTertiary} />
-                  <Text style={[an.announceTag, { color: P.textTertiary }]}>
-                    {t('studentHome.tagAnnouncement').toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              <Text style={[an.timeAgo, { color: P.textTertiary }]}>{timeAgo}</Text>
-            </View>
-
-            {/* Title */}
-            <Text style={[an.title, { color: P.textPrimary }]} numberOfLines={1}>
-              {t_field(notice.title, notice.title_te) || noticeFallback}
-            </Text>
-
-            {/* Body */}
-            <Text style={[an.excerpt, { color: P.textSecondary }]} numberOfLines={2}>
-              {t_field(notice.content, notice.content_te)}
-            </Text>
-
-            {/* Read more */}
-            <View style={an.readRow}>
-              <Text style={[an.readMore, { color: accent }]}>
-                {t('studentHome.readFullAnnouncement')}
-              </Text>
-              <View style={[an.readArrow, { backgroundColor: accent + (isDark ? '24' : '20') }]}>
-                <Ionicons name="arrow-forward" size={12} color={accent} />
+        <View style={an.body}>
+          {/* Meta row */}
+          <View style={an.metaRow}>
+            {isFresh ? (
+              <View style={[an.livePill, { backgroundColor: 'rgba(249,115,22,0.16)' }]}>
+                <View style={[an.liveDot, { backgroundColor: '#F97316' }]} />
+                <Text style={an.liveTxt}>{t('studentHome.tagNewAnnouncement').toUpperCase()}</Text>
               </View>
+            ) : (
+              <View style={[an.stalePill, { backgroundColor: isDark ? 'rgba(148,163,184,0.10)' : 'rgba(148,163,184,0.16)' }]}>
+                <Ionicons name="megaphone" size={10} color={P.textTertiary} />
+                <Text style={[an.announceTag, { color: P.textTertiary }]}>
+                  {t('studentHome.tagAnnouncement').toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Text style={[an.timeAgo, { color: P.textTertiary }]}>{timeAgo}</Text>
+          </View>
+
+          {/* Title */}
+          <Text style={[an.title, { color: P.textPrimary }]} numberOfLines={1}>
+            {t_field(notice.title, notice.title_te) || noticeFallback}
+          </Text>
+
+          {/* Body */}
+          <Text style={[an.excerpt, { color: P.textSecondary }]} numberOfLines={2}>
+            {t_field(notice.content, notice.content_te)}
+          </Text>
+
+          {/* Read more */}
+          <View style={an.readRow}>
+            <Text style={[an.readMore, { color: accent }]}>
+              {t('studentHome.readFullAnnouncement')}
+            </Text>
+            <View style={[an.readArrow, { backgroundColor: accent + (isDark ? '24' : '20') }]}>
+              <Ionicons name="arrow-forward" size={12} color={accent} />
             </View>
           </View>
-        </LinearGradient>
-      </Pressable>
-    </Animated.View>
+        </View>
+      </ClayView>
+    </PressScale>
   );
 };
 
@@ -588,10 +655,11 @@ function getTimeAgo(date: Date, t: any): string {
 /* ═══════════════════════════════════════════
    SECTION LABEL — with colored dot (scan anchor)
 ═══════════════════════════════════════════ */
-const SectionLabel = ({ text, isDark, accent = '#6366F1', badge }: {
-  text: string; isDark: boolean; accent?: string; badge?: string;
+const SectionLabel = ({ text, accent = '#6366F1', badge }: {
+  text: string; accent?: string; badge?: string;
 }) => {
-  const P = palette(isDark);
+  const { theme, isDark } = useTheme();
+  const P = palette(theme);
   return (
     <View style={sl.row}>
       <View style={sl.leadBlock}>
@@ -620,36 +688,36 @@ const sl = StyleSheet.create({
 /* ═══════════════════════════════════════════
    TEACHER CARD
 ═══════════════════════════════════════════ */
-const TeacherCard = ({ name, role, isDark }: { name: string; role: string; isDark: boolean }) => {
+const TeacherCard = ({ name, role, photoUrl, onContact }: { name: string; role: string; photoUrl?: string; onContact: () => void }) => {
   const { t } = useTranslation();
-  const P = palette(isDark);
+  const { theme, isDark } = useTheme();
+  const P = palette(theme);
   return (
-    <View style={[tc.card, {
-      backgroundColor: P.surfaceElevated,
-      borderColor: P.border,
-      ...Platform.select({
-        ios: { shadowColor: isDark ? '#000' : '#6366F1', shadowOffset: { width: 0, height: 6 }, shadowOpacity: isDark ? 0.28 : 0.10, shadowRadius: 14 },
-        android: { elevation: isDark ? 5 : 3 },
-      }),
-    }]}>
+    <ClayView color={P.surfaceElevated} radius={20} style={[tc.card, { borderColor: P.border }]}>
       <LinearGradient
-        colors={['#4F46E5', '#6366F1', '#818CF8']}
+        colors={isDark ? ['#312E81', '#4F46E5', '#6366F1'] : ['#E0E7FF', '#C7D2FE', '#818CF8']}
         locations={[0, 0.55, 1]}
         start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }}
         style={tc.avatar}
       >
         <View style={tc.avatarHighlight} />
-        <Ionicons name="person" size={22} color="#fff" />
+        {photoUrl ? (
+          <Image source={{ uri: getMediaUrl(photoUrl) }} style={{ width: '100%', height: '100%' }} />
+        ) : (
+          <Ionicons name="person" size={22} color={isDark ? '#FFF' : '#4F46E5'} />
+        )}
       </LinearGradient>
       <View style={{ flex: 1 }}>
         <Text style={[tc.name, { color: P.textPrimary }]} numberOfLines={1}>{name}</Text>
-        <Text style={[tc.role, { color: P.textTertiary }]} numberOfLines={1}>{role}</Text>
+        <Text style={[tc.role, { color: P.textSecondary }]} numberOfLines={1}>{role}</Text>
       </View>
-      <Pressable style={[tc.contactBtn, { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.12)' }]}>
-        <Ionicons name="mail-outline" size={13} color={isDark ? '#A5B4FC' : '#6366F1'} />
-        <Text style={[tc.contactTxt, { color: isDark ? '#A5B4FC' : '#6366F1' }]}>{t('studentHome.teacherContact')}</Text>
-      </Pressable>
-    </View>
+      <PressScale onPress={onContact}>
+        <View style={[tc.contactBtn, { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.12)' }]}>
+          <Ionicons name="mail-outline" size={13} color={isDark ? '#A5B4FC' : '#4F46E5'} />
+          <Text style={[tc.contactTxt, { color: isDark ? '#A5B4FC' : '#4F46E5' }]}>{t('studentHome.teacherContact')}</Text>
+        </View>
+      </PressScale>
+    </ClayView>
   );
 };
 const tc = StyleSheet.create({
@@ -676,115 +744,103 @@ const tc = StyleSheet.create({
    SNAPSHOT CARD — HERO
 ═══════════════════════════════════════════ */
 const SnapshotCard = ({
-  pct, attColor, todayStatus, presentDays, totalDays, isDark, onPress,
+  pct, attColor, todayStatus, presentDays, totalDays, onPress,
 }: {
   pct: number; attColor: string; todayStatus: string;
-  presentDays: number; totalDays: number; isDark: boolean; onPress: () => void;
+  presentDays: number; totalDays: number; onPress: () => void;
 }) => {
   const { t } = useTranslation();
-  const P = palette(isDark);
-  const scale = useSharedValue(1);
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const { theme, isDark } = useTheme();
+  const P = palette(theme);
   const absent = Math.max(0, totalDays - presentDays);
 
   return (
-    <Animated.View style={anim}>
-      <Pressable
-        onPressIn={() => { scale.value = withSpring(0.985, { damping: 14 }); }}
-        onPressOut={() => { scale.value = withSpring(1, { damping: 14 }); }}
-        onPress={onPress}
-      >
-        <View style={[sn.card, {
-          backgroundColor: P.surfaceElevated,
-          borderColor: P.border,
-          ...Platform.select({
-            ios: {
-              shadowColor: isDark ? '#000' : attColor,
-              shadowOffset: { width: 0, height: isDark ? 10 : 8 },
-              shadowOpacity: isDark ? 0.45 : 0.14,
-              shadowRadius: isDark ? 22 : 20,
-            },
-            android: { elevation: isDark ? 10 : 5 },
-          }),
-        }]}>
-          {/* Soft radial glow behind ring */}
-          <View style={[sn.glow, { backgroundColor: attColor + (isDark ? '2A' : '18') }]} />
+    <PressScale onPress={onPress}>
+      <ClayView color={isDark ? theme.colors.surface : '#F8FAFC'} radius={28} style={[sn.card, { borderColor: isDark ? theme.colors.border : '#E2E8F0', borderBottomColor: isDark ? theme.colors.borderLight : '#CBD5E1' }]}>
+        {/* Soft top-left highlight linear gradient */}
+        {!isDark && (
+          <LinearGradient
+            colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.5, y: 0.8 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        )}
 
-          {/* Header */}
-          <View style={sn.header}>
-            <View style={sn.headerLeft}>
-              <View style={[sn.livePulseOuter, { backgroundColor: attColor + '2A' }]}>
-                <View style={[sn.livePulse, { backgroundColor: attColor }]} />
-              </View>
-              <Text style={[sn.headerLbl, { color: P.textSecondary }]}>
-                {t('studentHome.todaysSnapshot')}
-              </Text>
+        {/* Header */}
+        <View style={sn.header}>
+          <View style={sn.headerLeft}>
+            <View style={[sn.livePulseOuter, { backgroundColor: attColor + '2A' }]}>
+              <View style={[sn.livePulse, { backgroundColor: attColor }]} />
             </View>
-            <View style={sn.headerRight}>
-              <Text style={[sn.viewTxt, { color: P.textTertiary }]}>
-                {t('studentHome.attendanceLink')}
-              </Text>
-              <Ionicons name="chevron-forward" size={13} color={P.textTertiary} />
+            <Text style={[sn.headerLbl, { color: P.textSecondary }]}>
+              {t('studentHome.todaysSnapshot')}
+            </Text>
+          </View>
+          <View style={sn.headerRight}>
+            <Text style={[sn.viewTxt, { color: P.textTertiary }]}>
+              {t('studentHome.attendanceLink')}
+            </Text>
+            <Ionicons name="chevron-forward" size={13} color={P.textTertiary} />
+          </View>
+        </View>
+
+        {/* Main content */}
+        <View style={sn.content}>
+          <View style={sn.ringWrap}>
+            <Ring pct={pct} size={108} sw={8} color={attColor} isDark={isDark} />
+            <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={[sn.ringPct, { color: attColor }]}>{pct}</Text>
+              <Text style={[sn.ringUnit, { color: P.textTertiary }]}>PERCENT</Text>
             </View>
           </View>
 
-          {/* Main content */}
-          <View style={sn.content}>
-            <View style={sn.ringWrap}>
-              <Ring pct={pct} size={108} sw={8} color={attColor} isDark={isDark} />
-              <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={[sn.ringPct, { color: attColor }]}>{pct}</Text>
-                <Text style={[sn.ringUnit, { color: P.textTertiary }]}>PERCENT</Text>
+          <View style={sn.statsCol}>
+            <Text style={[sn.statLbl, { color: P.textTertiary }]}>
+              {t('studentHome.todaysStatus')}
+            </Text>
+            <StatusPill status={todayStatus} isDark={isDark} />
+
+            <View style={[sn.divider, { backgroundColor: P.border }]} />
+
+            <View style={sn.statsRow}>
+              <View style={sn.statItem}>
+                <Text style={[sn.statNum, { color: P.success }]}>{presentDays}</Text>
+                <Text style={[sn.statKey, { color: P.textTertiary }]}>{t('studentHome.chipPresent')}</Text>
               </View>
-            </View>
-
-            <View style={sn.statsCol}>
-              <Text style={[sn.statLbl, { color: P.textTertiary }]}>
-                {t('studentHome.todaysStatus')}
-              </Text>
-              <StatusPill status={todayStatus} isDark={isDark} />
-
-              <View style={[sn.divider, { backgroundColor: P.border }]} />
-
-              <View style={sn.statsRow}>
-                <View style={sn.statItem}>
-                  <Text style={[sn.statNum, { color: P.success }]}>{presentDays}</Text>
-                  <Text style={[sn.statKey, { color: P.textTertiary }]}>{t('studentHome.chipPresent')}</Text>
-                </View>
-                <View style={[sn.vDiv, { backgroundColor: P.border }]} />
-                <View style={sn.statItem}>
-                  <Text style={[sn.statNum, { color: P.danger }]}>{absent}</Text>
-                  <Text style={[sn.statKey, { color: P.textTertiary }]}>{t('studentHome.chipAbsent')}</Text>
-                </View>
-                <View style={[sn.vDiv, { backgroundColor: P.border }]} />
-                <View style={sn.statItem}>
-                  <Text style={[sn.statNum, { color: P.textPrimary }]}>{totalDays}</Text>
-                  <Text style={[sn.statKey, { color: P.textTertiary }]}>{t('studentHome.chipTotal')}</Text>
-                </View>
+              <View style={[sn.vDiv, { backgroundColor: P.border }]} />
+              <View style={sn.statItem}>
+                <Text style={[sn.statNum, { color: P.danger }]}>{absent}</Text>
+                <Text style={[sn.statKey, { color: P.textTertiary }]}>{t('studentHome.chipAbsent')}</Text>
+              </View>
+              <View style={[sn.vDiv, { backgroundColor: P.border }]} />
+              <View style={sn.statItem}>
+                <Text style={[sn.statNum, { color: P.textPrimary }]}>{totalDays}</Text>
+                <Text style={[sn.statKey, { color: P.textTertiary }]}>{t('studentHome.chipTotal')}</Text>
               </View>
             </View>
           </View>
         </View>
-      </Pressable>
-    </Animated.View>
+      </ClayView>
+    </PressScale>
   );
 };
 
 const sn = StyleSheet.create({
   card: {
-    borderRadius: tokens.radius['2xl'],
-    borderWidth: 1,
-    padding: tokens.space[5],
+    borderRadius: 28,
+    borderWidth: 1.2,
+    borderBottomWidth: 4,
+    padding: 24,
     overflow: 'hidden',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
   },
-  glow: {
-    position: 'absolute',
-    top: 40, left: -40,
-    width: 220, height: 220,
-    borderRadius: 110,
-    opacity: 0.5,
-  },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.space[5] },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   livePulseOuter: { width: 14, height: 14, borderRadius: 7, justifyContent: 'center', alignItems: 'center' },
   livePulse: { width: 7, height: 7, borderRadius: 4 },
@@ -792,43 +848,51 @@ const sn = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   viewTxt: { fontSize: 11, fontWeight: '600' },
 
-  content: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[5] },
+  content: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   ringWrap: { width: 108, height: 108, justifyContent: 'center', alignItems: 'center' },
-  ringPct: { fontSize: 32, fontWeight: '900', letterSpacing: -1.4, lineHeight: 34 },
-  ringUnit: { fontSize: 9, fontWeight: '700', letterSpacing: 1, marginTop: 2 },
+  ringPct: { fontSize: 32, fontWeight: '900', letterSpacing: -1.2, lineHeight: 34 },
+  ringUnit: { fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginTop: 2 },
 
-  statsCol: { flex: 1, gap: tokens.space[2] },
-  statLbl: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 },
-  divider: { height: 1, marginVertical: tokens.space[2] },
+  statsCol: { flex: 1, gap: 12 },
+  statLbl: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 2 },
+  divider: { height: 1.5, marginVertical: 4, opacity: 0.6 },
   statsRow: { flexDirection: 'row', alignItems: 'center' },
-  statItem: { flex: 1, alignItems: 'center', gap: 2 },
-  statNum: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
-  statKey: { fontSize: 9.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
-  vDiv: { width: 1, height: 28 },
+  statItem: { flex: 1, alignItems: 'center', gap: 4 },
+  statNum: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  statKey: { fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
+  vDiv: { width: 1.5, height: 32, opacity: 0.6 },
 });
 
 /* ═══════════════════════════════════════════
    HOME SCREEN
 ═══════════════════════════════════════════ */
 const HomeScreen = () => {
-  const { isDark } = useTheme();
-  const P = palette(isDark);
+  const { theme, isDark } = useTheme();
+  const P = palette(theme);
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { isEnabled, refresh: refreshFeatures } = useFeatures();
-  const visibleQuickActions = homeTabs.filter((tab) => isEnabled(tab.feature));
+  const visibleQuickActions = homeTabs.filter((tab) => {
+    return isEnabled(tab.feature);
+  });
 
   // Pick up admin toggles as soon as the home tab is focused.
   useFocusEffect(
     useCallback(() => {
-      refreshFeatures().catch(() => {});
+      refreshFeatures().catch(() => { });
     }, [refreshFeatures]),
   );
   const isStudentPortal = isStudentRole(user?.role?.code);
   const isWideWeb = IS_WEB && windowWidth >= 768;
+
+  // Content is capped to a centered column on wide web; on mobile it fills the screen.
+  // Card width is derived from the *effective* column width (reactive to resize/rotation),
+  // not a module-level Dimensions snapshot — so 2-up tiles never stretch on desktop.
+  const contentW = isWideWeb ? CONTENT_MAX_W : windowWidth;
+  const cardW = (contentW - H_PAD * 2 - GAP) / 2;
   const todayLabel = new Date().toLocaleDateString('en-IN', {
     weekday: 'long',
     day: 'numeric',
@@ -938,7 +1002,7 @@ const HomeScreen = () => {
               style={[
                 S.heroOuter,
                 {
-                  maxWidth: isWideWeb ? 720 : undefined,
+                  maxWidth: isWideWeb ? CONTENT_MAX_W : undefined,
                   alignSelf: isWideWeb ? 'center' : 'stretch',
                   paddingHorizontal: isWideWeb ? 0 : H_PAD,
                 },
@@ -989,6 +1053,10 @@ const HomeScreen = () => {
           <View style={[S.body, {
             backgroundColor: P.bg,
             borderColor: P.border,
+          }, isWideWeb && {
+            maxWidth: CONTENT_MAX_W,
+            width: '100%',
+            alignSelf: 'center',
           }]}>
             {/* 1. Snapshot — HERO */}
             {isEnabled('home.todays_snapshot') && (
@@ -997,7 +1065,6 @@ const HomeScreen = () => {
                   pct={pct} attColor={attClr}
                   todayStatus={todaysStatus}
                   presentDays={present} totalDays={total}
-                  isDark={isDark}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     router.push('/Screen/attendance');
@@ -1011,47 +1078,58 @@ const HomeScreen = () => {
               <Animated.View entering={FadeInUp.delay(240).duration(700).springify()}>
                 <SectionLabel
                   text={t('studentHome.latestAnnouncement')}
-                  isDark={isDark}
                   accent="#F97316"
                   badge={t('studentHome.badgeNew')}
                 />
-                <AnnouncementCard notice={topNotice} isDark={isDark} isFresh onPress={() => nav('messages')} />
+                <AnnouncementCard notice={topNotice} isFresh onPress={() => nav('messages')} />
               </Animated.View>
             )}
 
             {/* 3. Quick Actions grid — hidden when every action is disabled */}
             {visibleQuickActions.length > 0 && (
-            <Animated.View entering={FadeInUp.delay(310).duration(700).springify()}>
-              <SectionLabel
-                text={t('dashboard.quick_actions')}
-                isDark={isDark}
-                accent="#6366F1"
-              />
-              <View style={S.grid}>
-                {visibleQuickActions.map((item, i) => (
-                  <Animated.View key={item.key} entering={FadeInUp.delay(340 + i * 34).duration(540).springify()}>
-                    <FeatureCard
-                      tab={{
-                        ...item,
-                        title: item.translationKey ? (t(item.translationKey) as string) : item.title,
-                      }}
-                      isDark={isDark}
-                      onPress={() => nav(item.key)}
-                    />
-                  </Animated.View>
-                ))}
-              </View>
-            </Animated.View>
+              <Animated.View entering={FadeInUp.delay(310).duration(700).springify()}>
+                <SectionLabel
+                  text={t('dashboard.quick_actions')}
+                  accent="#6366F1"
+                />
+                <View style={S.grid}>
+                  {visibleQuickActions.map((item, i) => (
+                    <Animated.View key={item.key} entering={FadeInUp.delay(340 + i * 34).duration(540).springify()}>
+                      <FeatureCard
+                        tab={{
+                          ...item,
+                          title: item.translationKey ? (t(item.translationKey) as string) : item.title,
+                        }}
+                        isDark={isDark}
+                        cardWidth={cardW}
+                        onPress={() => nav(item.key)}
+                      />
+                    </Animated.View>
+                  ))}
+                </View>
+              </Animated.View>
             )}
 
             {/* 4. Class Teacher / Academic Advisor */}
             {isEnabled('home.academic_advisor') && (
               <Animated.View entering={FadeInUp.delay(460).duration(700).springify()}>
-                <SectionLabel text={t('studentHome.academicAdvisor')} isDark={isDark} accent="#818CF8" />
+                <SectionLabel text={t('studentHome.academicAdvisor')} accent="#818CF8" />
                 <TeacherCard
                   name={student?.current_enrollment?.class_teacher || t('studentHome.notAssigned')}
                   role={t('common.class_teacher')}
-                  isDark={isDark}
+                  photoUrl={student?.current_enrollment?.class_teacher_photo_url}
+                  onContact={() => {
+                    const userId = student?.current_enrollment?.class_teacher_user_id;
+                    if (userId) {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push({
+                        pathname: routeMap['messenger'] as any,
+                        params: { preselectUserId: userId },
+                      });
+                    } else {
+                      nav('messenger');
+                    }
+                  }}
                 />
               </Animated.View>
             )}
@@ -1061,10 +1139,9 @@ const HomeScreen = () => {
               <Animated.View entering={FadeInUp.delay(520).duration(700).springify()}>
                 <SectionLabel
                   text={topNotice ? t('studentHome.previousUpdate') : t('studentHome.recentUpdate')}
-                  isDark={isDark}
                   accent="#94A3B8"
                 />
-                <AnnouncementCard notice={belowNotice} isDark={isDark} isFresh={false} onPress={() => nav('messages')} />
+                <AnnouncementCard notice={belowNotice} isFresh={false} onPress={() => nav('messages')} />
               </Animated.View>
             )}
           </View>

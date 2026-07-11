@@ -20,13 +20,15 @@ module.exports = function withAndroidSounds(config) {
                 fs.mkdirSync(resPath, { recursive: true });
             }
 
-            // Copy all .wav and .mp3 files from assets/Sounds to res/raw
+            // Copy all .wav and .mp3 files from assets/sounds to res/raw.
+            // Android resource names must be lowercase a-z, 0-9, or underscore only.
             if (fs.existsSync(soundsPath)) {
                 const files = fs.readdirSync(soundsPath);
                 for (const file of files) {
                     if (file.endsWith('.wav') || file.endsWith('.mp3')) {
                         const src = path.join(soundsPath, file);
-                        const dst = path.join(resPath, file);
+                        const safeName = file.toLowerCase().replace(/[^a-z0-9._]/g, '_');
+                        const dst = path.join(resPath, safeName);
                         fs.copyFileSync(src, dst);
                     }
                 }

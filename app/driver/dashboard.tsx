@@ -5,6 +5,7 @@ import ScreenLayout from '../../src/components/ScreenLayout';
 import StudentHeader from '../../src/components/StudentHeader';
 import * as Location from 'expo-location';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -18,6 +19,7 @@ import { api } from '../../src/services/apiClient';
 import { usePersistedSWR } from '../../src/hooks/usePersistedSWR';
 import LogoLoader from '../../src/components/LogoLoader';
 import DashboardHero from '../../src/components/DashboardHero';
+import { useTheme } from '../../src/hooks/useTheme';
 
 const PINK = '#EC4899';
 const PINK_DARK = '#BE185D';
@@ -63,11 +65,11 @@ const LEG_LABEL: Record<TripLeg, string> = {
 };
 
 /* ─── Status Colors ─── */
-const STATUS_CONFIG: Record<StopStatus, { bg: string; color: string; icon: string; label: string; }> = {
-  pending: { bg: '#F1F5F9', color: '#94A3B8', icon: 'ellipse-outline', label: 'Pending' },
-  arrived: { bg: '#FEF3C7', color: '#D97706', icon: 'location', label: 'At Stop' },
-  completed: { bg: '#DCFCE7', color: '#059669', icon: 'checkmark-circle', label: 'Done' },
-  skipped: { bg: '#FEE2E2', color: '#DC2626', icon: 'close-circle', label: 'Skipped' }
+const STATUS_CONFIG: Record<StopStatus, { bg: string; colorKey: 'info' | 'warning' | 'success' | 'danger' | 'textMuted'; icon: string; label: string; }> = {
+  pending: { bg: '#F1F5F9', colorKey: 'textMuted', icon: 'ellipse-outline', label: 'Pending' },
+  arrived: { bg: '#FEF3C7', colorKey: 'warning', icon: 'location', label: 'At Stop' },
+  completed: { bg: '#DCFCE7', colorKey: 'success', icon: 'checkmark-circle', label: 'Done' },
+  skipped: { bg: '#FEE2E2', colorKey: 'danger', icon: 'close-circle', label: 'Skipped' }
 };
 
 /* ════════════════════════════════════════════════════════════
@@ -75,6 +77,16 @@ const STATUS_CONFIG: Record<StopStatus, { bg: string; color: string; icon: strin
    ════════════════════════════════════════════════════════════ */
 export default function DriverDashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+
+  const PRIMARY = theme.colors.primary;
+  const PRIMARY_DARK = theme.colors.primaryDark;
+  const PRIMARY_GRADIENT: [string, string] = [theme.colors.primary, theme.colors.primaryDark];
+  const GREEN = theme.colors.success;
+  const RED = theme.colors.danger;
+
+  const s = React.useMemo(() => getStyles(theme), [theme]);
 
   // Data state
   const [buses, setBuses] = useState<BusInfo[]>([]);
@@ -119,8 +131,8 @@ export default function DriverDashboard() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const displayName = user?.display_name || user?.first_name || 'Driver';
-  const greeting = new Date().getHours() < 12 ? 'Good Morning' :
-    new Date().getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
+  const greeting = new Date().getHours() < 12 ? t('dashboard.good_morning', 'Good Morning') :
+    new Date().getHours() < 17 ? t('dashboard.good_afternoon', 'Good Afternoon') : t('dashboard.good_evening', 'Good Evening');
 
   // Pulse animation
   const pulse = useSharedValue(1);
@@ -372,7 +384,7 @@ export default function DriverDashboard() {
     return (
       <ScreenLayout>
         <StudentHeader title="Dashboard" menuUserType="driver" />
-        <View style={s.center}><LogoLoader size={60} color={PINK} /></View>
+        <View style={s.center}><LogoLoader size={60} color={PRIMARY} /></View>
       </ScreenLayout>);
 
   }
@@ -380,7 +392,7 @@ export default function DriverDashboard() {
   return (
     <ScreenLayout>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1A" />
-      <StudentHeader title="Dashboard" menuUserType="driver" />
+      <StudentHeader title={t('driver_ui.dashboard', 'Dashboard')} menuUserType="driver" />
       <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
@@ -397,30 +409,29 @@ export default function DriverDashboard() {
             eyebrow={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
             greeting={greeting}
             name={displayName}
-            stacks
           />
         </View>
 
         {/* ═══════ Trip Tracking Card ═══════ */}
         <Animated.View entering={FadeInDown.delay(80).duration(500)} style={s.heroWrap}>
-          <LinearGradient colors={PINK_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <LinearGradient colors={PRIMARY_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
             <View style={[s.heroDecor, { top: -30, right: -30, width: 120, height: 120 }]} />
             <View style={[s.heroDecor, { bottom: -15, left: -15, width: 60, height: 60 }]} />
             <View style={s.heroTop}>
               <View>
-                <Text style={s.heroGreet}>On duty</Text>
-                <Text style={s.heroName}>Today's Trip</Text>
+                <Text style={s.heroGreet}>{t('driver_ui.on_duty', 'On duty')}</Text>
+                <Text style={s.heroName}>{t('driver_ui.todays_trip', 'Today\'s Trip')}</Text>
               </View>
               <View style={s.heroBusPill}>
                 <Ionicons name="bus" size={14} color="#FFF" />
-                <Text style={s.heroBusText}>{selectedBus?.bus_no || buses[0]?.bus_no || 'No Bus'}</Text>
+                <Text style={s.heroBusText}>{selectedBus?.bus_no || buses[0]?.bus_no || t('driver_ui.no_bus', 'No Bus')}</Text>
               </View>
             </View>
             <View style={s.heroDivider} />
             <View style={s.heroBottom}>
               <View style={s.heroMini}>
                 <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.7)" />
-                <Text style={s.heroMiniText}>{isTracking ? `${elapsedMin} min` : 'Ready'}</Text>
+                <Text style={s.heroMiniText}>{isTracking ? `${elapsedMin} min` : t('driver_ui.ready', 'Ready')}</Text>
               </View>
               <View style={s.heroMini}>
                 <Ionicons name="speedometer-outline" size={14} color="rgba(255,255,255,0.7)" />
@@ -428,7 +439,7 @@ export default function DriverDashboard() {
               </View>
               <View style={[s.statusPill, { backgroundColor: isTracking ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.15)' }]}>
                 <Animated.View style={[s.statusDot, { backgroundColor: isTracking ? GREEN : '#FCD34D' }, isTracking && pulseStyle]} />
-                <Text style={s.statusPillText}>{isTracking ? 'ON TRIP' : 'IDLE'}</Text>
+                <Text style={s.statusPillText}>{isTracking ? t('driver_ui.on_trip', 'ON TRIP') : t('driver_ui.idle', 'IDLE')}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -437,16 +448,16 @@ export default function DriverDashboard() {
         {!selectedBus && buses.length === 0 &&
           <Animated.View entering={FadeInDown.delay(150).duration(500)} style={s.emptyCard}>
             <View style={s.emptyIcon}><Ionicons name="bus-outline" size={36} color="#CBD5E1" /></View>
-            <Text style={s.emptyTitle}>No Bus Assigned</Text>
-            <Text style={s.emptySub}>Contact admin to get a bus assigned to you.</Text>
+            <Text style={s.emptyTitle}>{t('driver_ui.no_bus_assigned', 'No Bus Assigned')}</Text>
+            <Text style={s.emptySub}>{t('driver_ui.contact_admin_bus', 'Contact admin to get a bus assigned to you.')}</Text>
           </Animated.View>
         }
         {/* ═══════ Bus Selector (multi-bus drivers) ═══════ */}
         {buses.length > 1 && !isTracking &&
           <Animated.View entering={FadeInDown.delay(140).duration(500)}>
             <View style={s.secHeader}>
-              <View style={s.secIconBox}><Ionicons name="bus" size={14} color={PINK} /></View>
-              <Text style={s.secTitle}>Select Bus</Text>
+              <View style={s.secIconBox}><Ionicons name="bus" size={14} color={PRIMARY} /></View>
+              <Text style={s.secTitle}>{t('driver_ui.select_bus', 'Select Bus')}</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.routeScroll}>
               {buses.map((b) =>
@@ -468,7 +479,7 @@ export default function DriverDashboard() {
                   }}>
 
                   <Ionicons name="bus-outline" size={14}
-                    color={selectedBus?.id === b.id ? '#FFF' : PINK} />
+                    color={selectedBus?.id === b.id ? '#FFF' : PRIMARY} />
                   <Text style={[s.routeChipText, selectedBus?.id === b.id && { color: '#FFF' }]}>
                     {b.bus_no}
                   </Text>
@@ -481,8 +492,8 @@ export default function DriverDashboard() {
         {selectedBus && !isTracking && routesForSelectedBus.length > 0 &&
           <Animated.View entering={FadeInDown.delay(150).duration(500)}>
             <View style={s.secHeader}>
-              <View style={s.secIconBox}><Ionicons name="map" size={14} color={PINK} /></View>
-              <Text style={s.secTitle}>Select Route</Text>
+              <View style={s.secIconBox}><Ionicons name="map" size={14} color={PRIMARY} /></View>
+              <Text style={s.secTitle}>{t('driver_ui.select_route', 'Select Route')}</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.routeScroll}>
               {routesForSelectedBus.map((r) =>
@@ -498,7 +509,7 @@ export default function DriverDashboard() {
                   }}>
 
                   <Ionicons name="navigate-outline" size={14}
-                    color={selectedRoute?.id === r.id ? '#FFF' : PINK} />
+                    color={selectedRoute?.id === r.id ? '#FFF' : PRIMARY} />
                   <Text style={[s.routeChipText, selectedRoute?.id === r.id && { color: '#FFF' }]}>
                     {r.name}
                   </Text>
@@ -520,7 +531,7 @@ export default function DriverDashboard() {
                     }}>
 
                     <Text style={[s.legChipText, tripLeg === leg && { color: '#FFF' }]}>
-                      {LEG_LABEL[leg]}
+                      {leg === 'morning' ? t('driver_ui.morning_pickup', 'Morning (pickup)') : t('driver_ui.evening_dropoff', 'Evening (drop-off)')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -532,8 +543,8 @@ export default function DriverDashboard() {
         {isTracking &&
           <Animated.View entering={FadeInDown.delay(150).duration(500)} style={s.progressCard}>
             <View style={s.progressHeader}>
-              <Text style={s.progressTitle}>Trip Progress</Text>
-              <Text style={s.progressCount}>{completedCount}/{stops.length} stops</Text>
+              <Text style={s.progressTitle}>{t('driver_ui.trip_progress', 'Trip Progress')}</Text>
+              <Text style={s.progressCount}>{completedCount}/{stops.length} {t('driver_ui.stops', 'stops')}</Text>
             </View>
             <View style={s.progressBarBg}>
               <View style={[s.progressBarFill, { width: `${progressPercent}%` }]} />
@@ -550,7 +561,7 @@ export default function DriverDashboard() {
               <View style={[s.secIconBox, { backgroundColor: '#ECFDF5' }]}>
                 <Ionicons name="list" size={14} color={GREEN} />
               </View>
-              <Text style={s.secTitle}>{isTracking ? 'Stop Execution' : 'Route Stops'}</Text>
+              <Text style={s.secTitle}>{isTracking ? t('driver_ui.stop_execution', 'Stop Execution') : t('driver_ui.route_stops', 'Route Stops')}</Text>
             </View>
             {stops.map((stop, idx) => {
               const cfg = STATUS_CONFIG[stop.status];
@@ -565,7 +576,7 @@ export default function DriverDashboard() {
 
                   {/* Timeline connector */}
                   <View style={s.timeline}>
-                    <View style={[s.timelineDot, { backgroundColor: cfg.color }]}>
+                    <View style={[s.timelineDot, { backgroundColor: cfg.colorKey === 'textMuted' ? theme.colors.textMuted : theme.colors[cfg.colorKey] }]}>
                       <Ionicons name={cfg.icon as any} size={12} color="#FFF" />
                     </View>
                     {!isLast && <View style={[s.timelineLine, {
@@ -576,11 +587,11 @@ export default function DriverDashboard() {
                   <View style={s.stopContent}>
                     <View style={s.stopTop}>
                       <View style={{ flex: 1 }}>
-                        <Text style={s.stopOrder}>Stop {stop.stop_order}</Text>
+                        <Text style={s.stopOrder}>{t('driver_ui.stop', 'Stop')} {stop.stop_order}</Text>
                         <Text style={s.stopName}>{stop.stop_name}</Text>
                       </View>
                       <View style={[s.stopBadge, { backgroundColor: cfg.bg }]}>
-                        <Text style={[s.stopBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
+                        <Text style={[s.stopBadgeText, { color: cfg.colorKey === 'textMuted' ? theme.colors.textMuted : theme.colors[cfg.colorKey] }]}>{t(`driver_ui.${stop.status}`, cfg.label)}</Text>
                       </View>
                     </View>
                     {stop.student_count > 0 &&
@@ -600,7 +611,7 @@ export default function DriverDashboard() {
                               disabled={actionLoading || !tripControlsEnabled}>
 
                               <Ionicons name="location" size={14} color="#D97706" />
-                              <Text style={[s.stopBtnText, { color: '#D97706' }]}>Arrive</Text>
+                              <Text style={[s.stopBtnText, { color: '#D97706' }]}>{t('driver_ui.arrive', 'Arrive')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               style={[s.stopBtn, { backgroundColor: '#FEE2E2' }]}
@@ -608,7 +619,7 @@ export default function DriverDashboard() {
                               disabled={actionLoading || !tripControlsEnabled}>
 
                               <Ionicons name="close-circle-outline" size={14} color={RED} />
-                              <Text style={[s.stopBtnText, { color: RED }]}>Skip</Text>
+                              <Text style={[s.stopBtnText, { color: RED }]}>{t('driver_ui.skip', 'Skip')}</Text>
                             </TouchableOpacity>
                           </>
                         }
@@ -619,7 +630,7 @@ export default function DriverDashboard() {
                             disabled={actionLoading || !tripControlsEnabled}>
 
                             <Ionicons name="checkmark-circle" size={14} color="#059669" />
-                            <Text style={[s.stopBtnText, { color: '#059669' }]}>Complete Stop</Text>
+                            <Text style={[s.stopBtnText, { color: '#059669' }]}>{t('driver_ui.complete_stop', 'Complete Stop')}</Text>
                           </TouchableOpacity>
                         }
                       </View>
@@ -640,14 +651,14 @@ export default function DriverDashboard() {
                 activeOpacity={0.8}
                 disabled={actionLoading || !selectedRoute || !tripControlsEnabled}>
 
-                <LinearGradient colors={PINK_GRADIENT} style={s.startGrad}
+                <LinearGradient colors={PRIMARY_GRADIENT} style={s.startGrad}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                   {actionLoading ?
                     <LogoLoader color="#FFF" /> :
 
                     <>
                       <Ionicons name="play" size={22} color="#FFF" />
-                      <Text style={s.ctrlText}>START TRIP</Text>
+                      <Text style={s.ctrlText}>{t('driver_ui.start_trip', 'START TRIP').toUpperCase()}</Text>
                     </>
                   }
                 </LinearGradient>
@@ -657,7 +668,7 @@ export default function DriverDashboard() {
                 {actionLoading ? <LogoLoader color="#FFF" /> :
                   <>
                     <Ionicons name="stop" size={22} color="#FFF" />
-                    <Text style={s.ctrlText}>END TRIP</Text>
+                    <Text style={s.ctrlText}>{t('driver_ui.end_trip', 'END TRIP').toUpperCase()}</Text>
                   </>
                 }
               </TouchableOpacity>
@@ -671,31 +682,40 @@ export default function DriverDashboard() {
 }
 
 /* ════════════════════════════ STYLES ════════════════════════════ */
-const s = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 20 },
 
   /* Hero */
   heroWrap: {
-    borderRadius: 24, overflow: 'hidden', marginBottom: 20,
-    shadowColor: PINK, shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25, shadowRadius: 16, elevation: 8
+    borderRadius: 28,
+    overflow: 'hidden',
+    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
-  hero: { padding: 22, overflow: 'hidden' },
-  heroDecor: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)' },
+  hero: { padding: 24, overflow: 'hidden' },
+  heroDecor: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroGreet: { color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: '500' },
-  heroName: { color: '#FFF', fontSize: 22, fontWeight: '800', marginTop: 2 },
+  heroGreet: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600', letterSpacing: 0.3 },
+  heroName: { color: '#FFF', fontSize: 24, fontWeight: '800', marginTop: 4, letterSpacing: -0.5 },
   heroBusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
-  heroBusText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
-  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 14 },
+  heroBusText: { color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
+  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 18 },
   heroBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroMini: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  heroMiniText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '500' },
+  heroMini: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  heroMiniText: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12
@@ -705,10 +725,12 @@ const s = StyleSheet.create({
 
   /* Empty */
   emptyCard: {
-    alignItems: 'center', paddingVertical: 40, backgroundColor: '#FFF',
-    borderRadius: 20, marginBottom: 20,
-    shadowColor: '#64748B', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 1
+    alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28, marginBottom: 24,
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08, shadowRadius: 20, elevation: 2,
+    borderWidth: 1, borderColor: 'rgba(226, 232, 240, 0.6)'
   },
   emptyIcon: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: '#F8FAFC',
@@ -718,68 +740,76 @@ const s = StyleSheet.create({
   emptySub: { fontSize: 13, color: '#94A3B8', textAlign: 'center' },
 
   /* Sections */
-  secHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  secHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   secIconBox: {
-    width: 28, height: 28, borderRadius: 8, backgroundColor: '#FDF2F8',
-    justifyContent: 'center', alignItems: 'center'
+    width: 32, height: 32, borderRadius: 12, backgroundColor: '#FDF2F8',
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 1
   },
-  secTitle: { fontSize: 16, fontWeight: '700', color: '#374151' },
+  secTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', letterSpacing: -0.3 },
 
   /* Route selector */
-  routeScroll: { marginBottom: 20 },
+  routeScroll: { marginBottom: 24 },
   routeChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#FDF2F8', paddingHorizontal: 16, paddingVertical: 12,
-    borderRadius: 14, marginRight: 10, borderWidth: 1.5, borderColor: 'transparent'
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFFFFF', paddingHorizontal: 18, paddingVertical: 14,
+    borderRadius: 16, marginRight: 12,
+    borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1
   },
-  routeChipActive: { backgroundColor: PINK, borderColor: PINK_DARK },
-  routeChipText: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  routeChipDir: { fontSize: 11, color: '#94A3B8', fontWeight: '500', textTransform: 'capitalize' },
-  legRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  routeChipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primaryDark, shadowOpacity: 0.15, shadowColor: theme.colors.primary },
+  routeChipText: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  routeChipDir: { fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'capitalize' },
+  legRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   legChip: {
-    flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
-    backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0',
+    flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: 'center',
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1
   },
-  legChipActive: { backgroundColor: PINK, borderColor: PINK_DARK },
-  legChipText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  legChipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primaryDark, shadowOpacity: 0.15, shadowColor: theme.colors.primary },
+  legChipText: { fontSize: 14, fontWeight: '800', color: '#475569' },
 
   /* Progress */
   progressCard: {
-    backgroundColor: '#FFF', borderRadius: 18, padding: 18, marginBottom: 20,
-    shadowColor: '#64748B', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2
+    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 22, marginBottom: 24,
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08, shadowRadius: 20, elevation: 3,
+    borderWidth: 1, borderColor: 'rgba(226, 232, 240, 0.6)'
   },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  progressTitle: { fontSize: 14, fontWeight: '700', color: '#374151' },
-  progressCount: { fontSize: 13, fontWeight: '600', color: PINK },
-  progressBarBg: { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
-  progressBarFill: { height: '100%', backgroundColor: GREEN, borderRadius: 4 },
-  progressRoute: { fontSize: 12, color: '#94A3B8', fontWeight: '500' },
+  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14, alignItems: 'center' },
+  progressTitle: { fontSize: 16, fontWeight: '800', color: '#1E293B', letterSpacing: -0.3 },
+  progressCount: { fontSize: 14, fontWeight: '700', color: theme.colors.primary },
+  progressBarBg: { height: 12, backgroundColor: '#F1F5F9', borderRadius: 6, overflow: 'hidden', marginBottom: 10 },
+  progressBarFill: { height: '100%', backgroundColor: theme.colors.success, borderRadius: 6 },
+  progressRoute: { fontSize: 13, color: '#64748B', fontWeight: '600' },
 
   /* Stop Cards */
   stopCard: {
-    flexDirection: 'row', marginBottom: 4, padding: 4
+    flexDirection: 'row', marginBottom: 8, padding: 6,
+    backgroundColor: 'transparent', borderRadius: 20
   },
   stopCardCurrent: {
-    backgroundColor: '#FFF', borderRadius: 16, padding: 8,
-    shadowColor: PINK, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
-    borderWidth: 1, borderColor: '#FDF2F8'
+    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 12,
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12, shadowRadius: 16, elevation: 4,
+    borderWidth: 1, borderColor: '#FBCFE8'
   },
-  timeline: { width: 32, alignItems: 'center', marginRight: 8 },
+  timeline: { width: 40, alignItems: 'center', marginRight: 12 },
   timelineDot: {
-    width: 24, height: 24, borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center'
+    width: 28, height: 28, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2
   },
-  timelineLine: { width: 2, flex: 1, marginVertical: 2 },
-  stopContent: { flex: 1, paddingBottom: 12 },
-  stopTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  stopOrder: { fontSize: 10, color: '#94A3B8', fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
-  stopName: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
-  stopBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  stopBadgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
-  studentRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  studentText: { fontSize: 11, color: '#94A3B8', fontWeight: '500' },
+  timelineLine: { width: 3, flex: 1, marginVertical: 4, borderRadius: 1.5 },
+  stopContent: { flex: 1, paddingBottom: 16 },
+  stopTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 },
+  stopOrder: { fontSize: 11, color: '#64748B', fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 },
+  stopName: { fontSize: 17, fontWeight: '800', color: '#1E293B', letterSpacing: -0.3 },
+  stopBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start' },
+  stopBadgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  studentRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  studentText: { fontSize: 13, color: '#64748B', fontWeight: '600' },
   stopActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   stopBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -788,21 +818,21 @@ const s = StyleSheet.create({
   stopBtnText: { fontSize: 13, fontWeight: '600' },
 
   /* Control */
-  controlSection: { marginTop: 8, marginBottom: 8 },
+  controlSection: { marginTop: 12, marginBottom: 12 },
   startWrap: {
-    borderRadius: 30, overflow: 'hidden',
-    shadowColor: PINK, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 6
+    borderRadius: 36, overflow: 'hidden',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35, shadowRadius: 20, elevation: 8
   },
   startGrad: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    height: 56, gap: 10, borderRadius: 30
+    height: 64, gap: 12, borderRadius: 36
   },
   endBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    height: 56, borderRadius: 30, backgroundColor: RED, gap: 10,
-    shadowColor: RED, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 6
+    height: 64, borderRadius: 36, backgroundColor: theme.colors.danger, gap: 12,
+    shadowColor: theme.colors.danger, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35, shadowRadius: 20, elevation: 8
   },
-  ctrlText: { color: '#FFF', fontSize: 16, fontWeight: '800', letterSpacing: 1.2 }
+  ctrlText: { color: '#FFF', fontSize: 18, fontWeight: '800', letterSpacing: 1.5 }
 });

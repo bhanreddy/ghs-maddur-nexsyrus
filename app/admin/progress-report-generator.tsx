@@ -359,7 +359,7 @@ async function getLogoDataUri(): Promise<string> {
     });
   }
 
-  const FileSystem: any = await import('expo-file-system');
+  const FileSystem: any = await import('expo-file-system/legacy');
   const base64Logo = await FileSystem.readAsStringAsync(uri, {
     encoding: 'base64',
   });

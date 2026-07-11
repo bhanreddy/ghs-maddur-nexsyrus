@@ -17,6 +17,7 @@ import { useAccountsWebChrome } from '../../src/contexts/AccountsWebChromeContex
 import { Theme } from '../../src/theme/themes';
 import LogoLoader from '../../src/components/LogoLoader';
 import Avatar from '../../src/components/Avatar';
+import HardDeleteStudentModal from '../../src/components/accounts/HardDeleteStudentModal';
 import {
   personListDisplayName,
   staffRoleDepartmentLine,
@@ -56,6 +57,8 @@ export default function ManageUsersScreen() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // Student hard-delete: drives the 3-step confirmation modal.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; subtitle: string } | null>(null);
 
   // Guards against out-of-order responses: only the latest request may commit.
   const requestSeq = useRef(0);
@@ -144,6 +147,18 @@ export default function ManageUsersScreen() {
   };
   const handleDelete = (targetUser: any) => {
     const nm = personListDisplayName(targetUser as Record<string, unknown>);
+
+    // Students get the strong, 3-step PERMANENT delete flow (wipes all their data).
+    if (activeTab === 'student') {
+      setDeleteTarget({
+        id: targetUser.id,
+        name: nm,
+        subtitle: studentEnrollmentSubtitle(targetUser.current_enrollment) || '',
+      });
+      return;
+    }
+
+    // Staff keep the existing single-confirm soft delete.
     alertCompat("Confirm Delete", `Are you sure you want to delete ${nm}?`, [{
       text: "Cancel",
       style: "cancel"
@@ -152,11 +167,7 @@ export default function ManageUsersScreen() {
       style: "destructive",
       onPress: async () => {
         try {
-          if (activeTab === 'student') {
-            await StudentService.delete(targetUser.id);
-          } else {
-            await StaffService.delete(targetUser.id);
-          }
+          await StaffService.delete(targetUser.id);
           loadUsers(activeTab, searchQuery);
           alertCompat("Success", "User deleted.");
         } catch (e) {
@@ -228,6 +239,19 @@ export default function ManageUsersScreen() {
     }}>
       <Ionicons name="add" size={28} color="#fff" />
     </TouchableOpacity>
+    <HardDeleteStudentModal
+      visible={!!deleteTarget}
+      studentId={deleteTarget?.id ?? null}
+      studentName={deleteTarget?.name ?? ''}
+      studentSubtitle={deleteTarget?.subtitle}
+      onClose={() => setDeleteTarget(null)}
+      onDeleted={() => {
+        const nm = deleteTarget?.name;
+        setDeleteTarget(null);
+        loadUsers(activeTab, searchQuery);
+        alertCompat('Deleted', `${nm ?? 'Student'} and all associated data were permanently deleted.`);
+      }}
+    />
   </View>;
 }
 const getStyles = (theme: Theme) => StyleSheet.create({

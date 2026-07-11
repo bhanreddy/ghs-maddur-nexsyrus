@@ -795,10 +795,18 @@ export const AuthService = {
         );
       } catch (err) {
         if (shouldForceSignOutOnValidateError(err)) {
-          // 403 from backend = confirmed rejection (wrong school, locked account)
-          console.log('[AUTH_OUT]', 'api_403_confirmed', new Date().toISOString());
-          await AuthService.signOut();
-          return null;
+          // 403 from backend = confirmed rejection (wrong school, locked account).
+          // Persistent roles (everyone except accounts) are NEVER evicted here —
+          // the rejection surfaces as suppressed retry toasts on API calls, but the
+          // cached session is preserved and we fall through to the preserve-prior
+          // path below. Only `accountant`/`accounts` is signed out on a 403.
+          const roleCode = prior?.validatedUser?.role?.code;
+          if (!isPersistentSessionRole(roleCode)) {
+            console.log('[AUTH_OUT]', 'api_403_confirmed', new Date().toISOString());
+            await AuthService.signOut();
+            return null;
+          }
+          console.warn('[AUTH_REFRESH] 403 on validate for persistent role — preserving cached session (no eviction)');
         }
         // Layer A fix: For ALL roles, preserve prior validated user on transient errors.
         // Previously only student role got this treatment.
@@ -821,8 +829,20 @@ export const AuthService = {
       }
 
       if (validatedUser.schoolId !== SCHOOL_ID) {
-        console.log('[AUTH_OUT]', 'school_mismatch', new Date().toISOString());
-        await AuthService.signOut();
+        // Multitenancy guard. Persistent roles (everyone except accounts) are
+        // never evicted: keep the PRIOR (correct-school) cached user + fresh
+        // tokens rather than storing the foreign-school profile. Only
+        // `accountant`/`accounts` is signed out on a school mismatch.
+        const roleCode = prior?.validatedUser?.role?.code;
+        if (!isPersistentSessionRole(roleCode)) {
+          console.log('[AUTH_OUT]', 'school_mismatch', new Date().toISOString());
+          await AuthService.signOut();
+          return null;
+        }
+        console.warn('[AUTH_REFRESH] schoolId mismatch on refresh for persistent role — preserving cached session (no eviction)');
+        if (prior?.validatedUser) {
+          return persistSessionFromRefresh(refreshData.session, prior.validatedUser);
+        }
         return null;
       }
 

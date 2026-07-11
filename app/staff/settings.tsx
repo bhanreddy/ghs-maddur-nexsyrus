@@ -13,7 +13,6 @@ import Constants from 'expo-constants';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
 import { useTheme } from '../../src/hooks/useTheme';
-import { useBiometric } from '../../src/hooks/useBiometric';
 import { ThemeColors } from '../../src/theme/themes';
 import { Staff, StaffService } from '../../src/services/staffService';
 
@@ -145,7 +144,6 @@ export default function StaffSettings() {
     const styles = React.useMemo(() => getStyles(theme.colors), [theme]);
     const [updating, setUpdating] = useState(false);
     const [switcherOpen, setSwitcherOpen] = useState(false);
-    const { isBiometricAvailable, isBiometricEnabled, isLoading: biometricLoading, toggleBiometric } = useBiometric();
     const { staffId, isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
     const avatarUploaderRef = useRef<AvatarUploaderHandle>(null);
     const [viewedStaff, setViewedStaff] = useState<Staff | null>(null);
@@ -282,17 +280,6 @@ export default function StaffSettings() {
 
                 {/* ── Security ── */}
                 <Group title="Security" delay={250} colors={theme.colors}>
-                    <SettingRow
-                        icon="finger-print" iconColor="#EC4899" iconBg="#FDF2F8"
-                        label={isBiometricAvailable ? 'Biometric Login' : 'Biometric Unavailable'}
-                        sublabel={isBiometricAvailable ? 'Face ID / Fingerprint' : 'Not supported on this device'}
-                        rightElement={
-                            <Switch trackColor={{ false: '#E5E7EB', true: '#F472B6' }}
-                                thumbColor={isBiometricEnabled ? '#fff' : '#f4f3f4'}
-                                onValueChange={toggleBiometric} value={isBiometricEnabled}
-                                disabled={!isBiometricAvailable || biometricLoading} />
-                        }
-                    />
                     <SettingRow
                         icon="lock-closed" iconColor="#3B82F6" iconBg="#EFF6FF"
                         label="Change Password" sublabel="Update your login credentials"

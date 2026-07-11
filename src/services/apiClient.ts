@@ -48,6 +48,27 @@ function alertFn(title: string, message: string) {
   }
 }
 
+// ─── Transient alert suppression during account / portal switches ─────────────
+// When switching accounts, the outgoing portal's role-specific screens are still
+// mounted+focused at the moment the live session flips to the incoming account.
+// Their in-flight/re-triggered queries (e.g. a staff screen's /attendance/staff/me)
+// briefly run under the NEW identity and get a cross-role 4xx (404 "Staff profile
+// not found", 403, etc.). Those are expected, harmless churn — the destination
+// screen refetches correctly — but without this they pop a blocking error dialog
+// over the freshly-loaded home. During a short switch window we downgrade such
+// requests to silent: the APIError still throws (callers keep their existing data),
+// we just don't alarm the user with a dialog for a switch we initiated.
+let suppressTransientAlertsUntil = 0;
+
+/** Silence blocking API error dialogs for `ms` while an account/portal switch settles. */
+export function suppressTransientApiAlerts(ms = 2500) {
+  suppressTransientAlertsUntil = Math.max(suppressTransientAlertsUntil, Date.now() + ms);
+}
+
+function transientAlertsSuppressed() {
+  return Date.now() < suppressTransientAlertsUntil;
+}
+
 /** school_id for all API requests — from build-time env. Never hardcode. */
 const SCHOOL_ID_PARAM = String(SCHOOL_ID);
 
@@ -234,7 +255,11 @@ export class APIError extends Error {
 // Generic API request function
 export interface APIOptions extends RequestInit {
   silent?: boolean;
-  /** Send X-Device-Id / X-Active-Context (portal context API only). */
+  /**
+   * Kept for call-site compatibility. Active portal context is now attached to
+   * every authenticated API request, so switching roles changes both the UI
+   * and the server-side authorization scope.
+   */
   sendActiveContext?: boolean;
   _isRetry?: boolean;
   _retryCount?: number; // tracks 503 / 429 retry attempts
@@ -287,7 +312,10 @@ async function apiRequestInner<T>(
   endpoint: string,
   options: APIOptions = {})
   : Promise<T> {
-  const { silent, sendActiveContext, _isRetry, _retryCount = 0, _multipart, timeoutMs = 60000, ...fetchOptions } = options;
+  const { silent: rawSilent, sendActiveContext, _isRetry, _retryCount = 0, _multipart, timeoutMs = 60000, ...fetchOptions } = options;
+  // Suppress blocking error dialogs for transient cross-role failures while an
+  // account/portal switch is settling (the request still runs and still throws).
+  const silent = rawSilent || transientAlertsSuppressed();
   const isMultipart = _multipart === true;
   const { data: { session: liveSession } } = await supabase.auth.getSession();
   const session = liveSession ?? await restoreLiveSessionFromStoredAuth();
@@ -311,17 +339,21 @@ async function apiRequestInner<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Portal context headers are opt-in (same-login child switching only).
-  // Vault account switching uses separate JWTs — do not send these by default.
-  if (options.sendActiveContext) {
-    try {
-      const deviceId = await getOrCreateDeviceId();
-      if (deviceId) headers['X-Device-Id'] = deviceId;
-      const activeContextId = await getActiveContextId();
-      if (activeContextId) headers['X-Active-Context'] = activeContextId;
-    } catch {
-      // non-fatal
-    }
+  // A portal switch changes the active server-side authorization scope, not
+  // merely the screen shown by the app. Previously these headers were only
+  // sent to /auth/contexts endpoints, so every subsequent portal request was
+  // authorized with the role from the original login. That made switches such
+  // as student → staff or driver → admin fail with access errors.
+  //
+  // Vault account switching uses a different JWT and clears this stored value,
+  // so it remains isolated from the selected portal context.
+  try {
+    const deviceId = await getOrCreateDeviceId();
+    if (deviceId) headers['X-Device-Id'] = deviceId;
+    const activeContextId = await getActiveContextId();
+    if (activeContextId) headers['X-Active-Context'] = activeContextId;
+  } catch {
+    // Context persistence is best-effort; never block an otherwise valid API request.
   }
 
   const method = (fetchOptions.method || 'GET').toUpperCase();
@@ -462,8 +494,12 @@ async function apiRequestInner<T>(
         throw new APIError('Session expired. Please login again.', 401, undefined, requestId);
       }
 
-      // Handle Service Unavailable (503) — transient backend timeout
-      if (response.status === 503) {
+      // Handle transient upstream/gateway errors — 503 (backend "auth service
+      // temporarily unavailable" / timeout), plus 502 & 504 from the Cloudflare
+      // Worker when Cloud Run is briefly stuck or unreachable. All are transient
+      // and safe to retry, so they get the same silent retry-then-fail path
+      // instead of surfacing as a hard error popup.
+      if (response.status === 503 || response.status === 502 || response.status === 504) {
         if (_retryCount < 2) {
           if (__DEV__) { }
           await new Promise((r) => setTimeout(r, 1500));
@@ -474,7 +510,7 @@ async function apiRequestInner<T>(
         }
         const message = errorData.error || 'Server temporarily unavailable. Please try again.';
         if (!silent) alertFn('Service Unavailable', message);
-        throw new APIError(message, 503, undefined, requestId);
+        throw new APIError(message, response.status, undefined, requestId);
       }
 
       // Handle validation errors (422) and B1-style 400 (school_id required)
@@ -586,9 +622,17 @@ export async function downloadFile(endpoint: string, filename: string): Promise<
   const finalEndpoint = `${endpoint}${sep}school_id=${encodeURIComponent(SCHOOL_ID_PARAM)}`;
   const url = `${API_BASE_URL}${finalEndpoint}`;
 
-  const response = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  try {
+    const deviceId = await getOrCreateDeviceId();
+    if (deviceId) headers['X-Device-Id'] = deviceId;
+    const activeContextId = await getActiveContextId();
+    if (activeContextId) headers['X-Active-Context'] = activeContextId;
+  } catch {
+    // Match normal API requests: context storage failures must not block downloads.
+  }
+
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));

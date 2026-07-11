@@ -8,9 +8,12 @@ import { useTheme } from '../../src/hooks/useTheme';
 import { Theme } from '../../src/theme/themes';
 import AdminHeader from '../../src/components/AdminHeader';
 import Animated, { FadeInUp, useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { FeeService } from '../../src/services/feeService';
 import { useAuth } from '../../src/hooks/useAuth';
 import LogoLoader from '../../src/components/LogoLoader';
+import { printCollectionReport, exportCollectionCsv } from '../../src/utils/collectionReport';
+import PremiumDatePickerModal from '../../src/components/PremiumDatePickerModal';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -42,6 +45,9 @@ export default function AdminFinanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [stats, setStats] = useState<any>({
     expected_total: 0,
@@ -77,7 +83,8 @@ export default function AdminFinanceScreen() {
     setLoading(true);
     setLoadError(null);
     try {
-      const financeStats = await FeeService.getAdminFinanceStats();
+      const dateStr = selectedDate.getFullYear() + '-' + String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' + String(selectedDate.getDate()).padStart(2, '0');
+      const financeStats = await FeeService.getAdminFinanceStats({ date: dateStr });
       applyFinanceData(financeStats);
     } catch (primaryError: any) {
       console.warn('Primary finance-stats failed, trying fallback:', primaryError?.message);
@@ -114,7 +121,7 @@ export default function AdminFinanceScreen() {
   useEffect(() => {
     if (!authChecked) return;
     fetchData();
-  }, [authChecked]);
+  }, [authChecked, selectedDate]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -148,9 +155,6 @@ export default function AdminFinanceScreen() {
     );
   };
 
-  const handleDefaulters = () => {
-    alertCompat('Fee Defaulters', 'This will navigate to the detailed fee defaulters list.');
-  };
 
   const filteredTransactions = transactions.filter((tx) => {
     const txMode = (tx.payment_method || 'CASH').toUpperCase();
@@ -225,7 +229,21 @@ export default function AdminFinanceScreen() {
 
               <View style={styles.heroInner}>
                 <View style={{ flex: 1, minWidth: 200 }}>
-                  <Text style={styles.heroTitle}>TODAY'S COLLECTION</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingRight: isWide ? 40 : 10 }}>
+                    <Text style={styles.heroTitle}>
+                      {selectedDate.toDateString() === new Date().toDateString() ? "TODAY'S COLLECTION" : "COLLECTION ON"}
+                    </Text>
+                    <TouchableOpacity 
+                      activeOpacity={0.8}
+                      onPress={() => setShowDatePicker(true)}
+                      style={styles.datePickerBtn}>
+                      <Ionicons name="calendar-outline" size={14} color="#fff" />
+                      <Text style={styles.datePickerBtnText}>
+                        {selectedDate.toDateString() === new Date().toDateString() ? 'Today' : selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </Text>
+                      <Ionicons name="chevron-down" size={12} color="rgba(255,255,255,0.7)" />
+                    </TouchableOpacity>
+                  </View>
                   <Text style={styles.heroAmount}>{formatCurrency(stats.today_collection)}</Text>
                   <View style={styles.heroBadgeRow}>
                     <View style={styles.trendBadge}>
@@ -292,10 +310,6 @@ export default function AdminFinanceScreen() {
                 <Text style={[styles.filterChipText, modeFilter !== 'All' && { color: theme.colors.primary, fontWeight: '700' }]}>Mode: {modeFilter}</Text>
                 <Ionicons name="chevron-down" size={13} color={theme.colors.textSecondary} style={{ marginLeft: 4 }} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.filterChip, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]} onPress={handleDefaulters}>
-                <Ionicons name="alert-circle" size={13} color="#EF4444" style={{ marginRight: 5 }} />
-                <Text style={[styles.filterChipText, { color: '#EF4444', fontWeight: '700' }]}>Fee Defaulters</Text>
-              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -359,10 +373,53 @@ export default function AdminFinanceScreen() {
       {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => alertCompat('Export', 'Generating collection report for download...')}>
-
+        onPress={() => {
+          if (!transactions || transactions.length === 0) {
+            alertCompat('No Transactions', 'There are no transactions to export for this date.');
+            return;
+          }
+          const meta = {
+            schoolName: 'Samskruthe School',
+            accountantName: 'Admin',
+            dateLabel: selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+            dateIso: selectedDate.getFullYear() + '-' + String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' + String(selectedDate.getDate()).padStart(2, '0')
+          };
+          alertCompat('Export Collection', 'How would you like to export this collection?', [
+            {
+              text: 'Print PDF',
+              onPress: async () => {
+                try {
+                  await printCollectionReport(transactions, meta);
+                } catch (e) {
+                  alertCompat('Error', 'Failed to generate PDF.');
+                }
+              }
+            },
+            {
+              text: 'Export CSV',
+              onPress: async () => {
+                try {
+                  await exportCollectionCsv(transactions, meta);
+                } catch (e) {
+                  alertCompat('Error', 'Failed to generate CSV.');
+                }
+              }
+            },
+            { text: 'Cancel', style: 'cancel' }
+          ]);
+        }}>
         <Ionicons name="download-outline" size={24} color="#fff" />
       </TouchableOpacity>
+
+      <PremiumDatePickerModal 
+        visible={showDatePicker} 
+        date={selectedDate} 
+        onClose={() => setShowDatePicker(false)} 
+        onSelect={(date) => {
+          setSelectedDate(date);
+          setShowDatePicker(false);
+        }} 
+      />
     </View>);
 
 }
@@ -446,6 +503,23 @@ const getStyles = (theme: Theme, isWide: boolean) => StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -1,
     marginBottom: 14,
+  },
+  datePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  datePickerBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   heroBadgeRow: {
     flexDirection: 'row',

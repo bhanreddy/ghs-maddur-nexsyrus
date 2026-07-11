@@ -603,6 +603,18 @@ export default function AddStaffScreen() {
     if (!isEditMode && !formData.password) {
       alertCompat('Password Required', 'Set a password for the new staff account.'); return;
     }
+    const email = formData.email.trim().toLowerCase();
+    const phone = formData.phone.trim();
+    if (!email || !phone) {
+      alertCompat('Credentials Required', 'Email address and phone number are mandatory.'); return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alertCompat('Invalid Email', 'Enter a valid email address, for example teacher@school.edu.'); return;
+    }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      alertCompat('Invalid Phone Number', 'Enter a phone number containing 10 to 15 digits.'); return;
+    }
     // Validate password length if provided (both create and edit)
     if (formData.password && formData.password.length > 0 && formData.password.length < 6) {
       alertCompat('Invalid Password', 'Password must be at least 6 characters.'); return;
@@ -616,8 +628,8 @@ export default function AddStaffScreen() {
 
       const payload: any = {
         first_name: formData.firstName, last_name: formData.lastName, middle_name: '',
-        email: formData.email,
-        phone: formData.phone, designation_id: parseInt(formData.designationId),
+        email,
+        phone, designation_id: parseInt(formData.designationId),
         department: '', gender_id: parseInt(formData.genderId), staff_code: formData.staffCode,
         joining_date: formData.joiningDate, dob: formData.dob || undefined,
         role_code: formData.loginRole || calculatedRole,
@@ -797,11 +809,11 @@ export default function AddStaffScreen() {
             />
             <InputField label="Email Address" placeholder="staff@school.edu" value={formData.email}
               onChangeText={(t: string) => update('email', t)} keyboardType="email-address"
-              icon="mail-outline" accentColor={SECTION_COLORS.contact.accent} isDark={isDark}
+              icon="mail-outline" required accentColor={SECTION_COLORS.contact.accent} isDark={isDark}
               fieldKey="ims-stf-contact-addr" autofillMode="off" autoCapitalize="none" />
             <InputField label="Phone Number" placeholder="+91 98765 43210" value={formData.phone}
               onChangeText={(t: string) => update('phone', t)} keyboardType="phone-pad"
-              icon="call-outline" accentColor={SECTION_COLORS.contact.accent} isDark={isDark}
+              icon="call-outline" required accentColor={SECTION_COLORS.contact.accent} isDark={isDark}
               fieldKey="ims-stf-mobile-line" autofillMode="tel" />
             {!isEditMode ? (
               <InputField label="Initial Password" placeholder="Min 6 characters" value={formData.password}

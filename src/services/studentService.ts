@@ -248,6 +248,16 @@ export const StudentService = {
     },
 
     /**
+     * PERMANENTLY delete a student and ALL of their data (fees, receipts, marks,
+     * attendance, transport, parent links, login accounts…). Irreversible.
+     * Requires explicit confirmation — the caller must have run the multi-step
+     * confirmation flow before invoking this.
+     */
+    hardDelete: async (id: string): Promise<{ stats?: Record<string, number>; authFailures?: unknown[] }> => {
+        return api.post(`/students/${id}/hard-delete`, { confirm: true });
+    },
+
+    /**
      * Get student results (Typed as any for now, strict type available in backend check)
      */
     getResults: async (id: string): Promise<any> => {

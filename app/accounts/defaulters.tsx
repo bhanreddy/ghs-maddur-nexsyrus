@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import AdminHeader from '../../src/components/AdminHeader';
 import { useAccountsWebChrome } from '../../src/contexts/AccountsWebChromeContext';
@@ -127,6 +128,12 @@ function DefaulterCard({
   return (
     <Animated.View entering={FadeInDown.delay(index * 45).duration(400).springify()}>
       <Pressable style={st.card} onPress={onToggle}>
+        <LinearGradient
+            colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 0.8 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
+            pointerEvents="none"
+        />
         <View style={st.cardAccent} />
         <View style={st.cardBody}>
           <View style={st.cardTop}>
@@ -716,15 +723,21 @@ const st = StyleSheet.create({
   addFabText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   listContent: { paddingHorizontal: 20, paddingBottom: 32 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderBottomWidth: 4,
+    borderBottomColor: '#FECACA',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  cardAccent: { height: 3, backgroundColor: '#EF4444' },
-  cardBody: { padding: 14 },
+  cardAccent: { height: 6, backgroundColor: '#EF4444', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  cardBody: { padding: 18 },
   cardTop: { flexDirection: 'row', gap: 12 },
   studentName: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
   studentMeta: { fontSize: 12, color: '#64748B', marginTop: 2 },

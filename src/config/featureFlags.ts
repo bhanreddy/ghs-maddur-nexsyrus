@@ -10,7 +10,6 @@ export const FEATURE_DEFAULTS = {
   'menu.ai_doubt_assist': true,
   'menu.insurance': true,
   'menu.money_science': true,
-  'menu.girl_safety': true,
   'quick.announcements': true,
   'quick.complaints': true,
   'quick.life_values': true,
@@ -25,6 +24,7 @@ export const FEATURE_DEFAULTS = {
   'nav.fees': true,
   'nav.results': true,
   'nav.home': true,
+  'comm.messenger': true,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURE_DEFAULTS;

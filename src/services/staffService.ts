@@ -65,8 +65,8 @@ export interface CreateStaffRequest {
     last_name: string;
     dob?: string;
     gender_id: number;
-    email?: string;
-    phone?: string;
+    email: string;
+    phone: string;
 
     staff_code: string;
     designation_id?: number;
@@ -74,7 +74,7 @@ export interface CreateStaffRequest {
     salary?: number;
     status_id?: number;
 
-    password?: string;
+    password: string;
     role_code?: string;
 }
 

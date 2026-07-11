@@ -22,7 +22,7 @@ const ProfileScreen = () => {
     theme,
     isDark
   } = useTheme();
-  const styles = React.useMemo(() => getStyles(theme), [theme]);
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   const {
     t
   } = useTranslation();
@@ -84,7 +84,7 @@ const ProfileScreen = () => {
     {/* Header / Banner */}
     <Animated.View entering={FadeInDown.duration(600)} style={styles.headerContainer}>
       <LinearGradient
-        colors={isDark ? ['#312E81', '#1E1B4B'] : ['#4F46E5', '#7C3AED']}
+        colors={isDark ? ['rgba(30, 41, 59, 1)', 'rgba(15, 23, 42, 1)'] : [theme.colors.primary, theme.colors.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -200,7 +200,7 @@ const InfoItem = ({
     theme,
     isDark
   } = useTheme();
-  const styles = React.useMemo(() => getStyles(theme), [theme]);
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   return <View style={styles.infoItem}>
     <View style={styles.labelRow}>
       <Ionicons name={icon} size={14} color={isDark ? "#94A3B8" : "#64748B"} />
@@ -210,7 +210,7 @@ const InfoItem = ({
   </View>;
 };
 export default ProfileScreen;
-const getStyles = (theme: Theme) => StyleSheet.create({
+const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent'
@@ -243,14 +243,14 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600'
   },
   headerContainer: {
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
     overflow: 'hidden',
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
+    shadowRadius: 32,
+    elevation: 14,
     zIndex: 10,
   },
   headerGradient: {
@@ -346,17 +346,19 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     paddingTop: 24
   },
   card: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: theme.colors.text,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.03)'
+    backgroundColor: theme.colors.card,
+    borderRadius: 32,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: isDark ? '#000' : theme.colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: isDark ? 0.35 : 0.12,
+    shadowRadius: 24,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderBottomWidth: 6,
+    borderColor: theme.colors.border,
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.15)'
   },
   cardDark: {
     backgroundColor: 'rgba(30, 41, 59, 0.7)',
@@ -389,7 +391,14 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   infoItem: {
     flex: 1,
-    minWidth: '45%'
+    minWidth: '45%',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    borderBottomWidth: 3,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(226, 232, 240, 0.8)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.1)',
   },
   labelRow: {
     flexDirection: 'row',
@@ -408,8 +417,6 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600'
   },
   divider: {
-    height: 1,
-    backgroundColor: theme.colors.card,
-    marginVertical: 16
+    height: 8
   }
 });

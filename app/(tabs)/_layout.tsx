@@ -9,12 +9,14 @@ export { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useFeatures } from '@/src/hooks/useFeatures';
+import { useTheme } from '@/src/hooks/useTheme';
 
 export default function TabLayout() {
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
     const { user } = useAuth();
     const { isEnabled } = useFeatures();
+    const { theme, isDark } = useTheme();
     useRequireRole('student', 'parent');
 
     return (
@@ -22,8 +24,8 @@ export default function TabLayout() {
             screenOptions={{
                 headerShown: false,
                 tabBarShowLabel: true,
-                tabBarActiveTintColor: '#1D4ED8',
-                tabBarInactiveTintColor: '#94A3B8',
+                tabBarActiveTintColor: theme.colors.primaryLight,
+                tabBarInactiveTintColor: theme.colors.textMuted,
                 tabBarLabelStyle: {
                     fontSize: 11,
                     fontWeight: '700',
@@ -33,13 +35,13 @@ export default function TabLayout() {
                     height: 58 + insets.bottom,
                     paddingBottom: 6 + insets.bottom,
                     paddingTop: 8,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.colors.surface,
                     borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: '#E2E8F0',
+                    borderTopColor: theme.colors.border,
                     elevation: 8,
-                    shadowColor: '#000',
+                    shadowColor: isDark ? '#000' : '#0F172A',
                     shadowOffset: { width: 0, height: -3 },
-                    shadowOpacity: 0.06,
+                    shadowOpacity: isDark ? 0.4 : 0.06,
                     shadowRadius: 8,
                 },
             }}

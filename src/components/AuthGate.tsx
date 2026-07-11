@@ -1,11 +1,11 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { ThemeContext } from '../context/ThemeContext';
 import LogoLoader from './LogoLoader';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-    const { isAppLocked, loading, authChecked } = useAuth();
+    const { loading, authChecked } = useAuth();
     // Default fallback colors in case theme isn't fully ready
     const theme = useContext(ThemeContext)?.theme || {
         colors: { background: '#FFFFFF', primary: '#4F46E5', text: '#000000' }
@@ -16,20 +16,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             {/* Always render children so Expo Router doesn't unmount the Stack and crash */}
             {children}
 
-            {(isAppLocked || loading || !authChecked) && (
+            {(loading || !authChecked) && (
                 <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: theme.colors.background }]}>
-                    {(!authChecked || loading) ? (
-                        <LogoLoader size={60} color={theme.colors.primary} />
-                    ) : (
-                        <View style={styles.lockedWarning}>
-                            <Text style={[styles.text, { color: theme.colors.text }]}>
-                                App Locked
-                            </Text>
-                            <Text style={[styles.subText, { color: theme.colors.text }]}>
-                                Please unlock with biometrics to continue.
-                            </Text>
-                        </View>
-                    )}
+                    <LogoLoader size={60} color={theme.colors.primary} />
                 </View>
             )}
         </View>
@@ -42,18 +31,5 @@ const styles = StyleSheet.create({
         elevation: 99999,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    lockedWarning: {
-        alignItems: 'center',
-        padding: 20,
-    },
-    text: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    subText: {
-        fontSize: 14,
-        opacity: 0.7,
     },
 });

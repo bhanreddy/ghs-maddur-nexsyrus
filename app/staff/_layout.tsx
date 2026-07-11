@@ -25,6 +25,9 @@ export default function StaffLayout() {
     const hiddenScreenOptions: StaffTabScreenOptions = {
         swipeEnabled: false,
         lazy: true,
+        // These screens render their own StaffHeader, so the tab navigator must
+        // not draw its default header (it showed the raw route name, e.g. "profile").
+        headerShown: false,
     };
 
     return (
@@ -58,9 +61,11 @@ export default function StaffLayout() {
             {/* ── Non-tab screens (navigable but NOT swipeable) ── */}
             <MaterialTopTabs.Screen name="attendance" options={{ ...hiddenScreenOptions, title: 'Attendance', headerShown: false } as any} />
             <MaterialTopTabs.Screen name="complaints" options={{ ...hiddenScreenOptions, headerShown: false } as any} />
+            <MaterialTopTabs.Screen name="messages" options={{ ...hiddenScreenOptions, headerShown: false } as any} />
             <MaterialTopTabs.Screen name="diary" options={{ ...hiddenScreenOptions, headerShown: false } as any} />
             <MaterialTopTabs.Screen name="leaves" options={{ ...hiddenScreenOptions, headerShown: false } as any} />
             <MaterialTopTabs.Screen name="lms-upload" options={hiddenScreenOptions} />
+            <MaterialTopTabs.Screen name="notices" options={{ ...hiddenScreenOptions, headerShown: false } as any} />
             <MaterialTopTabs.Screen name="payslip" options={hiddenScreenOptions} />
             <MaterialTopTabs.Screen name="profile" options={hiddenScreenOptions} />
             <MaterialTopTabs.Screen name="settings" options={hiddenScreenOptions} />

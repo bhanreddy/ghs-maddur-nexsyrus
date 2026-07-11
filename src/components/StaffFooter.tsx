@@ -48,6 +48,7 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
     // or just not render it. For now, we'll clamp it or handle it cleanly.
     // If activeIndex is -1, it means we are on a screen that isn't in the footer.
     const isFooterVisible = activeIndex !== -1;
+    if (!isFooterVisible) return null;
 
     // Calculate tab width
     const totalTabs = visibleRoutes.length;

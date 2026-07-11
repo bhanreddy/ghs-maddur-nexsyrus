@@ -82,7 +82,7 @@ export async function bundledAssetToBase64Uri(assetModule: number, mimeType = 'i
       return await blobToDataUri(blob);
     }
 
-    const FileSystem: any = await import('expo-file-system');
+    const FileSystem = await import('expo-file-system/legacy');
     const base64 = await FileSystem.readAsStringAsync(uri, {
       encoding: 'base64',
     });

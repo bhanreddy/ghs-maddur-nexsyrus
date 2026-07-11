@@ -56,38 +56,38 @@ type ActionCardVisual = {
 };
 
 const TIER = {
-  PRIMARY:   { g: ['#172554', '#2563EB'] as [string, string], accent: '#93C5FD', badge: '#60A5FA', rim: 'rgba(147,197,253,0.48)', orb: 'rgba(59,130,246,0.30)', wash: 'rgba(219,234,254,0.18)', label: '#DBEAFE', shadow: '#2563EB' },
-  FINANCE:   { g: ['#064E3B', '#10B981'] as [string, string], accent: '#6EE7B7', badge: '#34D399', rim: 'rgba(110,231,183,0.45)', orb: 'rgba(16,185,129,0.28)', wash: 'rgba(209,250,229,0.18)', label: '#D1FAE5', shadow: '#059669' },
-  ACADEMIC:  { g: ['#3B0764', '#8B5CF6'] as [string, string], accent: '#C4B5FD', badge: '#A78BFA', rim: 'rgba(196,181,253,0.46)', orb: 'rgba(139,92,246,0.30)', wash: 'rgba(237,233,254,0.17)', label: '#EDE9FE', shadow: '#7C3AED' },
-  OPS:       { g: ['#78350F', '#F59E0B'] as [string, string], accent: '#FDE68A', badge: '#FCD34D', rim: 'rgba(253,230,138,0.42)', orb: 'rgba(245,158,11,0.28)', wash: 'rgba(254,243,199,0.18)', label: '#FEF3C7', shadow: '#D97706' },
-  ADMIN:     { g: ['#831843', '#F43F5E'] as [string, string], accent: '#FDA4AF', badge: '#FB7185', rim: 'rgba(253,164,175,0.46)', orb: 'rgba(244,63,94,0.30)', wash: 'rgba(255,228,230,0.17)', label: '#FFE4E6', shadow: '#E11D48' },
+  PRIMARY: { g: ['#172554', '#2563EB'] as [string, string], accent: '#93C5FD', badge: '#60A5FA', rim: 'rgba(147,197,253,0.48)', orb: 'rgba(59,130,246,0.30)', wash: 'rgba(219,234,254,0.18)', label: '#DBEAFE', shadow: '#2563EB' },
+  FINANCE: { g: ['#064E3B', '#10B981'] as [string, string], accent: '#6EE7B7', badge: '#34D399', rim: 'rgba(110,231,183,0.45)', orb: 'rgba(16,185,129,0.28)', wash: 'rgba(209,250,229,0.18)', label: '#D1FAE5', shadow: '#059669' },
+  ACADEMIC: { g: ['#3B0764', '#8B5CF6'] as [string, string], accent: '#C4B5FD', badge: '#A78BFA', rim: 'rgba(196,181,253,0.46)', orb: 'rgba(139,92,246,0.30)', wash: 'rgba(237,233,254,0.17)', label: '#EDE9FE', shadow: '#7C3AED' },
+  OPS: { g: ['#78350F', '#F59E0B'] as [string, string], accent: '#FDE68A', badge: '#FCD34D', rim: 'rgba(253,230,138,0.42)', orb: 'rgba(245,158,11,0.28)', wash: 'rgba(254,243,199,0.18)', label: '#FEF3C7', shadow: '#D97706' },
+  ADMIN: { g: ['#831843', '#F43F5E'] as [string, string], accent: '#FDA4AF', badge: '#FB7185', rim: 'rgba(253,164,175,0.46)', orb: 'rgba(244,63,94,0.30)', wash: 'rgba(255,228,230,0.17)', label: '#FFE4E6', shadow: '#E11D48' },
 } as const;
 
 type TierKey = keyof typeof TIER;
 
 const ACTION_CARD_VISUALS: Record<string, ActionCardVisual> = {
-  '/admin/academics':                  { g: ['#172554', '#2563EB'], accent: '#93C5FD', badge: '#60A5FA', rim: 'rgba(147,197,253,0.50)', orb: 'rgba(59,130,246,0.32)', wash: 'rgba(219,234,254,0.20)', label: '#DBEAFE', shadow: '#2563EB' },
-  '/admin/diary/viewer':               { g: ['#0F172A', '#0EA5E9'], accent: '#7DD3FC', badge: '#38BDF8', rim: 'rgba(125,211,252,0.48)', orb: 'rgba(14,165,233,0.30)', wash: 'rgba(224,242,254,0.18)', label: '#E0F2FE', shadow: '#0284C7' },
-  '/admin/timetable':                  { g: ['#1E1B4B', '#6366F1'], accent: '#A5B4FC', badge: '#818CF8', rim: 'rgba(165,180,252,0.48)', orb: 'rgba(99,102,241,0.31)', wash: 'rgba(224,231,255,0.18)', label: '#E0E7FF', shadow: '#4F46E5' },
-  '/admin/academic-year-upgrade':      { g: ['#164E63', '#06B6D4'], accent: '#67E8F9', badge: '#22D3EE', rim: 'rgba(103,232,249,0.44)', orb: 'rgba(6,182,212,0.28)', wash: 'rgba(207,250,254,0.17)', label: '#CFFAFE', shadow: '#0891B2' },
-  '/admin/certificate-generator':      { g: ['#713F12', '#F59E0B'], accent: '#FDE68A', badge: '#FBBF24', rim: 'rgba(253,230,138,0.44)', orb: 'rgba(245,158,11,0.27)', wash: 'rgba(254,243,199,0.18)', label: '#FEF3C7', shadow: '#D97706' },
-  '/admin/progress-report-generator':  { g: ['#312E81', '#7C3AED'], accent: '#C4B5FD', badge: '#A78BFA', rim: 'rgba(196,181,253,0.46)', orb: 'rgba(124,58,237,0.30)', wash: 'rgba(237,233,254,0.17)', label: '#EDE9FE', shadow: '#6D28D9' },
-  '/admin/expenses':                   { g: ['#7C2D12', '#EA580C'], accent: '#FDBA74', badge: '#FB923C', rim: 'rgba(253,186,116,0.44)', orb: 'rgba(234,88,12,0.28)', wash: 'rgba(255,237,213,0.17)', label: '#FFEDD5', shadow: '#C2410C' },
-  '/admin/fees/set-class-fee':         { g: ['#064E3B', '#10B981'], accent: '#6EE7B7', badge: '#34D399', rim: 'rgba(110,231,183,0.45)', orb: 'rgba(16,185,129,0.28)', wash: 'rgba(209,250,229,0.18)', label: '#D1FAE5', shadow: '#059669' },
-  '/admin/fees/adjustments':           { g: ['#365314', '#84CC16'], accent: '#BEF264', badge: '#A3E635', rim: 'rgba(190,242,100,0.42)', orb: 'rgba(132,204,22,0.27)', wash: 'rgba(236,252,203,0.17)', label: '#ECFCCB', shadow: '#65A30D' },
-  '/admin/upi-settings':               { g: ['#134E4A', '#14B8A6'], accent: '#5EEAD4', badge: '#2DD4BF', rim: 'rgba(94,234,212,0.44)', orb: 'rgba(20,184,166,0.28)', wash: 'rgba(204,251,241,0.17)', label: '#CCFBF1', shadow: '#0D9488' },
-  '/admin/fees/visibility':            { g: ['#334155', '#64748B'], accent: '#CBD5E1', badge: '#94A3B8', rim: 'rgba(203,213,225,0.40)', orb: 'rgba(100,116,139,0.24)', wash: 'rgba(241,245,249,0.14)', label: '#F1F5F9', shadow: '#475569' },
-  '/admin/payroll':                    { g: ['#312E81', '#6366F1'], accent: '#A5B4FC', badge: '#818CF8', rim: 'rgba(165,180,252,0.48)', orb: 'rgba(99,102,241,0.31)', wash: 'rgba(224,231,255,0.18)', label: '#E0E7FF', shadow: '#4F46E5' },
-  '/admin/reports':                    { g: ['#4C1D95', '#9333EA'], accent: '#D8B4FE', badge: '#C084FC', rim: 'rgba(216,180,254,0.46)', orb: 'rgba(147,51,234,0.30)', wash: 'rgba(243,232,255,0.18)', label: '#F3E8FF', shadow: '#7E22CE' },
-  '/admin/smart-insights':             { g: ['#831843', '#EC4899'], accent: '#F9A8D4', badge: '#F472B6', rim: 'rgba(249,168,212,0.46)', orb: 'rgba(236,72,153,0.30)', wash: 'rgba(252,231,243,0.17)', label: '#FCE7F3', shadow: '#DB2777' },
-  '/admin/notices':                    { g: ['#713F12', '#EAB308'], accent: '#FEF08A', badge: '#FACC15', rim: 'rgba(254,240,138,0.42)', orb: 'rgba(234,179,8,0.27)', wash: 'rgba(254,249,195,0.17)', label: '#FEF9C3', shadow: '#CA8A04' },
-  '/admin/complaints':                 { g: ['#881337', '#F43F5E'], accent: '#FDA4AF', badge: '#FB7185', rim: 'rgba(253,164,175,0.45)', orb: 'rgba(244,63,94,0.30)', wash: 'rgba(255,228,230,0.17)', label: '#FFE4E6', shadow: '#E11D48' },
-  '/admin/transport':                  { g: ['#0C4A6E', '#38BDF8'], accent: '#BAE6FD', badge: '#7DD3FC', rim: 'rgba(186,230,253,0.44)', orb: 'rgba(56,189,248,0.28)', wash: 'rgba(224,242,254,0.17)', label: '#E0F2FE', shadow: '#0284C7' },
-  '/admin/leaves':                     { g: ['#14532D', '#22C55E'], accent: '#86EFAC', badge: '#4ADE80', rim: 'rgba(134,239,172,0.43)', orb: 'rgba(34,197,94,0.28)', wash: 'rgba(220,252,231,0.17)', label: '#DCFCE7', shadow: '#16A34A' },
-  '/admin/manage-staff':               { g: ['#581C87', '#A855F7'], accent: '#D8B4FE', badge: '#C084FC', rim: 'rgba(216,180,254,0.45)', orb: 'rgba(168,85,247,0.29)', wash: 'rgba(243,232,255,0.17)', label: '#F3E8FF', shadow: '#9333EA' },
-  '/admin/addStaff':                   { g: ['#6D28D9', '#8B5CF6'], accent: '#C4B5FD', badge: '#A78BFA', rim: 'rgba(196,181,253,0.46)', orb: 'rgba(139,92,246,0.30)', wash: 'rgba(237,233,254,0.17)', label: '#EDE9FE', shadow: '#7C3AED' },
-  '/admin/add-accounts-staff':         { g: ['#9A3412', '#FB923C'], accent: '#FED7AA', badge: '#FDBA74', rim: 'rgba(254,215,170,0.43)', orb: 'rgba(251,146,60,0.28)', wash: 'rgba(255,237,213,0.17)', label: '#FFEDD5', shadow: '#EA580C' },
-  '/admin/access-requests':            { g: ['#7F1D1D', '#DC2626'], accent: '#FCA5A5', badge: '#F87171', rim: 'rgba(252,165,165,0.48)', orb: 'rgba(220,38,38,0.32)', wash: 'rgba(254,226,226,0.18)', label: '#FEE2E2', shadow: '#B91C1C' },
+  '/admin/academics': { g: ['#172554', '#2563EB'], accent: '#93C5FD', badge: '#60A5FA', rim: 'rgba(147,197,253,0.50)', orb: 'rgba(59,130,246,0.32)', wash: 'rgba(219,234,254,0.20)', label: '#DBEAFE', shadow: '#2563EB' },
+  '/admin/diary/viewer': { g: ['#0F172A', '#0EA5E9'], accent: '#7DD3FC', badge: '#38BDF8', rim: 'rgba(125,211,252,0.48)', orb: 'rgba(14,165,233,0.30)', wash: 'rgba(224,242,254,0.18)', label: '#E0F2FE', shadow: '#0284C7' },
+  '/admin/timetable': { g: ['#1E1B4B', '#6366F1'], accent: '#A5B4FC', badge: '#818CF8', rim: 'rgba(165,180,252,0.48)', orb: 'rgba(99,102,241,0.31)', wash: 'rgba(224,231,255,0.18)', label: '#E0E7FF', shadow: '#4F46E5' },
+  '/admin/academic-year-upgrade': { g: ['#164E63', '#06B6D4'], accent: '#67E8F9', badge: '#22D3EE', rim: 'rgba(103,232,249,0.44)', orb: 'rgba(6,182,212,0.28)', wash: 'rgba(207,250,254,0.17)', label: '#CFFAFE', shadow: '#0891B2' },
+  '/admin/certificate-generator': { g: ['#713F12', '#F59E0B'], accent: '#FDE68A', badge: '#FBBF24', rim: 'rgba(253,230,138,0.44)', orb: 'rgba(245,158,11,0.27)', wash: 'rgba(254,243,199,0.18)', label: '#FEF3C7', shadow: '#D97706' },
+  '/admin/progress-report-generator': { g: ['#312E81', '#7C3AED'], accent: '#C4B5FD', badge: '#A78BFA', rim: 'rgba(196,181,253,0.46)', orb: 'rgba(124,58,237,0.30)', wash: 'rgba(237,233,254,0.17)', label: '#EDE9FE', shadow: '#6D28D9' },
+  '/admin/expenses': { g: ['#7C2D12', '#EA580C'], accent: '#FDBA74', badge: '#FB923C', rim: 'rgba(253,186,116,0.44)', orb: 'rgba(234,88,12,0.28)', wash: 'rgba(255,237,213,0.17)', label: '#FFEDD5', shadow: '#C2410C' },
+  '/admin/fees/set-class-fee': { g: ['#064E3B', '#10B981'], accent: '#6EE7B7', badge: '#34D399', rim: 'rgba(110,231,183,0.45)', orb: 'rgba(16,185,129,0.28)', wash: 'rgba(209,250,229,0.18)', label: '#D1FAE5', shadow: '#059669' },
+  '/admin/fees/adjustments': { g: ['#365314', '#84CC16'], accent: '#BEF264', badge: '#A3E635', rim: 'rgba(190,242,100,0.42)', orb: 'rgba(132,204,22,0.27)', wash: 'rgba(236,252,203,0.17)', label: '#ECFCCB', shadow: '#65A30D' },
+  '/admin/upi-settings': { g: ['#134E4A', '#14B8A6'], accent: '#5EEAD4', badge: '#2DD4BF', rim: 'rgba(94,234,212,0.44)', orb: 'rgba(20,184,166,0.28)', wash: 'rgba(204,251,241,0.17)', label: '#CCFBF1', shadow: '#0D9488' },
+  '/admin/fees/visibility': { g: ['#334155', '#64748B'], accent: '#CBD5E1', badge: '#94A3B8', rim: 'rgba(203,213,225,0.40)', orb: 'rgba(100,116,139,0.24)', wash: 'rgba(241,245,249,0.14)', label: '#F1F5F9', shadow: '#475569' },
+  '/admin/payroll': { g: ['#312E81', '#6366F1'], accent: '#A5B4FC', badge: '#818CF8', rim: 'rgba(165,180,252,0.48)', orb: 'rgba(99,102,241,0.31)', wash: 'rgba(224,231,255,0.18)', label: '#E0E7FF', shadow: '#4F46E5' },
+  '/admin/reports': { g: ['#4C1D95', '#9333EA'], accent: '#D8B4FE', badge: '#C084FC', rim: 'rgba(216,180,254,0.46)', orb: 'rgba(147,51,234,0.30)', wash: 'rgba(243,232,255,0.18)', label: '#F3E8FF', shadow: '#7E22CE' },
+  '/admin/smart-insights': { g: ['#831843', '#EC4899'], accent: '#F9A8D4', badge: '#F472B6', rim: 'rgba(249,168,212,0.46)', orb: 'rgba(236,72,153,0.30)', wash: 'rgba(252,231,243,0.17)', label: '#FCE7F3', shadow: '#DB2777' },
+  '/admin/notices': { g: ['#713F12', '#EAB308'], accent: '#FEF08A', badge: '#FACC15', rim: 'rgba(254,240,138,0.42)', orb: 'rgba(234,179,8,0.27)', wash: 'rgba(254,249,195,0.17)', label: '#FEF9C3', shadow: '#CA8A04' },
+  '/admin/complaints': { g: ['#881337', '#F43F5E'], accent: '#FDA4AF', badge: '#FB7185', rim: 'rgba(253,164,175,0.45)', orb: 'rgba(244,63,94,0.30)', wash: 'rgba(255,228,230,0.17)', label: '#FFE4E6', shadow: '#E11D48' },
+  '/admin/transport': { g: ['#0C4A6E', '#38BDF8'], accent: '#BAE6FD', badge: '#7DD3FC', rim: 'rgba(186,230,253,0.44)', orb: 'rgba(56,189,248,0.28)', wash: 'rgba(224,242,254,0.17)', label: '#E0F2FE', shadow: '#0284C7' },
+  '/admin/leaves': { g: ['#14532D', '#22C55E'], accent: '#86EFAC', badge: '#4ADE80', rim: 'rgba(134,239,172,0.43)', orb: 'rgba(34,197,94,0.28)', wash: 'rgba(220,252,231,0.17)', label: '#DCFCE7', shadow: '#16A34A' },
+  '/admin/manage-staff': { g: ['#581C87', '#A855F7'], accent: '#D8B4FE', badge: '#C084FC', rim: 'rgba(216,180,254,0.45)', orb: 'rgba(168,85,247,0.29)', wash: 'rgba(243,232,255,0.17)', label: '#F3E8FF', shadow: '#9333EA' },
+  '/admin/addStaff': { g: ['#6D28D9', '#8B5CF6'], accent: '#C4B5FD', badge: '#A78BFA', rim: 'rgba(196,181,253,0.46)', orb: 'rgba(139,92,246,0.30)', wash: 'rgba(237,233,254,0.17)', label: '#EDE9FE', shadow: '#7C3AED' },
+  '/admin/add-accounts-staff': { g: ['#9A3412', '#FB923C'], accent: '#FED7AA', badge: '#FDBA74', rim: 'rgba(254,215,170,0.43)', orb: 'rgba(251,146,60,0.28)', wash: 'rgba(255,237,213,0.17)', label: '#FFEDD5', shadow: '#EA580C' },
+  '/admin/access-requests': { g: ['#7F1D1D', '#DC2626'], accent: '#FCA5A5', badge: '#F87171', rim: 'rgba(252,165,165,0.48)', orb: 'rgba(220,38,38,0.32)', wash: 'rgba(254,226,226,0.18)', label: '#FEE2E2', shadow: '#B91C1C' },
 };
 
 interface ActionItem {
@@ -125,6 +125,17 @@ const AnimatedFlatList = Animated.FlatList as any; // ⚡PERF: reanimated-scroll
 const enterAnim = (delay = 0) =>
   isAndroid ? undefined : FadeInDown.delay(delay).springify().damping(15);
 
+/**
+ * Hardware-texture promotion for cards.
+ *
+ * ⚡PERF: previously set to `isAndroid` on every card. Promoting every cell of a
+ * virtualized list to its own GPU texture layer thrashes texture memory and causes
+ * frame drops on scroll (React Native warns it is "very expensive in terms of
+ * memory"). The cards are static during scroll, so the texture buys nothing here.
+ * Kept off on Android; a single flag makes it trivial to flip back if ever needed.
+ */
+const HW_TEXTURE_ANDROID = false;
+
 const ANDROID_SCROLL_PROPS = isAndroid
   ? ({ removeClippedSubviews: true, overScrollMode: 'never' as const, nestedScrollEnabled: true })
   : {};
@@ -154,6 +165,15 @@ function clay(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md') {
         `inset -2px -2px 4px ${innerLo}`,
     } as any;
   }
+  // ⚡PERF(Android): elevation shadows are re-rasterized every scroll frame and are the
+  // dominant UI-thread/draw cost on this dense dashboard. Use a cheap border instead of a
+  // shadow — keeps card definition without the per-frame shadow rendering. iOS keeps shadows.
+  if (isAndroid) {
+    return {
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.22)',
+    } as any;
+  }
   return {
     shadowColor: isDark ? '#000000' : '#94A3B8',
     shadowOffset: { width: 0, height: dy },
@@ -173,6 +193,10 @@ function clayGlow(color: string, raised: 'sm' | 'md' = 'md') {
         `inset 1.5px 1.5px 3px rgba(255,255,255,0.40), ` +
         `inset -1.5px -1.5px 3px rgba(0,0,0,0.12)`,
     } as any;
+  }
+  // ⚡PERF(Android): drop the coloured glow shadow entirely — pure per-frame cost, minimal visual.
+  if (isAndroid) {
+    return {} as any;
   }
   return {
     shadowColor: color,
@@ -202,16 +226,17 @@ function ClayCardOverlays({ isDark, cardRadius, accentColor, gradientColors, hid
 }) {
   return (
     <>
-      <View style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
-        borderTopLeftRadius: cardRadius, borderTopRightRadius: cardRadius,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
-      }} />
-      <View style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
-        borderBottomLeftRadius: cardRadius, borderBottomRightRadius: cardRadius,
-        backgroundColor: isDark ? 'rgba(0,0,0,0.10)' : `${accentColor}0A`,
-      }} />
+      {/* ⚡PERF: the two full-card translucent "sheen" layers below are the dominant
+          overdraw source — ~50 cards × 2 layers composited every frame tanks scroll FPS
+          on Android. They are a subtle highlight only, so skip them on Android and keep
+          just the thin accent bar. Unchanged on web/iOS. */}
+      {!isAndroid && (
+        <View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+          borderTopLeftRadius: cardRadius, borderTopRightRadius: cardRadius,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
+        }} />
+      )}
       {!hideTopAccent && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, overflow: 'hidden' }}>
           {gradientColors ? (
@@ -229,26 +254,9 @@ function ClayCardOverlays({ isDark, cardRadius, accentColor, gradientColors, hid
 /* PULSE INDICATOR                                                           */
 /* ─────────────────────────────────────────────────────────────────────────── */
 function PulseIndicator({ color = '#10B981' }: { color?: string }) {
-  const op = useSharedValue(isAndroid ? 1 : 0.4);
-  const sc = useSharedValue(isAndroid ? 1 : 0.8);
-  React.useEffect(() => {
-    if (isAndroid) return;
-    op.value = withRepeat(withSequence(withTiming(1, { duration: 800 }), withTiming(0.4, { duration: 1200 })), -1, true);
-    sc.value = withRepeat(withSequence(withTiming(1.3, { duration: 800 }), withTiming(0.8, { duration: 1200 })), -1, true);
-  }, [op, sc]);
-  const animStyle = useAnimatedStyle(() => ({ opacity: op.value, transform: [{ scale: sc.value }] }));
-
-  if (isAndroid) {
-    return (
-      <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 7, height: 7, backgroundColor: color, borderRadius: 3.5 }} />
-      </View>
-    );
-  }
-
+  // Static dot for maximum performance.
   return (
     <View style={{ width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color, borderRadius: 7 }, animStyle]} />
       <View style={{ width: 7, height: 7, backgroundColor: color, borderRadius: 3.5 }} />
     </View>
   );
@@ -274,7 +282,7 @@ const SummaryMiniCard = React.memo(({ label, value, icon, color, isDark, delay }
   return (
     <Animated.View
       entering={enterAnim(delay)}
-      renderToHardwareTextureAndroid={isAndroid}
+      renderToHardwareTextureAndroid={HW_TEXTURE_ANDROID}
       style={{
         flex: isCompact ? 0 : 1,
         flexBasis: isCompact ? '47%' : undefined,
@@ -335,7 +343,7 @@ const DashboardCard = React.memo(
       const baseColor = item.color;
       let bg = '#4A72E6';
       let shadowColor = '#253FA3';
-      
+
       if (baseColor === '#3B82F6') { // Blue (Vibrant Periwinkle/Royal)
         bg = isDark ? '#3053C4' : '#4A72E6';
         shadowColor = isDark ? '#1C318F' : '#253FA3';
@@ -375,7 +383,7 @@ const DashboardCard = React.memo(
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: isDark ? 0.45 : 0.28,
         shadowRadius: 18,
-        elevation: 8,
+        elevation: isAndroid ? 0 : 8,
       };
     }, [item.color, isDark, isWideScreen]);
 
@@ -401,7 +409,7 @@ const DashboardCard = React.memo(
           }}
           onPress={onPress}
         >
-          <Animated.View renderToHardwareTextureAndroid={isAndroid} style={[cardAnim, clayStyle]}>
+          <Animated.View renderToHardwareTextureAndroid={HW_TEXTURE_ANDROID} style={[cardAnim, clayStyle]}>
             <View style={{ padding: isWideScreen ? 24 : 22, minHeight: isWideScreen ? 160 : 150 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                 <View style={{
@@ -420,7 +428,7 @@ const DashboardCard = React.memo(
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.12,
                     shadowRadius: 3,
-                    elevation: 2
+                    elevation: isAndroid ? 0 : 2
                   })
                 }}>
                   <Ionicons name={item.icon} size={isWideScreen ? 22 : 20} color="rgba(255,255,255,0.95)" />
@@ -441,7 +449,7 @@ const DashboardCard = React.memo(
                       shadowOffset: { width: 0, height: 1 },
                       shadowOpacity: 0.1,
                       shadowRadius: 2.5,
-                      elevation: 1.5
+                      elevation: isAndroid ? 0 : 1.5
                     })
                   }}>
                     <Text style={{ color: 'white', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 }}>
@@ -488,7 +496,7 @@ const DashboardCard = React.memo(
                     shadowOffset: { width: 0, height: 1 },
                     shadowOpacity: 0.1,
                     shadowRadius: 2.5,
-                    elevation: 1.5
+                    elevation: isAndroid ? 0 : 1.5
                   })
                 }}>
                   <Ionicons
@@ -562,7 +570,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
   const clayStyle = useMemo(() => {
     let bg = '#4A72E6';
     let shadowColor = '#253FA3';
-    
+
     if (category === 'Academic' || category === 'AI') {
       bg = isDark ? '#3053C4' : '#4A72E6';
       shadowColor = isDark ? '#1C318F' : '#253FA3';
@@ -614,7 +622,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: isDark ? 0.45 : 0.28,
       shadowRadius: 16,
-      elevation: 7,
+      elevation: isAndroid ? 0 : 7,
     };
   }, [category, isDark, isWideScreen]);
 
@@ -638,7 +646,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
       >
         <Animated.View style={[cardAnimStyle, styles.gridItem, clayStyle]}>
           {/* Abstract Claymorphic Background Graphics */}
-          <View 
+          <View
             pointerEvents="none"
             style={{
               position: 'absolute',
@@ -650,9 +658,9 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
               bottom: isWideScreen ? -25 : -20,
               right: isWideScreen ? -25 : -20,
               zIndex: 1,
-            }} 
+            }}
           />
-          <View 
+          <View
             pointerEvents="none"
             style={{
               position: 'absolute',
@@ -664,54 +672,9 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
               bottom: isWideScreen ? 50 : 40,
               right: isWideScreen ? -12 : -10,
               zIndex: 1,
-            }} 
+            }}
           />
-          <View 
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              width: isWideScreen ? 36 : 28,
-              height: isWideScreen ? 36 : 28,
-              borderRadius: isWideScreen ? 18 : 14,
-              backgroundColor: 'rgba(255, 255, 255, 0.07)',
-              bottom: isWideScreen ? 68 : 55,
-              right: isWideScreen ? 35 : 28,
-              zIndex: 1,
-              ...(Platform.OS === 'web' ? {
-                boxShadow: '1px 2px 4px rgba(0,0,0,0.06), inset 1px 1px 2px rgba(255,255,255,0.2)'
-              } : {})
-            }} 
-          />
-          <View 
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              width: isWideScreen ? 18 : 14,
-              height: isWideScreen ? 40 : 32,
-              borderRadius: isWideScreen ? 9 : 7,
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              bottom: isWideScreen ? 18 : 15,
-              right: isWideScreen ? 62 : 50,
-              transform: [{ rotate: '45deg' }],
-              zIndex: 1,
-              ...(Platform.OS === 'web' ? {
-                boxShadow: '1px 2px 4px rgba(0,0,0,0.05), inset 1px 1px 2px rgba(255,255,255,0.15)'
-              } : {})
-            }} 
-          />
-          <View 
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              bottom: isWideScreen ? 92 : 75,
-              right: isWideScreen ? 20 : 15,
-              zIndex: 1,
-            }} 
-          />
+
 
           {item.badge !== undefined && item.badge > 0 && (
             <View style={[styles.gridBadge, {
@@ -725,7 +688,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.1,
                 shadowRadius: 2.5,
-                elevation: 1.5
+                elevation: isAndroid ? 0 : 1.5
               })
             }]}>
               <Text style={[styles.gridBadgeText, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
@@ -777,7 +740,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.12,
                 shadowRadius: 3,
-                elevation: 2
+                elevation: isAndroid ? 0 : 2
               }),
             }]}>
               <Ionicons
@@ -794,10 +757,10 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
                     styles.gridTitle,
                     isMobile
                       ? {
-                          flex: undefined,
-                          fontSize: windowWidth < 380 ? 12.5 : 13.5,
-                          lineHeight: windowWidth < 380 ? 16 : 17,
-                        }
+                        flex: undefined,
+                        fontSize: windowWidth < 380 ? 12.5 : 13.5,
+                        lineHeight: windowWidth < 380 ? 16 : 17,
+                      }
                       : { fontSize: isWideScreen ? 14 : 12.5 },
                   ]}
                   {...(!isMobile ? { numberOfLines: 2 } : {})}
@@ -835,7 +798,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.12,
                   shadowRadius: 3,
-                  elevation: 2
+                  elevation: isAndroid ? 0 : 2
                 }),
               }}>
                 <Ionicons
@@ -880,17 +843,7 @@ const MetricCard = React.memo(({
 }: MetricCardProps) => {
   const scale = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  // Gentle pulse for the skeleton placeholder while loading.
-  const pulse = useSharedValue(0.4);
-  useEffect(() => {
-    if (loading) {
-      pulse.value = withRepeat(withTiming(0.85, { duration: 700 }), -1, true);
-    } else {
-      pulse.value = 0.4;
-    }
-  }, [loading, pulse]);
-  const skeletonAnim = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  const skeletonAnim = useAnimatedStyle(() => ({ opacity: interpolate(scale.value, [0, 1], [0.4, 0.8]) }));
 
   const skeletonColor = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.09)';
   const cardRadius = isWideScreen ? 28 : 24;
@@ -900,7 +853,7 @@ const MetricCard = React.memo(({
       onPressIn={() => { scale.value = withSpring(0.97, { damping: 16, stiffness: 340 }); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
       onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 260 }); }}
     >
-      <Animated.View renderToHardwareTextureAndroid={isAndroid} style={[anim, {
+      <Animated.View renderToHardwareTextureAndroid={HW_TEXTURE_ANDROID} style={[anim, {
         width,
         backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
         borderRadius: cardRadius,
@@ -910,16 +863,20 @@ const MetricCard = React.memo(({
         ...clay(isDark, 'md'),
         overflow: 'hidden',
       }]}>
-        <View style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '52%',
-          borderTopLeftRadius: cardRadius, borderTopRightRadius: cardRadius,
-          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
-        }} />
-        <View style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%',
-          borderBottomLeftRadius: cardRadius, borderBottomRightRadius: cardRadius,
-          backgroundColor: isDark ? 'rgba(0,0,0,0.10)' : `${iconColor}0A`,
-        }} />
+        {!isAndroid && (
+          <View style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '52%',
+            borderTopLeftRadius: cardRadius, borderTopRightRadius: cardRadius,
+            backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
+          }} />
+        )}
+        {!isAndroid && (
+          <View style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '38%',
+            borderBottomLeftRadius: cardRadius, borderBottomRightRadius: cardRadius,
+            backgroundColor: isDark ? 'rgba(0,0,0,0.10)' : `${iconColor}0A`,
+          }} />
+        )}
         <View style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: 4,
           backgroundColor: iconColor, opacity: isDark ? 0.85 : 0.72,
@@ -952,13 +909,11 @@ const MetricCard = React.memo(({
         }}>{label}</Text>
 
         {loading ? (
-          // Skeleton — never show "0" while the first fetch is in flight.
           <Animated.View style={[skeletonAnim, {
             width: '62%', height: isWideScreen ? 22 : 17,
             borderRadius: 6, backgroundColor: skeletonColor,
           }]} />
         ) : error ? (
-          // Retry affordance — no silent zero on failure.
           <Pressable
             onPress={onRetry}
             hitSlop={8}
@@ -997,7 +952,7 @@ const MetricCard = React.memo(({
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* SECTION HEADER                                                            */
 /* ─────────────────────────────────────────────────────────────────────────── */
-function SectionHeader({ label, delay, styles, isDark, accentColor }: {
+const SectionHeader = React.memo(function SectionHeader({ label, delay, styles, isDark, accentColor }: {
   label: string; delay: number; styles: any; isDark: boolean; accentColor?: string;
 }) {
   const color = accentColor ?? '#3B82F6';
@@ -1009,27 +964,23 @@ function SectionHeader({ label, delay, styles, isDark, accentColor }: {
           {label.toUpperCase()}
         </Text>
         <View style={{ flex: 1, height: 1, marginLeft: 14, overflow: 'hidden', borderRadius: 1 }}>
-          <LinearGradient
-            colors={[color + '60', isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.05)', 'transparent']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={{ flex: 1 }}
-          />
+          <View style={{ flex: 1, backgroundColor: color, opacity: isDark ? 0.2 : 0.1 }} />
         </View>
       </View>
     </Animated.View>
   );
-}
+});
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* TIER LEGEND                                                               */
 /* ─────────────────────────────────────────────────────────────────────────── */
-function TierLegend({ isDark }: { isDark: boolean }) {
+const TierLegend = React.memo(function TierLegend({ isDark }: { isDark: boolean }) {
   const entries: { tier: TierKey; name: string }[] = [
-    { tier: 'PRIMARY',  name: 'Navigation' },
-    { tier: 'FINANCE',  name: 'Finance'    },
-    { tier: 'ACADEMIC', name: 'Academic'   },
-    { tier: 'OPS',      name: 'Operations' },
-    { tier: 'ADMIN',    name: 'Admin'      },
+    { tier: 'PRIMARY', name: 'Navigation' },
+    { tier: 'FINANCE', name: 'Finance' },
+    { tier: 'ACADEMIC', name: 'Academic' },
+    { tier: 'OPS', name: 'Operations' },
+    { tier: 'ADMIN', name: 'Admin' },
   ];
   return (
     <Animated.View
@@ -1053,11 +1004,7 @@ function TierLegend({ isDark }: { isDark: boolean }) {
               borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.055)',
             }}
           >
-            <LinearGradient
-              colors={t.g}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={{ width: 12, height: 12, borderRadius: 6 }}
-            />
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.g[1] }} />
             <Text style={{
               fontSize: 9, fontWeight: '800', letterSpacing: 0.9,
               color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(15,23,42,0.6)',
@@ -1070,7 +1017,7 @@ function TierLegend({ isDark }: { isDark: boolean }) {
       })}
     </Animated.View>
   );
-}
+});
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* PREMIUM PROGRESS CARD                                                     */
@@ -1079,124 +1026,124 @@ function PremiumProgressCard({ title, pct, gradientColors, pctColor, isDark, isW
   title: string; pct: number; gradientColors: [string, string];
   pctColor: string; isDark: boolean; isWideScreen: boolean; delay?: number;
 }) {
-  const safeWidth = `${Math.min(Math.max(pct, 0), 100)}%` as any;
-  const cardRadius = isWideScreen ? 28 : 24;
-  return (
-    <Animated.View
-      entering={enterAnim(delay)}
-      renderToHardwareTextureAndroid={isAndroid}
-      style={{
-        backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
-        borderRadius: cardRadius,
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
-        padding: isWideScreen ? 26 : 20,
-        marginBottom: isWideScreen ? 24 : 16,
-        ...clay(isDark, 'lg'),
-        overflow: 'hidden',
-      }}
-    >
-      <ClayCardOverlays isDark={isDark} cardRadius={cardRadius} accentColor={pctColor} gradientColors={gradientColors} />
+    const safeWidth = `${Math.min(Math.max(pct, 0), 100)}%` as any;
+    const cardRadius = isWideScreen ? 28 : 24;
+    return (
+      <Animated.View
+        entering={enterAnim(delay)}
+        renderToHardwareTextureAndroid={HW_TEXTURE_ANDROID}
+        style={{
+          backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
+          borderRadius: cardRadius,
+          borderWidth: 1,
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
+          padding: isWideScreen ? 26 : 20,
+          marginBottom: isWideScreen ? 24 : 16,
+          ...clay(isDark, 'lg'),
+          overflow: 'hidden',
+        }}
+      >
+        <ClayCardOverlays isDark={isDark} cardRadius={cardRadius} accentColor={pctColor} gradientColors={gradientColors} />
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: isWideScreen ? 20 : 16, marginTop: 6 }}>
-        <View>
-          <Text style={{ fontSize: isWideScreen ? 10 : 9, fontWeight: '800', letterSpacing: 1.5, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)', textTransform: 'uppercase', marginBottom: 4 }}>Progress</Text>
-          <Text style={{ fontSize: isWideScreen ? 17 : 15, fontWeight: '800', letterSpacing: -0.3, color: isDark ? '#FFFFFF' : '#0F172A' }}>{title}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: isWideScreen ? 20 : 16, marginTop: 6 }}>
+          <View>
+            <Text style={{ fontSize: isWideScreen ? 10 : 9, fontWeight: '800', letterSpacing: 1.5, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)', textTransform: 'uppercase', marginBottom: 4 }}>Progress</Text>
+            <Text style={{ fontSize: isWideScreen ? 17 : 15, fontWeight: '800', letterSpacing: -0.3, color: isDark ? '#FFFFFF' : '#0F172A' }}>{title}</Text>
+          </View>
+          <Text style={{ fontSize: isWideScreen ? 30 : 26, fontWeight: '900', color: pctColor, letterSpacing: -0.5 }}>{pct}%</Text>
         </View>
-        <Text style={{ fontSize: isWideScreen ? 30 : 26, fontWeight: '900', color: pctColor, letterSpacing: -0.5 }}>{pct}%</Text>
-      </View>
 
-      <View style={{
-        height: isWideScreen ? 14 : 12, borderRadius: 99,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.05)',
-        overflow: 'hidden',
-        ...clayInset(isDark),
-      }}>
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ height: '100%', width: safeWidth, borderRadius: 99, ...clayGlow(gradientColors[0], 'sm') }}
-        />
-      </View>
+        <View style={{
+          height: isWideScreen ? 14 : 12, borderRadius: 99,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.05)',
+          overflow: 'hidden',
+          ...clayInset(isDark),
+        }}>
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: '100%', width: safeWidth, borderRadius: 99, ...clayGlow(gradientColors[0], 'sm') }}
+          />
+        </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-        <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.3)' }}>0%</Text>
-        <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.3)' }}>100%</Text>
-      </View>
-    </Animated.View>
-  );
-}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+          <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.3)' }}>0%</Text>
+          <Text style={{ fontSize: 9, fontWeight: '700', color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.3)' }}>100%</Text>
+        </View>
+      </Animated.View>
+    );
+  }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* PREMIUM CHART CARD                                                        */
 /* ─────────────────────────────────────────────────────────────────────────── */
 function PremiumChartCard({ title, subtitle, accentColor, isDark, isWideScreen, delay = 0, children }: {
-  title: string; subtitle: string; accentColor: string;
-  isDark: boolean; isWideScreen: boolean; delay?: number; children: React.ReactNode;
-}) {
-  const cardRadius = isWideScreen ? 28 : 24;
-  return (
-    <Animated.View
-      entering={enterAnim(delay)}
-      renderToHardwareTextureAndroid={isAndroid}
-      style={{
-        marginBottom: isWideScreen ? 28 : 20,
-        backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
-        borderRadius: cardRadius,
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
-        overflow: 'hidden',
-        ...clay(isDark, 'lg'),
-      }}
-    >
-      <ClayCardOverlays isDark={isDark} cardRadius={cardRadius} accentColor={accentColor} />
+    title: string; subtitle: string; accentColor: string;
+    isDark: boolean; isWideScreen: boolean; delay?: number; children: React.ReactNode;
+  }) {
+    const cardRadius = isWideScreen ? 28 : 24;
+    return (
+      <Animated.View
+        entering={enterAnim(delay)}
+        renderToHardwareTextureAndroid={HW_TEXTURE_ANDROID}
+        style={{
+          marginBottom: isWideScreen ? 28 : 20,
+          backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
+          borderRadius: cardRadius,
+          borderWidth: 1,
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.85)',
+          overflow: 'hidden',
+          ...clay(isDark, 'lg'),
+        }}
+      >
+        <ClayCardOverlays isDark={isDark} cardRadius={cardRadius} accentColor={accentColor} />
 
-      <View style={{
-        paddingHorizontal: isWideScreen ? 26 : 20,
-        paddingTop: isWideScreen ? 22 : 18,
-        paddingBottom: isWideScreen ? 18 : 14,
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-      }}>
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={{ fontSize: isWideScreen ? 18 : 15, fontWeight: '800', letterSpacing: -0.3, color: isDark ? '#FFFFFF' : '#0F172A', marginBottom: 4 }}>
-            {title}
-          </Text>
-          <Text style={{ fontSize: isWideScreen ? 11 : 10, fontWeight: '600', color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.45)' }}>
-            {subtitle}
-          </Text>
-        </View>
         <View style={{
-          flexDirection: 'row', alignItems: 'center', gap: 6,
-          paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
-          backgroundColor: isDark ? `${accentColor}18` : `${accentColor}10`,
-          borderWidth: 1, borderColor: isDark ? `${accentColor}30` : `${accentColor}20`,
-          ...clayGlow(accentColor, 'sm'),
+          paddingHorizontal: isWideScreen ? 26 : 20,
+          paddingTop: isWideScreen ? 22 : 18,
+          paddingBottom: isWideScreen ? 18 : 14,
+          flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
-          <PulseIndicator color={accentColor} />
-          <Text style={{ fontSize: 8, fontWeight: '800', color: accentColor, letterSpacing: 0.8 }}>LIVE</Text>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text style={{ fontSize: isWideScreen ? 18 : 15, fontWeight: '800', letterSpacing: -0.3, color: isDark ? '#FFFFFF' : '#0F172A', marginBottom: 4 }}>
+              {title}
+            </Text>
+            <Text style={{ fontSize: isWideScreen ? 11 : 10, fontWeight: '600', color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.45)' }}>
+              {subtitle}
+            </Text>
+          </View>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
+            backgroundColor: isDark ? `${accentColor}18` : `${accentColor}10`,
+            borderWidth: 1, borderColor: isDark ? `${accentColor}30` : `${accentColor}20`,
+            ...clayGlow(accentColor, 'sm'),
+          }}>
+            <PulseIndicator color={accentColor} />
+            <Text style={{ fontSize: 8, fontWeight: '800', color: accentColor, letterSpacing: 0.8 }}>LIVE</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={{
-        height: 1,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
-        marginHorizontal: isWideScreen ? 26 : 20,
-      }} />
+        <View style={{
+          height: 1,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
+          marginHorizontal: isWideScreen ? 26 : 20,
+        }} />
 
-      <View style={{
-        paddingVertical: 16, paddingHorizontal: 10, alignItems: 'center',
-        backgroundColor: isDark ? 'rgba(0,0,0,0.08)' : 'rgba(248,250,252,0.6)',
-        marginHorizontal: isWideScreen ? 14 : 10,
-        marginBottom: isWideScreen ? 14 : 10,
-        borderRadius: isWideScreen ? 20 : 16,
-        ...clayInset(isDark),
-      }}>
-        {children}
-      </View>
-    </Animated.View>
-  );
-}
+        <View style={{
+          paddingVertical: 16, paddingHorizontal: 10, alignItems: 'center',
+          backgroundColor: isDark ? 'rgba(0,0,0,0.08)' : 'rgba(248,250,252,0.6)',
+          marginHorizontal: isWideScreen ? 14 : 10,
+          marginBottom: isWideScreen ? 14 : 10,
+          borderRadius: isWideScreen ? 20 : 16,
+          ...clayInset(isDark),
+        }}>
+          {children}
+        </View>
+      </Animated.View>
+    );
+  }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* MAIN APP COMPONENT                                                        */
@@ -1285,7 +1232,7 @@ export default function AdminDashboard() {
 
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => getStyles(theme, isDark, isWideScreen), [theme, isDark, isWideScreen]);
-  const getGreeting = () => { const h = currentTime.getHours(); if (h < 12) return 'Good Morning'; if (h < 17) return 'Good Afternoon'; return 'Good Evening'; };
+  const getGreeting = useMemo(() => { const h = currentTime.getHours(); if (h < 12) return 'Good Morning'; if (h < 17) return 'Good Afternoon'; return 'Good Evening'; }, [currentTime.getHours()]);
 
   const stats: StatItem[] = React.useMemo(() => [
     {
@@ -1331,29 +1278,30 @@ export default function AdminDashboard() {
   ], [t, loading, dashboardData, financials, staff]);
 
   const quickActions: ActionItem[] = useMemo(() => [
-    { title: t('admin_dashboard_v2.academic_structure', 'Academics'),     icon: 'school-outline',              route: '/admin/academics',                    tier: 'PRIMARY',  gradient: ['#172554', '#2563EB'], category: 'Academic',  badge: dashboardData?.diaryEntriesToday ?? 0 },
-    { title: 'Class Diary',                                                                icon: 'book-outline',                route: '/admin/diary/viewer',                 tier: 'PRIMARY',  gradient: ['#0F3A5F', '#0284C7'], category: 'Academic' },
-    { title: t('admin_dashboard_v2.timetable_manager', 'Timetable'),      icon: 'calendar-outline',            route: '/admin/timetable',                    tier: 'PRIMARY',  gradient: ['#312E81', '#4F46E5'], category: 'Academic' },
-    { title: 'Year Upgrade',                                                               icon: 'refresh-circle-outline',      route: '/admin/academic-year-upgrade',      tier: 'PRIMARY',  gradient: ['#1E3A8A', '#7C3AED'], category: 'Academic' },
-    { title: t('admin_dashboard_v2.certificates', 'Certs'),               icon: 'ribbon-outline',              route: '/admin/certificate-generator',      tier: 'PRIMARY',  gradient: ['#1E40AF', '#06B6D4'], category: 'Academic' },
-    { title: t('admin_dashboard_v2.progress_reports', 'Progress'),        icon: 'stats-chart-outline',         route: '/admin/progress-report-generator',  tier: 'PRIMARY',  gradient: ['#4338CA', '#A855F7'], category: 'Academic' },
-    { title: t('admin_dashboard_v2.expense_tracker', 'Expenses'),         icon: 'receipt-outline',              route: '/admin/expenses',                    tier: 'FINANCE',  gradient: ['#14532D', '#22C55E'], category: 'Finance' },
-    { title: t('admin_dashboard_v2.fee_structure', 'Fee Setup'),          icon: 'wallet-outline',              route: '/admin/fees/set-class-fee',         tier: 'FINANCE',  gradient: ['#064E3B', '#14B8A6'], category: 'Finance' },
-    { title: 'Fee Adjustments',                                                            icon: 'cut-outline',                 route: '/admin/fees/adjustments',            tier: 'FINANCE',  gradient: ['#365314', '#84CC16'], category: 'Finance' },
-    { title: 'Partial Fee Collection',                                                   icon: 'pie-chart-outline',           route: '/admin/fee-approvals',               tier: 'FINANCE',  gradient: ['#92400E', '#F59E0B'], category: 'Finance' },
-    { title: 'UPI Settings',                                                               icon: 'qr-code-outline',             route: '/admin/upi-settings',                tier: 'FINANCE',  gradient: ['#0F766E', '#06B6D4'], category: 'Finance' },
-    { title: 'Dashboard Visibility',                                                       icon: 'eye-outline',                 route: '/admin/fees/visibility',             tier: 'FINANCE',  gradient: ['#166534', '#65A30D'], category: 'Finance' },
-    { title: 'Payroll',                                                                    icon: 'card-outline',                route: '/admin/payroll',                     tier: 'FINANCE',  gradient: ['#312E81', '#6366F1'], category: 'Finance' },
-    { title: t('admin_dashboard_v2.view_reports', 'Reports'),             icon: 'bar-chart-outline',           route: '/admin/reports',                     tier: 'ACADEMIC', gradient: ['#581C87', '#7C3AED'], category: 'Analytics' },
-    { title: t('admin_dashboard_v2.smart_insights', 'Insights'),          icon: 'bulb-outline',                route: '/admin/smart-insights',             tier: 'ACADEMIC', gradient: ['#4C1D95', '#2563EB'], category: 'AI' },
-    { title: t('admin_dashboard_v2.notices', 'Notices'),                  icon: 'megaphone-outline',           route: '/admin/notices',                     tier: 'OPS',      gradient: ['#7C2D12', '#F97316'], category: 'Comms' },
-    { title: t('admin_dashboard_v2.complaints', 'Complaints'),            icon: 'chatbubble-ellipses-outline', route: '/admin/complaints',                 tier: 'OPS',      gradient: ['#991B1B', '#F59E0B'], category: 'Support' },
-    { title: t('admin_dashboard_v2.transport', 'Transport'),              icon: 'bus-outline',                 route: '/admin/transport',                   tier: 'OPS',      gradient: ['#92400E', '#EAB308'], category: 'Ops' },
-    { title: t('admin_dashboard_v2.leaves', 'Leaves'),                    icon: 'document-text-outline',       route: '/admin/leaves',                      tier: 'OPS',      gradient: ['#9A3412', '#FB923C'], category: 'HR' },
-    { title: t('admin_dashboard_v2.manage_staff', 'Staff'),               icon: 'people-outline',              route: '/admin/manage-staff',                tier: 'OPS',      gradient: ['#7C3AED', '#EC4899'], category: 'HR' },
-    { title: t('admin_dashboard_v2.add_staff', 'Add Staff'),              icon: 'person-add-outline',          route: '/admin/addStaff',                    tier: 'OPS',      gradient: ['#6D28D9', '#8B5CF6'], category: 'HR', permission: 'staff.create' },
-    { title: t('admin_dashboard_v2.add_accounts_staff', 'Accounts Portal'), icon: 'wallet-outline',              route: '/admin/add-accounts-staff',          tier: 'OPS',      gradient: ['#BE123C', '#F97316'], category: 'HR' },
-    { title: 'Access Requests',                                                            icon: 'key-outline',                 route: '/admin/access-requests',             tier: 'ADMIN',    gradient: ['#881337', '#E11D48'], category: 'Security', badge: pendingRequestsCount },
+    { title: t('admin_dashboard_v2.academic_structure', 'Academics'), icon: 'school-outline', route: '/admin/academics', tier: 'PRIMARY', gradient: ['#172554', '#2563EB'], category: 'Academic', badge: dashboardData?.diaryEntriesToday ?? 0 },
+    { title: 'Class Diary', icon: 'book-outline', route: '/admin/diary/viewer', tier: 'PRIMARY', gradient: ['#0F3A5F', '#0284C7'], category: 'Academic' },
+    { title: t('admin_dashboard_v2.timetable_manager', 'Timetable'), icon: 'calendar-outline', route: '/admin/timetable', tier: 'PRIMARY', gradient: ['#312E81', '#4F46E5'], category: 'Academic' },
+    { title: 'Year Upgrade', icon: 'refresh-circle-outline', route: '/admin/academic-year-upgrade', tier: 'PRIMARY', gradient: ['#1E3A8A', '#7C3AED'], category: 'Academic' },
+    { title: t('admin_dashboard_v2.certificates', 'Certs'), icon: 'ribbon-outline', route: '/admin/certificate-generator', tier: 'PRIMARY', gradient: ['#1E40AF', '#06B6D4'], category: 'Academic' },
+    { title: t('admin_dashboard_v2.progress_reports', 'Progress'), icon: 'stats-chart-outline', route: '/admin/progress-report-generator', tier: 'PRIMARY', gradient: ['#4338CA', '#A855F7'], category: 'Academic' },
+    { title: t('admin_dashboard_v2.expense_tracker', 'Expenses'), icon: 'receipt-outline', route: '/admin/expenses', tier: 'FINANCE', gradient: ['#14532D', '#22C55E'], category: 'Finance' },
+    { title: t('admin_dashboard_v2.fee_structure', 'Fee Setup'), icon: 'wallet-outline', route: '/admin/fees/set-class-fee', tier: 'FINANCE', gradient: ['#064E3B', '#14B8A6'], category: 'Finance' },
+    { title: 'Fee Adjustments', icon: 'cut-outline', route: '/admin/fees/adjustments', tier: 'FINANCE', gradient: ['#365314', '#84CC16'], category: 'Finance' },
+    { title: 'Partial Fee Collection', icon: 'pie-chart-outline', route: '/admin/fee-approvals', tier: 'FINANCE', gradient: ['#92400E', '#F59E0B'], category: 'Finance' },
+    { title: 'UPI Settings', icon: 'qr-code-outline', route: '/admin/upi-settings', tier: 'FINANCE', gradient: ['#0F766E', '#06B6D4'], category: 'Finance' },
+    { title: 'Dashboard Visibility', icon: 'eye-outline', route: '/admin/fees/visibility', tier: 'FINANCE', gradient: ['#166534', '#65A30D'], category: 'Finance' },
+    { title: 'Payroll', icon: 'card-outline', route: '/admin/payroll', tier: 'FINANCE', gradient: ['#312E81', '#6366F1'], category: 'Finance' },
+    { title: t('admin_dashboard_v2.view_reports', 'Reports'), icon: 'bar-chart-outline', route: '/admin/reports', tier: 'ACADEMIC', gradient: ['#581C87', '#7C3AED'], category: 'Analytics' },
+    { title: t('admin_dashboard_v2.smart_insights', 'Insights'), icon: 'bulb-outline', route: '/admin/smart-insights', tier: 'ACADEMIC', gradient: ['#4C1D95', '#2563EB'], category: 'AI' },
+    { title: t('admin_dashboard_v2.notices', 'Notices'), icon: 'megaphone-outline', route: '/admin/notices', tier: 'OPS', gradient: ['#7C2D12', '#F97316'], category: 'Comms' },
+    { title: t('messages.title', 'Messages'), icon: 'chatbubbles-outline', route: '/admin/messages', tier: 'OPS', gradient: ['#4F46E5', '#6366F1'], category: 'Comms' },
+    { title: t('admin_dashboard_v2.complaints', 'Complaints'), icon: 'chatbubble-ellipses-outline', route: '/admin/complaints', tier: 'OPS', gradient: ['#991B1B', '#F59E0B'], category: 'Support' },
+    { title: t('admin_dashboard_v2.transport', 'Transport'), icon: 'bus-outline', route: '/admin/transport', tier: 'OPS', gradient: ['#92400E', '#EAB308'], category: 'Ops' },
+    { title: t('admin_dashboard_v2.leaves', 'Leaves'), icon: 'document-text-outline', route: '/admin/leaves', tier: 'OPS', gradient: ['#9A3412', '#FB923C'], category: 'HR' },
+    { title: t('admin_dashboard_v2.manage_staff', 'Staff'), icon: 'people-outline', route: '/admin/manage-staff', tier: 'OPS', gradient: ['#7C3AED', '#EC4899'], category: 'HR' },
+    { title: t('admin_dashboard_v2.add_staff', 'Add Staff'), icon: 'person-add-outline', route: '/admin/addStaff', tier: 'OPS', gradient: ['#6D28D9', '#8B5CF6'], category: 'HR', permission: 'staff.create' },
+    { title: t('admin_dashboard_v2.add_accounts_staff', 'Accounts Portal'), icon: 'wallet-outline', route: '/admin/add-accounts-staff', tier: 'OPS', gradient: ['#BE123C', '#F97316'], category: 'HR' },
+    { title: 'Access Requests', icon: 'key-outline', route: '/admin/access-requests', tier: 'ADMIN', gradient: ['#881337', '#E11D48'], category: 'Security', badge: pendingRequestsCount },
   ], [t, dashboardData?.diaryEntriesToday, pendingRequestsCount]);
 
   const visibleQuickActions = useMemo(
@@ -1441,11 +1389,15 @@ export default function AdminDashboard() {
   );
   const currentHeaderTitle = matchedNavAction?.title ?? t('Dashboard');
 
-  const onCarouselMomentumEnd = (e: any) => {
+  const onCarouselMomentumEnd = useCallback((e: any) => {
     const offset = e.nativeEvent.contentOffset.x;
     const index = Math.round(offset / (CARD_WIDTH + CARD_MARGIN));
     setActiveStatIndex(Math.max(0, Math.min(index, stats.length - 1)));
-  };
+  }, [stats.length]);
+
+  const renderStatItem = useCallback(({ item, index }: any) => (
+    <DashboardCard key={`card-${index}`} index={index} item={item} onPress={() => router.push(item.route as any)} />
+  ), [router]);
 
   /* ─── RENDER BLOCKS (defined once, reused by web + mobile) ────────────── */
   const summaryMiniCards = !loading && (
@@ -1474,7 +1426,7 @@ export default function AdminDashboard() {
         <>
           <DashboardHero
             eyebrow={currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
-            greeting={getGreeting()}
+            greeting={getGreeting}
             name={user?.displayName || 'Vijay Kumar Katakam'}
             subtitle={currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             cardWidth={webHeaderCardWidth}
@@ -1486,7 +1438,7 @@ export default function AdminDashboard() {
         <>
           <DashboardHero
             eyebrow={currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()}
-            greeting={getGreeting()}
+            greeting={getGreeting}
             name={user?.displayName || 'Vijay Kumar Katakam'}
             subtitle={currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             stacks
@@ -1526,9 +1478,7 @@ export default function AdminDashboard() {
             initialNumToRender={isAndroid ? 2 : 4}
             windowSize={isAndroid ? 3 : 5}
             maxToRenderPerBatch={2}
-            renderItem={({ item, index }) => (
-              <DashboardCard key={`card-${index}`} index={index} item={item} onPress={() => router.push(item.route as any)} />
-            )}
+            renderItem={renderStatItem}
             getItemLayout={(_, index) => ({ length: CARD_WIDTH + CARD_MARGIN, offset: (CARD_WIDTH + CARD_MARGIN) * index, index })}
           />
           <View style={styles.dotTrack}>
@@ -1567,7 +1517,7 @@ export default function AdminDashboard() {
   const statusBlock = (
     <Animated.View
       entering={enterAnim(270)}
-      renderToHardwareTextureAndroid={isAndroid}
+      renderToHardwareTextureAndroid={HW_TEXTURE_ANDROID}
       style={{
         backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
         borderRadius: 28,
@@ -1581,11 +1531,6 @@ export default function AdminDashboard() {
       }}
     >
       <ClayCardOverlays isDark={isDark} cardRadius={28} accentColor="#10B981" />
-      {!isAndroid && (
-        <View style={{ position: 'absolute', bottom: -10, left: 0, right: 0, opacity: 0.08 }}>
-          <LineChart data={[{value: 20}, {value: 50}, {value: 30}, {value: 80}, {value: 40}, {value: 90}]} height={60} width={rightColWidth} color="#3B82F6" thickness={3} startFillColor="#3B82F6" endFillColor="transparent" yAxisThickness={0} xAxisThickness={0} hideRules hideDataPoints />
-        </View>
-      )}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{
@@ -1848,22 +1793,24 @@ export default function AdminDashboard() {
   );
 
   /* ─── MOBILE SECTIONS (each becomes a virtualized FlatList cell) ──────── */
-  const mobileSections = [
+  const mobileSections = useMemo(() => [
     { key: 'greeting', node: greetingBlock },
     { key: 'overview', node: overviewBlock },
     { key: 'actions-header', node: actionsHeaderBlock },
     ...(isAndroid
       ? actionRows.map((row, i) => ({
-          key: `actions-row-${i}`,
-          node: renderActionRow(row, i),
-        }))
-      : [{ key: 'actions', node: (
+        key: `actions-row-${i}`,
+        node: renderActionRow(row, i),
+      }))
+      : [{
+        key: 'actions', node: (
           <View style={styles.grid}>
             {visibleQuickActions.map((item, index) => (
               <GridItem key={index} item={item} index={index} cardWidth={actionCardWidth} />
             ))}
           </View>
-        ) }]),
+        )
+      }]),
     { key: 'status', node: statusBlock },
     { key: 'fin', node: finMetricsBlock },
     { key: 'revenue', node: revenueChartBlock },
@@ -1873,7 +1820,7 @@ export default function AdminDashboard() {
     { key: 'acadChart', node: acadChartBlock },
     { key: 'staff', node: staffMetricsBlock },
     ...(alertsBlock ? [{ key: 'alerts', node: alertsBlock }] : []),
-  ];
+  ], [greetingBlock, overviewBlock, actionsHeaderBlock, isAndroid, actionRows, renderActionRow, styles.grid, visibleQuickActions, actionCardWidth, statusBlock, finMetricsBlock, revenueChartBlock, attMetricsBlock, attChartBlock, acadMetricsBlock, acadChartBlock, staffMetricsBlock, alertsBlock]);
 
   return (
     <View style={styles.container}>
@@ -1905,21 +1852,25 @@ export default function AdminDashboard() {
         </View>
       ) : (
         <>
-          {/* ⚡PERF: virtualized — only sections near the viewport stay mounted */}
+          {/* ⚡PERF: this list holds a fixed, small set of heavy "section" cells (charts,
+              stat carousel, metric grids). Aggressive virtualization (tiny windowSize +
+              removeClippedSubviews) mounted/unmounted whole sections mid-scroll, which
+              spiked frames on every scroll. Since the section count is bounded, we mount
+              them once and let scrolling run fully native — no clip/unclip churn. */}
           <AnimatedFlatList
             data={mobileSections}
             keyExtractor={(it: any) => it.key}
-            renderItem={({ item }: any) => item.node}
+            renderItem={useCallback(({ item }: any) => item.node, [])}
             ListHeaderComponent={<PaymentDueBanner />}
             contentContainerStyle={[styles.content, { paddingTop: mobileListPaddingTop }]}
             showsVerticalScrollIndicator={false}
             onScroll={onScroll}
             scrollEventThrottle={16}
             removeClippedSubviews={isAndroid}
-            windowSize={isAndroid ? 5 : 21}
-            initialNumToRender={isAndroid ? 3 : 12}
-            maxToRenderPerBatch={isAndroid ? 2 : 12}
-            updateCellsBatchingPeriod={isAndroid ? 60 : 50}
+            windowSize={isAndroid ? 7 : 21}
+            initialNumToRender={isAndroid ? 4 : 12}
+            maxToRenderPerBatch={isAndroid ? 4 : 12}
+            updateCellsBatchingPeriod={50}
             overScrollMode={isAndroid ? 'never' : 'auto'}
             ListFooterComponent={<View style={{ height: 48 }} />}
             refreshControl={
@@ -2002,7 +1953,7 @@ const getStyles = (theme: Theme, isDark: boolean, isWide = false) =>
       borderRadius: 11, paddingHorizontal: 6,
       alignItems: 'center', justifyContent: 'center',
       shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.65, shadowRadius: 6, elevation: 8, zIndex: 10,
+      shadowOpacity: 0.65, shadowRadius: 6, elevation: isAndroid ? 0 : 8, zIndex: 10,
       borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.72)',
     },
     gridBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.2 },

@@ -156,6 +156,13 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
         <Animated.View style={[
             styles.container,
             !isWideWeb && styles.claySlab,
+            // Global stackShell places this header just under the school ribbon's
+            // wave; without a little top padding the buttons ride up under it.
+            // Applied on all native screens (in-flow and absolute alike) so the
+            // header sits consistently below the ribbon everywhere. This restores
+            // the header's intended ~74px height (16 top + 50 content + 8 bottom),
+            // which the absolute screens' content offsets already reserve for.
+            !isWeb && { paddingTop: ADMIN_THEME.spacing.m },
             { shadowColor: accent },
             isAbsolute && styles.absoluteHeader,
             isWideWeb && styles.containerWide,

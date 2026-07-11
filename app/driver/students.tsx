@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  StatusBar, RefreshControl, Linking, Platform,
+  StatusBar, RefreshControl, Linking, Modal,
 } from 'react-native';
 import ScreenLayout from '../../src/components/ScreenLayout';
 import StudentHeader from '../../src/components/StudentHeader';
@@ -11,10 +11,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { api } from '../../src/services/apiClient';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import LogoLoader from '../../src/components/LogoLoader';
-
-const PINK = '#EC4899';
-const PINK_DARK = '#BE185D';
-const PINK_GRADIENT: [string, string] = ['#EC4899', '#BE185D'];
+import { useTheme } from '../../src/hooks/useTheme';
 
 interface StudentInfo {
   student_id: string;
@@ -22,7 +19,14 @@ interface StudentInfo {
   admission_no: string | null;
   class_name: string | null;
   section_name: string | null;
-  parent_phone: string | null;
+  phone_contacts: PhoneContact[];
+}
+
+interface PhoneContact {
+  relationship: string;
+  contact_name: string | null;
+  phone: string;
+  is_primary: boolean;
 }
 
 interface StopInfo {
@@ -44,7 +48,11 @@ export default function DriverStudents() {
   const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [callContacts, setCallContacts] = useState<PhoneContact[]>([]);
+  const [callStudentName, setCallStudentName] = useState('');
+  const { theme } = useTheme();
+  const PRIMARY_GRADIENT: [string, string] = [theme.colors.primary, theme.colors.primaryDark];
+  const s = React.useMemo(() => getStyles(theme), [theme]);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -70,12 +78,27 @@ export default function DriverStudents() {
   const totalStops = currentRoute?.stops?.length || 0;
   const stopsWithStudents = currentRoute?.stops?.filter((s) => s.students.length > 0).length || 0;
 
-  const callPhone = (phone: string | null) => {
-    if (!phone) {
-      alertCompat('No Phone', 'Parent phone number not available.');
+  const dialPhone = async (phone: string) => {
+    setCallContacts([]);
+    try {
+      await Linking.openURL(`tel:${encodeURIComponent(phone.trim())}`);
+    } catch {
+      alertCompat('Call unavailable', `Could not open the phone app for ${phone}.`);
+    }
+  };
+
+  const openCallOptions = (student: StudentInfo) => {
+    const contacts = (student.phone_contacts || []).filter((contact) => contact.phone?.trim());
+    if (contacts.length === 0) {
+      alertCompat('No Phone', 'No phone number is linked to this student or their family contacts.');
       return;
     }
-    Linking.openURL(`tel:${phone}`);
+    if (contacts.length === 1) {
+      void dialPhone(contacts[0].phone);
+      return;
+    }
+    setCallStudentName(student.student_name || 'student');
+    setCallContacts(contacts);
   };
 
   /* ─── Loading State ─── */
@@ -83,7 +106,7 @@ export default function DriverStudents() {
     return (
       <ScreenLayout>
         <StudentHeader title="Passenger Roster" menuUserType="driver" />
-        <View style={s.center}><LogoLoader size={60} color={PINK} /></View>
+        <View style={s.center}><LogoLoader size={60} color={theme.colors.primary} /></View>
       </ScreenLayout>
     );
   }
@@ -131,7 +154,7 @@ export default function DriverStudents() {
 
             {/* ═══════ Hero Card ═══════ */}
             <Animated.View entering={FadeInDown.delay(80).duration(500)} style={s.heroWrap}>
-              <LinearGradient colors={PINK_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+              <LinearGradient colors={PRIMARY_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
                 <View style={[s.heroDecor, { top: -30, right: -30, width: 120, height: 120 }]} />
                 <View style={[s.heroDecor, { bottom: -15, left: -15, width: 60, height: 60 }]} />
 
@@ -170,7 +193,7 @@ export default function DriverStudents() {
               <Animated.View entering={FadeInDown.delay(120).duration(400)}>
                 <View style={s.secHeader}>
                   <View style={s.secIconBox}>
-                    <Ionicons name="map" size={14} color={PINK} />
+                    <Ionicons name="map" size={14} color={theme.colors.primary} />
                   </View>
                   <Text style={s.secTitle}>Select Route</Text>
                 </View>
@@ -187,7 +210,7 @@ export default function DriverStudents() {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="navigate-outline" size={14}
-                        color={selectedRouteIdx === index ? '#FFF' : PINK} />
+                        color={selectedRouteIdx === index ? '#FFF' : theme.colors.primary} />
                       <Text style={[s.routeChipText, selectedRouteIdx === index && { color: '#FFF' }]}>
                         {item.name}
                       </Text>
@@ -232,7 +255,7 @@ export default function DriverStudents() {
                   </Text>
                 </View>
                 <View style={s.stopCountPill}>
-                  <Ionicons name="people" size={12} color={PINK} />
+                  <Ionicons name="people" size={12} color={theme.colors.primary} />
                   <Text style={s.stopCountText}>{students.length}</Text>
                 </View>
               </View>
@@ -275,11 +298,11 @@ export default function DriverStudents() {
 
                   {/* Call Button */}
                   <TouchableOpacity
-                    style={[s.callBtn, !stu.parent_phone && { opacity: 0.3 }]}
-                    onPress={() => callPhone(stu.parent_phone)}
+                    style={[s.callBtn, !(stu.phone_contacts?.length) && { opacity: 0.3 }]}
+                    onPress={() => openCallOptions(stu)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="call" size={16} color="#10B981" />
+                    <Ionicons name="call" size={16} color={theme.colors.success} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -294,20 +317,86 @@ export default function DriverStudents() {
         }
         ListFooterComponent={<View style={{ height: 100 }} />}
       />
+
+      <Modal
+        visible={callContacts.length > 0}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCallContacts([])}
+      >
+        <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setCallContacts([])}>
+          <TouchableOpacity style={s.callSheet} activeOpacity={1}>
+            <View style={s.callSheetHeader}>
+              <View style={s.callSheetIcon}>
+                <Ionicons name="call" size={20} color={theme.colors.success} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.callSheetTitle}>Call contact</Text>
+                <Text style={s.callSheetSub}>Choose a number linked to {callStudentName}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setCallContacts([])} style={s.closeBtn}>
+                <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {callContacts.map((contact, index) => (
+              <TouchableOpacity
+                key={`${contact.relationship}-${contact.phone}-${index}`}
+                style={s.contactOption}
+                onPress={() => void dialPhone(contact.phone)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={s.contactName}>
+                    {contact.contact_name || contact.relationship}
+                  </Text>
+                  <Text style={s.contactMeta}>{contact.relationship} · {contact.phone}</Text>
+                </View>
+                <Ionicons name="call-outline" size={20} color={theme.colors.success} />
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScreenLayout>
   );
 }
 
 /* ════════════════════════════ STYLES ════════════════════════════ */
-const s = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
   scroll: { padding: 20 },
 
+  modalBackdrop: {
+    flex: 1, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'center',
+    alignItems: 'center', padding: 20,
+  },
+  callSheet: {
+    width: '100%', maxWidth: 460, maxHeight: '80%', backgroundColor: theme.colors.surface,
+    borderRadius: 24, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2, shadowRadius: 24, elevation: 12,
+  },
+  callSheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  callSheetIcon: {
+    width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#ECFDF5',
+  },
+  callSheetTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text },
+  callSheetSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  contactOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13,
+    paddingHorizontal: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border,
+  },
+  contactName: { fontSize: 15, fontWeight: '700', color: theme.colors.text },
+  contactMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 3 },
+
   /* Hero */
   heroWrap: {
-    borderRadius: 24, overflow: 'hidden', marginBottom: 20,
-    shadowColor: PINK, shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25, shadowRadius: 16, elevation: 8,
+    borderRadius: 28, overflow: 'hidden', marginBottom: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
   },
   hero: { padding: 22, overflow: 'hidden' },
   heroDecor: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.07)' },
@@ -334,29 +423,31 @@ const s = StyleSheet.create({
   emptySub: { fontSize: 13, color: '#94A3B8', textAlign: 'center', maxWidth: 260, marginTop: 4 },
 
   /* Sections */
-  secHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  secHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   secIconBox: {
-    width: 28, height: 28, borderRadius: 8, backgroundColor: '#FDF2F8',
+    width: 32, height: 32, borderRadius: 12, backgroundColor: '#FDF2F8',
     justifyContent: 'center', alignItems: 'center',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 1
   },
-  secTitle: { fontSize: 16, fontWeight: '700', color: '#374151' },
+  secTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', letterSpacing: -0.3 },
 
   /* Route selector */
   routeChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#FDF2F8', paddingHorizontal: 16, paddingVertical: 12,
-    borderRadius: 14, marginRight: 10, borderWidth: 1.5, borderColor: 'transparent',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 16, marginRight: 12, borderWidth: 1, borderColor: '#E2E8F0',
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1
   },
-  routeChipActive: { backgroundColor: PINK, borderColor: PINK_DARK },
-  routeChipText: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  routeChipDir: { fontSize: 11, color: '#94A3B8', fontWeight: '500', textTransform: 'capitalize' },
+  routeChipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primaryDark, shadowColor: theme.colors.primary, shadowOpacity: 0.15 },
+  routeChipText: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  routeChipDir: { fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'capitalize' },
 
   /* Stop Section */
   stopSection: {
-    backgroundColor: '#FFF', borderRadius: 20, padding: 16, marginBottom: 16,
-    shadowColor: '#64748B', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
-    borderWidth: 1, borderColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, marginBottom: 20,
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08, shadowRadius: 20, elevation: 3,
+    borderWidth: 1, borderColor: 'rgba(226, 232, 240, 0.6)'
   },
   stopHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -364,17 +455,18 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
   stopOrderBadge: {
-    width: 32, height: 32, borderRadius: 10, backgroundColor: '#FDF2F8',
+    width: 32, height: 32, borderRadius: 12, backgroundColor: '#FDF2F8',
     justifyContent: 'center', alignItems: 'center',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 1
   },
-  stopOrderText: { fontSize: 14, fontWeight: '800', color: PINK },
-  stopName: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
-  stopMeta: { fontSize: 11, color: '#94A3B8', fontWeight: '500', marginTop: 1 },
+  stopOrderText: { fontSize: 14, fontWeight: '800', color: theme.colors.primary },
+  stopName: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
+  stopMeta: { fontSize: 12, color: '#64748B', fontWeight: '500', marginTop: 2 },
   stopCountPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#FDF2F8', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FDF2F8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12,
   },
-  stopCountText: { fontSize: 12, fontWeight: '700', color: PINK },
+  stopCountText: { fontSize: 13, fontWeight: '800', color: theme.colors.primary },
 
   /* Student Card */
   studentCard: {
@@ -398,7 +490,8 @@ const s = StyleSheet.create({
 
   /* Call Button */
   callBtn: {
-    width: 38, height: 38, borderRadius: 12,
+    width: 44, height: 44, borderRadius: 16,
     backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center',
+    shadowColor: theme.colors.success, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 2
   },
 });

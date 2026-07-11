@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../src/hooks/useTheme';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -28,6 +30,7 @@ import ScreenLayout from '../../src/components/ScreenLayout';
 import StudentHeader from '../../src/components/StudentHeader';
 import { api } from '../../src/services/apiClient';
 import LogoLoader from '../../src/components/LogoLoader';
+import { BusAttendanceService } from '../../src/services/busAttendanceService';
 
 const { width } = Dimensions.get('window');
 
@@ -108,13 +111,13 @@ const liveDotStyles = StyleSheet.create({
   wrap: { width: 14, height: 14, justifyContent: 'center', alignItems: 'center' },
   ring: {
     position: 'absolute', width: 14, height: 14,
-    borderRadius: 7, backgroundColor: C.emerald, opacity: 0.4,
+    borderRadius: 7, backgroundColor: C.white, opacity: 0.4,
   },
-  core: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.emerald },
+  core: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.white },
 });
 
 // ─── Pulsing stop node (current bus position) ─────────────────────────────────
-const CurrentStopNode = () => {
+const CurrentStopNode = ({ theme }: { theme: any }) => {
   const scale = useSharedValue(1);
   useEffect(() => {
     scale.value = withRepeat(
@@ -131,8 +134,8 @@ const CurrentStopNode = () => {
   }));
   return (
     <View style={nodeStyles.wrap}>
-      <Animated.View style={[nodeStyles.pulseRing, ringStyle]} />
-      <View style={nodeStyles.currentNode}>
+      <Animated.View style={[nodeStyles.pulseRing, ringStyle, { backgroundColor: theme.colors.primary }]} />
+      <View style={[nodeStyles.currentNode, { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary }]}>
         <Ionicons name="bus" size={12} color={C.white} />
       </View>
     </View>
@@ -153,12 +156,12 @@ const nodeStyles = StyleSheet.create({
 });
 
 // ─── Urgency countdown badge ──────────────────────────────────────────────────
-const UrgencyBadge = ({ until }: { until: number }) => {
+const UrgencyBadge = ({ until, theme }: { until: number; theme: any }) => {
   const isUrgent = until <= 2;
   const isClose = until <= 4;
-  const bg = isUrgent ? C.redLight : isClose ? C.amberLight : C.blueLight;
-  const border = isUrgent ? '#FECACA' : isClose ? C.amberBorder : C.blueBorder;
-  const color = isUrgent ? C.red : isClose ? C.amber : C.blue;
+  const bg = isUrgent ? C.redLight : isClose ? C.amberLight : C.white;
+  const border = isUrgent ? '#FECACA' : isClose ? C.amberBorder : theme.colors.primary;
+  const color = isUrgent ? C.red : isClose ? C.amber : theme.colors.primary;
 
   return (
     <View style={[urgencyStyles.badge, { backgroundColor: bg, borderColor: border }]}>
@@ -184,9 +187,12 @@ const urgencyStyles = StyleSheet.create({
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function StudentBusTrackerScreen() {
+  const { theme, isDark } = useTheme();
+  const { t } = useTranslation();
   const [data, setData] = useState<BusPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async (silent?: boolean) => {
@@ -194,6 +200,11 @@ export default function StudentBusTrackerScreen() {
       if (!silent) setLoading(true);
       const res = await api.get<BusPayload>('/transport/my-bus');
       setData(res);
+
+      if (res?.assigned) {
+        const history = await BusAttendanceService.getMyAttendance();
+        setAttendanceHistory(history || []);
+      }
     } catch {
       setData({ assigned: false });
     } finally {
@@ -227,7 +238,7 @@ export default function StudentBusTrackerScreen() {
     return (
       <ScreenLayout>
         <StatusBar barStyle="dark-content" backgroundColor={C.white} />
-        <StudentHeader title="Bus Tracker" />
+        <StudentHeader title={t('busTracker.title')} />
         <View style={s.center}>
           <LogoLoader size={52} color={C.blue} />
           <Text style={s.loadingText}>Fetching route…</Text>
@@ -241,7 +252,7 @@ export default function StudentBusTrackerScreen() {
     return (
       <ScreenLayout>
         <StatusBar barStyle="dark-content" backgroundColor={C.white} />
-        <StudentHeader title="Bus Tracker" />
+        <StudentHeader title={t('busTracker.title')} />
         <View style={s.center}>
           <View style={s.emptyIconWrap}>
             <Ionicons name="bus-outline" size={36} color={C.slate400} />
@@ -272,7 +283,7 @@ export default function StudentBusTrackerScreen() {
   return (
     <ScreenLayout>
       <StatusBar barStyle="dark-content" backgroundColor={C.white} />
-      <StudentHeader title={data.route_name ? `Bus · ${data.route_name}` : 'Bus Tracker'} />
+      <StudentHeader title={data.route_name ? `Bus · ${data.route_name}` : t('busTracker.title')} />
 
       <ScrollView
         contentContainerStyle={s.scroll}
@@ -288,27 +299,29 @@ export default function StudentBusTrackerScreen() {
       >
 
         {/* ── Hero Route Card ─────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(500).springify()}>
-          <LinearGradient
-            colors={['#EFF6FF', '#DBEAFE']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={s.heroCard}
-          >
+        <Animated.View entering={FadeInDown.duration(500).springify()} style={[s.heroWrapper, { shadowColor: theme.colors.primary }]}>
+          <View style={[s.heroCard, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary, borderBottomColor: theme.colors.primaryDark }]}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.5, y: 0.8 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
             {/* Top row: route name + status chip */}
             <View style={s.heroTop}>
               <View style={s.heroLeft}>
-                <View style={s.routeIconWrap}>
-                  <Ionicons name="bus" size={20} color={C.blue} />
+                <View style={[s.routeIconWrap, { shadowColor: theme.colors.primaryDark }]}>
+                  <Ionicons name="bus" size={20} color={theme.colors.primary} />
                 </View>
                 <View>
-                  <Text style={s.routeLabel}>Route</Text>
+                  <Text style={s.routeLabel}>{t('busTracker.route')}</Text>
                   <Text style={s.routeName}>{data.route_name || 'Bus Route'}</Text>
                 </View>
               </View>
-              <View style={[s.statusChip, { backgroundColor: statusBg }]}>
+              <View style={[s.statusChip, { backgroundColor: isLive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)' }]}>
                 {isLive && <LiveDot />}
-                <Text style={[s.statusChipText, { color: statusColor }]}>
+                <Text style={[s.statusChipText, { color: C.white }]}>
                   {statusLabel}
                 </Text>
               </View>
@@ -320,20 +333,20 @@ export default function StudentBusTrackerScreen() {
             {/* Bottom row: your stop + urgency */}
             <View style={s.heroBottom}>
               <View style={s.yourStopBlock}>
-                <Text style={s.yourStopLabel}>Your boarding stop</Text>
+                <Text style={s.yourStopLabel}>{t('busTracker.boarding_stop')}</Text>
                 <View style={s.yourStopRow}>
-                  <Ionicons name="location" size={16} color={C.blue} />
+                  <Ionicons name="location" size={16} color={C.white} />
                   <Text style={s.yourStopName}>{boarding || '—'}</Text>
                 </View>
               </View>
               {isLive && until != null && (
-                <UrgencyBadge until={until} />
+                <UrgencyBadge until={until} theme={theme} />
               )}
               {isLive && until == null && atYourStop && (
-                <UrgencyBadge until={0} />
+                <UrgencyBadge until={0} theme={theme} />
               )}
             </View>
-          </LinearGradient>
+          </View>
         </Animated.View>
 
         {/* ── Bus at stop alert ───────────────────────────────────────── */}
@@ -349,8 +362,8 @@ export default function StudentBusTrackerScreen() {
                 <Ionicons name="alert-circle" size={22} color={C.amber} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.alertTitle}>Bus is at your stop!</Text>
-                <Text style={s.alertSub}>Head out now — don't miss it.</Text>
+                <Text style={s.alertTitle}>{t('busTracker.bus_at_stop')}</Text>
+                <Text style={s.alertSub}>{t('busTracker.head_out')}</Text>
               </View>
             </LinearGradient>
           </Animated.View>
@@ -359,11 +372,21 @@ export default function StudentBusTrackerScreen() {
         {/* ── Route Timeline ──────────────────────────────────────────── */}
         <Animated.View
           entering={FadeInUp.delay(150).duration(500).springify()}
-          style={s.timelineCard}
+          style={[s.timelineCard, isDark && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderBottomColor: theme.colors.borderLight }]}
         >
+          {/* Soft top-left highlight linear gradient */}
+          {!isDark && (
+            <LinearGradient
+              colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.5, y: 0.8 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          )}
           <View style={s.timelineHeader}>
-            <Text style={s.timelineTitle}>Route Stops</Text>
-            <Text style={s.timelineCount}>{stops.length} stops</Text>
+            <Text style={[s.timelineTitle, isDark && { color: theme.colors.textPrimary }]}>{t('busTracker.route_stops')}</Text>
+            <Text style={s.timelineCount}>{stops.length} {t('busTracker.stops')}</Text>
           </View>
 
           {stops.map((stop, idx) => {
@@ -378,17 +401,17 @@ export default function StudentBusTrackerScreen() {
             const nodeColor = isReached
               ? C.emerald
               : isCurrent
-                ? C.blue
+                ? theme.colors.primary
                 : isBoardingStop
-                  ? C.blue
+                  ? theme.colors.primary
                   : C.slate200;
 
             const nodeBg = isReached
               ? C.emerald
               : isCurrent
-                ? C.blue
+                ? theme.colors.primary
                 : isBoardingStop
-                  ? C.blueLight
+                  ? 'rgba(0,0,0,0)'
                   : C.white;
 
             return (
@@ -408,7 +431,7 @@ export default function StudentBusTrackerScreen() {
 
                   {/* Stop node */}
                   {isCurrent ? (
-                    <CurrentStopNode />
+                    <CurrentStopNode theme={theme} />
                   ) : (
                     <View
                       style={[
@@ -423,7 +446,7 @@ export default function StudentBusTrackerScreen() {
                       {isReached ? (
                         <Ionicons name="checkmark" size={12} color={C.white} />
                       ) : isBoardingStop ? (
-                        <Ionicons name="person" size={11} color={C.blue} />
+                        <Ionicons name="person" size={11} color={theme.colors.primary} />
                       ) : (
                         <View style={[s.innerDot, { backgroundColor: isUpcoming ? C.slate200 : nodeColor }]} />
                       )}
@@ -446,8 +469,8 @@ export default function StudentBusTrackerScreen() {
                 <View
                   style={[
                     s.stopContent,
-                    isCurrent && s.stopContentCurrent,
-                    isBoardingStop && !isCurrent && s.stopContentBoarding,
+                    isCurrent && [s.stopContentCurrent, isDark && { backgroundColor: theme.colors.background }, { borderColor: theme.colors.primaryLight, borderBottomColor: theme.colors.primaryDark }],
+                    isBoardingStop && !isCurrent && [s.stopContentBoarding, isDark && { backgroundColor: theme.colors.background }, { borderColor: theme.colors.primaryLight, borderBottomColor: theme.colors.primary }],
                     isLast && { marginBottom: 0 },
                   ]}
                 >
@@ -457,34 +480,35 @@ export default function StudentBusTrackerScreen() {
                         <Text
                           style={[
                             s.stopName,
-                            isReached && { color: C.slate400 },
-                            isCurrent && { color: C.blue, fontWeight: '700' },
-                            isBoardingStop && !isReached && { color: C.blue },
+                            isDark && { color: theme.colors.textPrimary },
+                            isReached && { color: isDark ? theme.colors.textMuted : C.slate400 },
+                            isCurrent && { color: theme.colors.primary, fontWeight: '700' },
+                            isBoardingStop && !isReached && { color: theme.colors.primary },
                           ]}
                         >
                           {stop.name}
                         </Text>
                         {isBoardingStop && (
-                          <View style={s.boardingTag}>
-                            <Text style={s.boardingTagText}>Your stop</Text>
+                          <View style={[s.boardingTag, { backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: theme.colors.primary }]}>
+                            <Text style={[s.boardingTagText, { color: theme.colors.primary }]}>{t('busTracker.your_stop')}</Text>
                           </View>
                         )}
                         {isCurrent && (
-                          <View style={s.currentTag}>
-                            <Text style={s.currentTagText}>Bus here</Text>
+                          <View style={[s.currentTag, { backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: theme.colors.primary }]}>
+                            <Text style={[s.currentTagText, { color: theme.colors.primary }]}>{t('busTracker.bus_here')}</Text>
                           </View>
                         )}
                       </View>
 
                       {stop.reached_at ? (
                         <Text style={s.stopTime}>
-                          Reached at {new Date(stop.reached_at).toLocaleTimeString('en-IN', {
+                          {t('busTracker.reached_at')} {new Date(stop.reached_at).toLocaleTimeString('en-IN', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </Text>
                       ) : isUpcoming && !isCurrent ? (
-                        <Text style={s.stopTimePending}>Pending</Text>
+                        <Text style={s.stopTimePending}>{t('busTracker.pending')}</Text>
                       ) : null}
                     </View>
                   </View>
@@ -494,7 +518,67 @@ export default function StudentBusTrackerScreen() {
           })}
 
           {stops.length === 0 && (
-            <Text style={s.noStops}>No stop data available.</Text>
+            <Text style={s.noStops}>{t('busTracker.no_stop_data')}</Text>
+          )}
+        </Animated.View>
+
+        {/* ── Attendance Log ──────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(250).duration(500).springify()}
+          style={[s.timelineCard, isDark && { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderBottomColor: theme.colors.borderLight }]}
+        >
+          {/* Soft top-left highlight linear gradient */}
+          {!isDark && (
+            <LinearGradient
+              colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0.5, y: 0.8 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          )}
+          <View style={s.timelineHeader}>
+            <Text style={[s.timelineTitle, isDark && { color: theme.colors.textPrimary }]}>{t('busTracker.attendance_log')}</Text>
+            <Text style={s.timelineCount}>{attendanceHistory.length} {t('busTracker.logs')}</Text>
+          </View>
+
+          {attendanceHistory.map((item, idx) => {
+            const isPresent = item.status === 'present';
+            const logColor = isPresent ? C.emerald : C.red;
+            const logBg = isPresent ? C.emeraldLight : C.redLight;
+            const dateStr = new Date(item.attendance_date).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            });
+            const timeStr = new Date(item.marked_at).toLocaleTimeString('en-IN', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+
+            return (
+              <View key={item.id} style={[s.logItem, idx > 0 && [s.logItemBorder, isDark && { borderTopColor: theme.colors.borderLight }]]}>
+                <View style={[s.logStatusBadge, { backgroundColor: logBg, borderColor: logColor }]}>
+                  <Ionicons
+                    name={isPresent ? 'checkmark-circle' : 'close-circle'}
+                    size={16}
+                    color={logColor}
+                  />
+                  <Text style={[s.logStatusText, { color: logColor }]}>
+                    {isPresent ? t('busTracker.present') : t('busTracker.absent')}
+                  </Text>
+                </View>
+                <View style={s.logDetails}>
+                  <Text style={[s.logStopName, isDark && { color: theme.colors.textPrimary }]}>{item.stop_name || 'Stop'}</Text>
+                  <Text style={s.logRouteName}>{item.route_name || 'Route'}</Text>
+                  <Text style={s.logTime}>{dateStr} · {timeStr}</Text>
+                </View>
+              </View>
+            );
+          })}
+
+          {attendanceHistory.length === 0 && (
+            <Text style={s.noStops}>{t('busTracker.no_log_data')}</Text>
           )}
         </Animated.View>
 
@@ -523,46 +607,54 @@ const s = StyleSheet.create({
   emptySub: { fontSize: 14, color: C.slate400, textAlign: 'center', lineHeight: 20 },
 
   // ── Hero card ──
+  heroWrapper: {
+    marginBottom: 24,
+    borderRadius: 28,
+    shadowColor: C.blue,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
+  },
   heroCard: {
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 12,
+    backgroundColor: C.blue,
+    borderRadius: 28,
+    padding: 24,
     borderWidth: 1,
     borderColor: C.blueBorder,
-    shadowColor: C.blue,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    borderBottomWidth: 4,
+    borderBottomColor: '#1E3A8A', // Deep blue
+    overflow: 'hidden',
+    position: 'relative',
   },
   heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  heroLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   routeIconWrap: {
-    width: 42, height: 42, borderRadius: 13,
+    width: 48, height: 48, borderRadius: 16,
     backgroundColor: C.white, justifyContent: 'center', alignItems: 'center',
-    shadowColor: C.blue, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12, shadowRadius: 6, elevation: 3,
+    shadowColor: C.slate900, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 4,
   },
-  routeLabel: { fontSize: 11, color: C.slate400, fontWeight: '600', letterSpacing: 0.4 },
-  routeName: { fontSize: 17, fontWeight: '800', color: C.slate900, marginTop: 1 },
+  routeLabel: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  routeName: { fontSize: 22, fontWeight: '800', color: C.white, marginTop: 2, letterSpacing: -0.5 },
   statusChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 24,
   },
-  statusChipText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
-  heroDivider: { height: 1, backgroundColor: C.blueBorder, marginVertical: 14 },
+  statusChipText: { fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 18 },
   heroBottom: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'flex-end', gap: 12,
   },
   yourStopBlock: { flex: 1 },
-  yourStopLabel: { fontSize: 11, color: C.slate400, fontWeight: '600', letterSpacing: 0.4, marginBottom: 4 },
-  yourStopRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  yourStopName: { fontSize: 15, fontWeight: '700', color: C.slate900 },
+  yourStopLabel: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '600', letterSpacing: 0.4, marginBottom: 6 },
+  yourStopRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  yourStopName: { fontSize: 17, fontWeight: '800', color: C.white },
 
   // ── Alert banner ──
   alertBanner: {
@@ -582,23 +674,28 @@ const s = StyleSheet.create({
 
   // ── Timeline card ──
   timelineCard: {
-    backgroundColor: C.white,
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: C.slate200,
-    shadowColor: C.slate900,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: '#F8FAFC', // Slate 50 for pure white clay highlight
+    borderRadius: 28,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    borderBottomWidth: 4,
+    borderBottomColor: '#CBD5E1', // Structural clay depth
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
+    position: 'relative',
+    overflow: 'hidden',
   },
   timelineHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 20,
+    alignItems: 'center', marginBottom: 24,
   },
-  timelineTitle: { fontSize: 16, fontWeight: '800', color: C.slate900 },
-  timelineCount: { fontSize: 12, color: C.slate400, fontWeight: '600' },
+  timelineTitle: { fontSize: 18, fontWeight: '800', color: C.slate900, letterSpacing: -0.3 },
+  timelineCount: { fontSize: 13, color: C.slate500, fontWeight: '700' },
 
   // ── Timeline row ──
   timelineRow: {
@@ -646,24 +743,34 @@ const s = StyleSheet.create({
     paddingLeft: 4,
   },
   stopContentCurrent: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginLeft: 4,
-    marginBottom: 12,
+    backgroundColor: C.white,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginLeft: 8,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: C.blueBorder,
+    borderBottomWidth: 3,
+    shadowColor: C.slate900,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   stopContentBoarding: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginLeft: 4,
-    marginBottom: 12,
+    backgroundColor: C.white,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginLeft: 8,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderBottomWidth: 3,
+    shadowColor: C.slate900,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   stopContentInner: {
     flexDirection: 'row',
@@ -687,7 +794,7 @@ const s = StyleSheet.create({
   },
   stopTimePending: {
     fontSize: 11,
-    color: C.slate200,
+    color: C.slate400,
     marginTop: 3,
     fontWeight: '500',
   },
@@ -710,5 +817,46 @@ const s = StyleSheet.create({
     color: C.slate400,
     fontSize: 14,
     paddingVertical: 20,
+  },
+  logItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  logItemBorder: {
+    borderTopWidth: 1,
+    borderTopColor: C.slate100,
+  },
+  logStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+    marginRight: 12,
+  },
+  logStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  logDetails: {
+    flex: 1,
+  },
+  logStopName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.slate700,
+  },
+  logRouteName: {
+    fontSize: 12,
+    color: C.slate400,
+    marginTop: 2,
+  },
+  logTime: {
+    fontSize: 11,
+    color: C.slate400,
+    marginTop: 2,
   },
 });

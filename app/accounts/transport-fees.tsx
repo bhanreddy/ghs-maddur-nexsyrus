@@ -97,12 +97,10 @@ function StatCard({
       <View style={[st.statIconWrap, { backgroundColor: color + '1A' }]}>
         <Ionicons name={icon} size={15} color={color} />
       </View>
-      <Text style={[st.statValue, { color }]} numberOfLines={1}>
-        {value}
-      </Text>
-      <Text style={st.statLabel} numberOfLines={1}>
-        {label}
-      </Text>
+      <View style={{ flex: 1, minWidth: 0, paddingLeft: 4 }}>
+        <Text style={[st.statValue, { color }]} numberOfLines={1}>{value}</Text>
+        <Text style={st.statLabel} numberOfLines={1}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -448,47 +446,23 @@ export default function TransportFeesScreen() {
     }
   };
 
-  /* ---- toolbar ---- */
-  const renderToolbar = () => (
+  /* ---- toolbar (sticky part) ---- */
+  const renderStickyHeader = () => (
     <View style={[st.toolbar, { maxWidth: contentMaxW }]}>
       <View style={st.toolbarHead}>
         <View style={st.titleBlock}>
           <Text style={st.pageTitle}>Transport Fees</Text>
-          <Text style={st.pageSub}>Set stop-wise fees and collect transport payments</Text>
+          <Text style={st.pageSub}>Set stop-wise fees and collect payments</Text>
         </View>
 
-        {/* Compact year selector — small pills in a horizontal scroller */}
         <View style={st.yearBar}>
-          <Ionicons name="calendar-outline" size={13} color={C.faint} />
-          <Text style={st.yearBarLabel}>Year</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={st.yearScroll}
-          >
+          <Ionicons name="calendar-clear-outline" size={14} color={C.accent} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.yearScroll}>
             {yearOptions.map((y) => (
-              <YearChip
-                key={y}
-                label={y}
-                active={academicYear === y}
-                onPress={() => setAcademicYear(y)}
-              />
+              <YearChip key={y} label={y} active={academicYear === y} onPress={() => setAcademicYear(y)} />
             ))}
           </ScrollView>
         </View>
-      </View>
-
-      <View style={st.statsRow}>
-        <StatCard label="Routes" value={stats.routes} icon="bus-outline" color={C.accent} bg={C.accentSoft} />
-        <StatCard
-          label="Stops set"
-          value={`${stats.configuredStops}/${stats.totalStops}`}
-          icon="location-outline"
-          color={C.ok}
-          bg={C.okSoft}
-        />
-        <StatCard label="Students" value={stats.students} icon="people-outline" color={C.indigo} bg={C.indigoSoft} />
-        <StatCard label="Due" value={fmtINR(stats.totalDue)} icon="wallet-outline" color={C.danger} bg={C.dangerSoft} />
       </View>
 
       <View style={st.segmented}>
@@ -500,13 +474,30 @@ export default function TransportFeesScreen() {
           onPress={() => setTab('students')}
         />
       </View>
+    </View>
+  );
+
+  /* ---- stats & warnings (scrollable part) ---- */
+  const renderScrollableStats = () => (
+    <View style={st.scrollableStatsBox}>
+      <View style={st.statsRow}>
+        <StatCard label="Routes" value={stats.routes} icon="bus" color="#4F46E5" bg="#EEF2FF" />
+        <StatCard
+          label="Stops set"
+          value={`${stats.configuredStops}/${stats.totalStops}`}
+          icon="location"
+          color="#10B981"
+          bg="#ECFDF5"
+        />
+        <StatCard label="Students" value={stats.students} icon="people" color="#0EA5E9" bg="#F0F9FF" />
+        <StatCard label="Due" value={fmtINR(stats.totalDue)} icon="wallet" color="#F43F5E" bg="#FFF1F2" />
+      </View>
 
       {stats.unsetStops > 0 && tab === 'routes' && (
         <View style={st.warnBanner}>
-          <Ionicons name="warning" size={16} color={C.warn} />
+          <Ionicons name="warning" size={18} color="#D97706" />
           <Text style={st.warnText}>
-            {stats.unsetStops} stop{stats.unsetStops === 1 ? '' : 's'} missing a fee for{' '}
-            {academicYear} — students at those stops cannot be billed.
+            <Text style={{ fontWeight: '700' }}>{stats.unsetStops} stop{stats.unsetStops === 1 ? '' : 's'} missing a fee</Text> for {academicYear} — students at those stops cannot be billed.
           </Text>
         </View>
       )}
@@ -523,7 +514,7 @@ export default function TransportFeesScreen() {
       {!shellActive && <AdminHeader title="Transport Fees" showBackButton />}
 
       <View style={[st.contentWrap, isWide && st.contentWrapWide]}>
-        <View style={{ width: '100%', maxWidth: contentMaxW, alignSelf: 'center' }}>{renderToolbar()}</View>
+        <View style={{ width: '100%', maxWidth: contentMaxW, alignSelf: 'center' }}>{renderStickyHeader()}</View>
 
         {loading ? (
           <LogoLoader />
@@ -546,21 +537,24 @@ export default function TransportFeesScreen() {
               refreshControl={refreshControl}
               contentContainerStyle={st.listPad}
               ListHeaderComponent={
-                <View style={st.listHeader}>
-                  <View>
-                    <Text style={st.listHeaderTitle}>Route fee setup</Text>
-                    <Text style={st.listHeaderText}>
-                      {routes.length} route{routes.length === 1 ? '' : 's'} · {stats.configuredStops}/{stats.totalStops} stops configured
-                    </Text>
+                <View>
+                  {renderScrollableStats()}
+                  <View style={st.listHeader}>
+                    <View>
+                      <Text style={st.listHeaderTitle}>Route fee setup</Text>
+                      <Text style={st.listHeaderText}>
+                        {routes.length} route{routes.length === 1 ? '' : 's'} · {stats.configuredStops}/{stats.totalStops} stops configured
+                      </Text>
+                    </View>
+                    <Pressable style={st.expandAllBtn} onPress={toggleAll} hitSlop={6}>
+                      <Ionicons
+                        name={allExpanded ? 'contract-outline' : 'expand-outline'}
+                        size={13}
+                        color={C.accentDark}
+                      />
+                      <Text style={st.expandAllText}>{allExpanded ? 'Collapse all' : 'Expand all'}</Text>
+                    </Pressable>
                   </View>
-                  <Pressable style={st.expandAllBtn} onPress={toggleAll} hitSlop={6}>
-                    <Ionicons
-                      name={allExpanded ? 'contract-outline' : 'expand-outline'}
-                      size={13}
-                      color={C.accentDark}
-                    />
-                    <Text style={st.expandAllText}>{allExpanded ? 'Collapse all' : 'Expand all'}</Text>
-                  </Pressable>
                 </View>
               }
               renderItem={({ item, index }) => {
@@ -643,51 +637,55 @@ export default function TransportFeesScreen() {
             />
           )
         ) : (
-          <>
-            <View style={{ width: '100%', maxWidth: contentMaxW, alignSelf: 'center', paddingHorizontal: 16 }}>
-              <View style={[st.searchWrap, ds.searchBarWrapper]}>
-                <Ionicons name="search-outline" size={18} color={C.faint} />
-                <AppTextInput
-                  style={[ds.inputInChrome, st.searchInput]}
-                  placeholder="Search name or admission no…"
-                  placeholderTextColor={C.faint}
-                  value={search}
-                  onChangeText={setSearch}
-                />
-                {studentsLoading ? (
-                  <ActivityIndicator size="small" color={C.accent} />
-                ) : (
-                  search.length > 0 && (
-                    <Pressable onPress={() => setSearch('')} hitSlop={6}>
-                      <Ionicons name="close-circle" size={18} color={C.faint} />
-                    </Pressable>
-                  )
-                )}
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterRow}>
-                <Pressable
-                  style={[st.filterChip, !classFilter && st.filterActive]}
-                  onPress={() => setClassFilter('')}
-                >
-                  <Text style={[st.filterText, !classFilter && st.filterTextActive]}>All classes</Text>
-                </Pressable>
-                {classes.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    style={[st.filterChip, classFilter === c.id && st.filterActive]}
-                    onPress={() => setClassFilter(classFilter === c.id ? '' : c.id)}
-                  >
-                    <Text style={[st.filterText, classFilter === c.id && st.filterTextActive]}>{c.name}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-            <FlatList
+          <FlatList
               style={[st.list, { maxWidth: contentMaxW }]}
               data={students}
               keyExtractor={(s) => s.student_id}
               refreshControl={refreshControl}
               contentContainerStyle={st.listPad}
+              ListHeaderComponent={
+                <View>
+                  {renderScrollableStats()}
+                  <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                    <View style={[st.searchWrap, ds.searchBarWrapper]}>
+                      <Ionicons name="search-outline" size={18} color={C.faint} />
+                      <AppTextInput
+                        style={[ds.inputInChrome, st.searchInput]}
+                        placeholder="Search name or admission no…"
+                        placeholderTextColor={C.faint}
+                        value={search}
+                        onChangeText={setSearch}
+                      />
+                      {studentsLoading ? (
+                        <ActivityIndicator size="small" color={C.accent} />
+                      ) : (
+                        search.length > 0 && (
+                          <Pressable onPress={() => setSearch('')} hitSlop={6}>
+                            <Ionicons name="close-circle" size={18} color={C.faint} />
+                          </Pressable>
+                        )
+                      )}
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterRow}>
+                      <Pressable
+                        style={[st.filterChip, !classFilter && st.filterActive]}
+                        onPress={() => setClassFilter('')}
+                      >
+                        <Text style={[st.filterText, !classFilter && st.filterTextActive]}>All classes</Text>
+                      </Pressable>
+                      {classes.map((c) => (
+                        <Pressable
+                          key={c.id}
+                          style={[st.filterChip, classFilter === c.id && st.filterActive]}
+                          onPress={() => setClassFilter(classFilter === c.id ? '' : c.id)}
+                        >
+                          <Text style={[st.filterText, classFilter === c.id && st.filterTextActive]}>{c.name}</Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              }
               ListEmptyComponent={
                 <View style={st.empty}>
                   <LinearGradient colors={[C.indigoSoft, '#F5F3FF']} style={st.emptyIconBg}>
@@ -751,7 +749,6 @@ export default function TransportFeesScreen() {
                 </Animated.View>
               )}
             />
-          </>
         )}
       </View>
 
@@ -882,6 +879,10 @@ const st = StyleSheet.create({
     marginBottom: 12,
     flexWrap: 'wrap',
   },
+  scrollableStatsBox: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   titleBlock: { flexShrink: 1, minWidth: 220 },
   pageTitle: { fontSize: 20, fontWeight: '800', color: C.ink, letterSpacing: -0.3 },
   pageSub: { fontSize: 12, color: C.sub, marginTop: 2 },
@@ -895,10 +896,16 @@ const st = StyleSheet.create({
     maxWidth: '100%',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.line,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9', // softer gray for inset clay look
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.02)',
+    borderLeftColor: 'rgba(0,0,0,0.02)',
+    borderBottomColor: 'rgba(255,255,255,0.8)',
+    borderRightColor: 'rgba(255,255,255,0.8)',
   },
   yearBarLabel: { fontSize: 11, fontWeight: '700', color: C.faint, letterSpacing: 0.2 },
   yearScroll: { gap: 6, alignItems: 'center', paddingRight: 8 },
@@ -908,9 +915,13 @@ const st = StyleSheet.create({
     minHeight: 26,
     maxHeight: 26,
     borderRadius: 13,
-    backgroundColor: C.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: C.line,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -921,39 +932,55 @@ const st = StyleSheet.create({
   yearChipTextActive: { color: C.accentDark, fontWeight: '800' },
 
   /* stats */
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12, flexWrap: 'wrap' },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
   statCard: {
     flex: 1,
-    minWidth: 150,
-    borderRadius: 12,
-    padding: 13,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    minWidth: 140,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.8)',
+    borderLeftColor: 'rgba(255,255,255,0.8)',
+    borderBottomColor: 'rgba(0,0,0,0.03)',
+    borderRightColor: 'rgba(0,0,0,0.03)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 3,
   },
   statIconWrap: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
   },
-  statValue: { fontSize: 18, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: C.sub, fontWeight: '600', marginTop: 2 },
+  statValue: { fontSize: 16, fontWeight: '800', lineHeight: 20 },
+  statLabel: { fontSize: 11, color: C.sub, fontWeight: '600', marginTop: 1 },
 
   /* segmented */
   segmented: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
     borderRadius: 16,
-    padding: 5,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.line,
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    padding: 4,
+    marginBottom: 8,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.03)',
+    borderLeftColor: 'rgba(0,0,0,0.03)',
+    borderBottomColor: 'rgba(255,255,255,0.8)',
+    borderRightColor: 'rgba(255,255,255,0.8)',
   },
   segBtn: {
     flex: 1,
@@ -961,34 +988,51 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    minHeight: 38,
-    paddingVertical: 9,
+    minHeight: 34,
+    paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   segBtnActive: {
     backgroundColor: C.accent,
-    borderColor: C.accentDark,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.3)',
+    borderLeftColor: 'rgba(255,255,255,0.3)',
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderRightColor: 'rgba(0,0,0,0.1)',
     shadowColor: C.accent,
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  segBtnPressed: { backgroundColor: C.accentSoft, borderColor: C.accentSoft2 },
+  segBtnPressed: { backgroundColor: C.accentSoft, borderColor: 'transparent' },
   segText: { fontSize: 13, fontWeight: '700', color: C.faint },
   segTextActive: { color: '#FFFFFF', fontWeight: '800' },
-
+  
   warnBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
     padding: 12,
-    borderRadius: 12,
-    backgroundColor: C.warnSoft,
-    borderWidth: 1,
-    borderColor: C.warnLine,
+    borderRadius: 14,
+    backgroundColor: '#FEF3C7',
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1.5,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.6)',
+    borderLeftColor: 'rgba(255,255,255,0.6)',
+    borderBottomColor: 'rgba(0,0,0,0.02)',
+    borderRightColor: 'rgba(0,0,0,0.02)',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     marginBottom: 8,
   },
   warnText: { flex: 1, fontSize: 12, color: C.warnDeep, lineHeight: 17 },

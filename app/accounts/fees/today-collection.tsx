@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,15 +116,41 @@ const TransactionCard = React.memo(function TransactionCard({
   isDark: boolean;
 }) {
   const cardBg = isDark ? '#1C1F2A' : '#FFFFFF';
-  const border = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
   const textPri = isDark ? '#F9FAFB' : '#111827';
   const textSec = isDark ? 'rgba(255,255,255,0.45)' : '#6B7280';
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).duration(350).springify()}>
-      <View style={[cardStyles.card, { backgroundColor: cardBg, borderColor: border }]}>
-        <View style={[cardStyles.accent, { backgroundColor: '#10B981' }]} />
-        <View style={cardStyles.inner}>
+      <View
+        style={[
+          cardStyles.card,
+          {
+            backgroundColor: cardBg,
+            borderWidth: 0,
+            borderTopWidth: 1.5,
+            borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)',
+            borderBottomWidth: 3.5,
+            borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.06)',
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDark ? 0.22 : 0.08,
+            shadowRadius: 10,
+            elevation: 3,
+            position: 'relative',
+          }
+        ]}
+      >
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+
+        <View style={[cardStyles.accent, { backgroundColor: '#10B981', width: 5, borderRadius: 3, marginVertical: 12, marginLeft: 2 }]} />
+        <View style={[cardStyles.inner, { zIndex: 2 }]}>
           <View style={cardStyles.topRow}>
             <View style={cardStyles.titleBlock}>
               <Text style={[cardStyles.student, { color: textPri }]} numberOfLines={1}>
@@ -215,26 +242,67 @@ function SummaryStrip({
   totals: ReturnType<typeof computeCollectionTotals>;
   isDark: boolean;
 }) {
-  const bg = isDark ? '#1C1F2A' : '#1E293B';
-  const textSec = 'rgba(255,255,255,0.45)';
+  const bg = isDark ? '#1D2433' : '#3B82F6';
+  const textSec = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)';
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={[sumStyles.wrap, { backgroundColor: bg }]}>
-      <View style={sumStyles.topRow}>
-        <SumCell label="Transactions" value={String(totals.count)} color="#60A5FA" sec={textSec} />
-        <View style={sumStyles.sep} />
-        <SumCell label="Grand total" value={formatAmount(totals.grandTotal)} color="#34D399" sec={textSec} />
+    <Animated.View
+      entering={FadeIn.duration(400)}
+      style={[
+        sumStyles.wrap,
+        {
+          backgroundColor: bg,
+          borderTopWidth: 1.5,
+          borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.45)',
+          borderBottomWidth: 3.5,
+          borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(29,78,216,0.3)',
+          shadowColor: isDark ? '#000' : '#2563EB',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: isDark ? 0.35 : 0.25,
+          shadowRadius: 16,
+          elevation: 6,
+          position: 'relative',
+          overflow: 'visible',
+        }
+      ]}
+    >
+      <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+        <LinearGradient
+          colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
       </View>
 
-      <View style={sumStyles.modeRow}>
+      <View style={[sumStyles.topRow, { zIndex: 2 }]}>
+        <SumCell label="Transactions" value={String(totals.count)} color="#FFFFFF" sec={textSec} />
+        <View style={[sumStyles.sep, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)' }]} />
+        <SumCell label="Grand total" value={formatAmount(totals.grandTotal)} color={isDark ? '#4ADE80' : '#A7F3D0'} sec={textSec} />
+      </View>
+
+      <View style={[sumStyles.modeRow, { zIndex: 2 }]}>
         {PAYMENT_MODES.map((mode) => {
           const bucket = totals.byMode[mode];
           if (!bucket || bucket.count === 0) return null;
           return (
-            <View key={mode} style={sumStyles.modeChip}>
-              <Text style={sumStyles.modeLabel}>{formatPaymentMethod(mode)}</Text>
+            <View
+              key={mode}
+              style={[
+                sumStyles.modeChip,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.12)',
+                  borderTopWidth: 1.5,
+                  borderTopColor: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.06)',
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+                  borderRadius: 12,
+                }
+              ]}
+            >
+              <Text style={[sumStyles.modeLabel, { color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.7)' }]}>{formatPaymentMethod(mode)}</Text>
               <Text style={sumStyles.modeValue}>{formatAmount(bucket.total)}</Text>
-              <Text style={sumStyles.modeCount}>{bucket.count} txn</Text>
+              <Text style={[sumStyles.modeCount, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.6)' }]}>{bucket.count} txn</Text>
             </View>
           );
         })}
@@ -275,24 +343,57 @@ function FilterChip({
   isDark: boolean;
   count?: number;
 }) {
-  const border = isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB';
-  const idleBg = isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6';
-  const idleText = isDark ? 'rgba(255,255,255,0.55)' : '#6B7280';
+  const idleBg = isDark ? '#0A0B12' : '#E2E8F0';
+  const idleText = isDark ? 'rgba(255,255,255,0.45)' : '#64748B';
 
   return (
     <Pressable
       onPress={onPress}
       style={[
         filterStyles.chip,
-        {
-          backgroundColor: active ? '#3B82F6' : idleBg,
-          borderColor: active ? '#3B82F6' : border,
-        },
+        active ? {
+          backgroundColor: '#3B82F6',
+          borderWidth: 0,
+          borderTopWidth: 1.5,
+          borderTopColor: 'rgba(255,255,255,0.45)',
+          borderBottomWidth: 3,
+          borderBottomColor: 'rgba(29,78,216,0.3)',
+          shadowColor: '#3B82F6',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.22,
+          shadowRadius: 6,
+          elevation: 2,
+          position: 'relative',
+          overflow: 'hidden',
+        } : {
+          backgroundColor: idleBg,
+          borderWidth: 0,
+          borderTopWidth: 1.2,
+          borderTopColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.08)',
+          borderBottomWidth: 1,
+          borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+        }
       ]}
     >
-      <Text style={[filterStyles.chipText, { color: active ? '#fff' : idleText }]}>{label}</Text>
+      {active && (
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+      )}
+      <Text style={[filterStyles.chipText, { color: active ? '#fff' : idleText, zIndex: 2 }]}>{label}</Text>
       {count !== undefined && count > 0 ? (
-        <View style={[filterStyles.chipBadge, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB') }]}>
+        <View style={[
+          filterStyles.chipBadge, 
+          { 
+            backgroundColor: active ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.12)' : '#CBD5E1'),
+            zIndex: 2,
+          }
+        ]}>
           <Text style={[filterStyles.chipBadgeText, { color: active ? '#fff' : idleText }]}>{count}</Text>
         </View>
       ) : null}
@@ -319,9 +420,7 @@ function CollectionFiltersPanel({
   feeTypes: string[];
   allRows: FeeTransaction[];
 }) {
-  const border = isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB';
   const chipText = isDark ? 'rgba(255,255,255,0.55)' : '#6B7280';
-  const inputBg = isDark ? 'rgba(255,255,255,0.04)' : '#F9FAFB';
   const active = hasActiveCollectionFilters(filters);
 
   const modeCounts = useMemo(() => {
@@ -342,14 +441,41 @@ function CollectionFiltersPanel({
 
   return (
     <View style={filterStyles.wrap}>
-      <Pressable style={[filterStyles.toggleRow, { borderColor: border }]} onPress={onToggle}>
-        <View style={filterStyles.toggleLeft}>
+      <Pressable
+        style={[
+          filterStyles.toggleRow,
+          {
+            backgroundColor: isDark ? '#1F2433' : '#EEF1F8',
+            borderWidth: 0,
+            borderTopWidth: 1.5,
+            borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)',
+            borderBottomWidth: 3,
+            borderBottomColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(76,90,120,0.12)',
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDark ? 0.2 : 0.06,
+            shadowRadius: 8,
+            elevation: 2,
+            position: 'relative',
+          }
+        ]}
+        onPress={onToggle}
+      >
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+        <View style={[filterStyles.toggleLeft, { zIndex: 2 }]}>
           <Ionicons name="options-outline" size={16} color={active ? '#3B82F6' : chipText} />
           <Text style={[filterStyles.toggleText, { color: active ? '#3B82F6' : chipText }]}>
             Filters{active ? ' · active' : ''}
           </Text>
         </View>
-        <View style={filterStyles.toggleRight}>
+        <View style={[filterStyles.toggleRight, { zIndex: 2 }]}>
           {active ? (
             <Pressable onPress={(e) => { e.stopPropagation?.(); onClear(); }} hitSlop={8}>
               <Text style={filterStyles.clearText}>Clear</Text>
@@ -362,19 +488,84 @@ function CollectionFiltersPanel({
       {expanded ? (
         <Animated.View
           entering={FadeIn.duration(250)}
-          style={[filterStyles.panel, { borderColor: border, backgroundColor: isDark ? '#171923' : '#FAFAFA' }]}
+          style={[
+            filterStyles.panel,
+            {
+              backgroundColor: isDark ? '#1C2030' : '#FFFFFF',
+              borderWidth: 0,
+              borderTopWidth: 1.5,
+              borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)',
+              borderBottomWidth: 3.5,
+              borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.06)',
+              shadowColor: isDark ? '#000' : '#6B7A99',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: isDark ? 0.22 : 0.08,
+              shadowRadius: 10,
+              elevation: 3,
+              position: 'relative',
+            }
+          ]}
         >
-          <Text style={[filterStyles.label, { color: chipText }]}>SEARCH</Text>
-          <AppTextInput
-            style={[ds.inputInChrome, filterStyles.searchInput, { borderColor: border, backgroundColor: inputBg, color: isDark ? '#F9FAFB' : '#111827' }]}
-            placeholder="Student name, admission no, ref…"
-            placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#94A3B8'}
-            value={filters.search}
-            onChangeText={(search) => onChange({ search })}
-          />
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+            <LinearGradient
+              colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </View>
 
-          <Text style={[filterStyles.label, { color: chipText }]}>PAYMENT MODE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={filterStyles.chipRow}>
+          <Text style={[filterStyles.label, { color: chipText, zIndex: 2 }]}>SEARCH</Text>
+          <View style={[
+            filterStyles.inputFrame,
+            {
+              backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+              borderTopWidth: 1.5,
+              borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.85)',
+              borderBottomWidth: 2.5,
+              borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.15)',
+              shadowColor: isDark ? '#000' : '#6B7A99',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: isDark ? 0.22 : 0.08,
+              shadowRadius: 5,
+              elevation: 1,
+              zIndex: 2,
+            }
+          ]}>
+            <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+              <LinearGradient
+                colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+            </View>
+            <AppTextInput
+              style={[
+                ds.inputInChrome, 
+                filterStyles.searchInput, 
+                { 
+                  backgroundColor: isDark ? '#0A0B12' : '#D5E0ED', 
+                  color: isDark ? '#F9FAFB' : '#111827', 
+                  borderWidth: 0,
+                  borderTopWidth: 1.5,
+                  borderTopColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)',
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                  borderRadius: 10,
+                  height: 38,
+                  zIndex: 2,
+                }
+              ]}
+              placeholder="Student name, admission no, ref…"
+              placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#94A3B8'}
+              value={filters.search}
+              onChangeText={(search) => onChange({ search })}
+            />
+          </View>
+
+          <Text style={[filterStyles.label, { color: chipText, zIndex: 2 }]}>PAYMENT MODE</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[filterStyles.chipRow, { zIndex: 2 }]}>
             <FilterChip
               label="All modes"
               active={filters.paymentMode === 'all'}
@@ -398,8 +589,8 @@ function CollectionFiltersPanel({
             })}
           </ScrollView>
 
-          <Text style={[filterStyles.label, { color: chipText }]}>FEE TYPE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={filterStyles.chipRow}>
+          <Text style={[filterStyles.label, { color: chipText, zIndex: 2 }]}>FEE TYPE</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[filterStyles.chipRow, { zIndex: 2 }]}>
             <FilterChip
               label="All fees"
               active={filters.feeType === 'all'}
@@ -591,30 +782,80 @@ export default function TodayCollectionScreen() {
 
       <View style={styles.actionRow}>
         <Pressable
-          style={[styles.actionBtn, styles.exportBtn, exporting && styles.actionDisabled]}
+          style={[
+            styles.actionBtn, 
+            styles.exportBtn, 
+            {
+              borderTopWidth: 1.5,
+              borderTopColor: 'rgba(255,255,255,0.45)',
+              borderBottomWidth: 3.5,
+              borderBottomColor: 'rgba(4,120,87,0.25)',
+              shadowColor: '#059669',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.25,
+              shadowRadius: 10,
+              elevation: 4,
+              position: 'relative',
+              overflow: 'hidden',
+            },
+            exporting && styles.actionDisabled
+          ]}
           onPress={handleExport}
           disabled={exporting || loading}
         >
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </View>
           {exporting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color="#fff" style={{ zIndex: 2 }} />
           ) : (
             <>
-              <Ionicons name="document-text-outline" size={16} color="#fff" />
-              <Text style={styles.actionBtnText}>Export to Excel</Text>
+              <Ionicons name="document-text-outline" size={16} color="#fff" style={{ zIndex: 2 }} />
+              <Text style={[styles.actionBtnText, { zIndex: 2 }]}>Export to Excel</Text>
             </>
           )}
         </Pressable>
         <Pressable
-          style={[styles.actionBtn, styles.printBtn, printing && styles.actionDisabled]}
+          style={[
+            styles.actionBtn, 
+            styles.printBtn, 
+            {
+              borderTopWidth: 1.5,
+              borderTopColor: 'rgba(255,255,255,0.45)',
+              borderBottomWidth: 3.5,
+              borderBottomColor: 'rgba(67,56,202,0.25)',
+              shadowColor: '#4F46E5',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.25,
+              shadowRadius: 10,
+              elevation: 4,
+              position: 'relative',
+              overflow: 'hidden',
+            },
+            printing && styles.actionDisabled
+          ]}
           onPress={handlePrint}
           disabled={printing || loading}
         >
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </View>
           {printing ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color="#fff" style={{ zIndex: 2 }} />
           ) : (
             <>
-              <Ionicons name="print-outline" size={16} color="#fff" />
-              <Text style={styles.actionBtnText}>Print</Text>
+              <Ionicons name="print-outline" size={16} color="#fff" style={{ zIndex: 2 }} />
+              <Text style={[styles.actionBtnText, { zIndex: 2 }]}>Print</Text>
             </>
           )}
         </Pressable>
@@ -772,17 +1013,20 @@ const filterStyles = StyleSheet.create({
   clearText: { fontSize: 12, fontWeight: '800', color: '#3B82F6' },
   panel: {
     marginTop: 8,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
-    gap: 10,
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
   },
   label: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  inputFrame: {
+    borderRadius: 14,
+    padding: 4,
+    position: 'relative',
+  },
   searchInput: {
-    borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 40,
+    paddingHorizontal: 12,
+    height: 38,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -794,7 +1038,6 @@ const filterStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
-    borderWidth: 1,
   },
   chipText: { fontSize: 12, fontWeight: '700' },
   chipBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 },

@@ -108,29 +108,21 @@ const getGreetingEmoji = () => {
 };
 
 // ─── Background Orbs ─────────────────────────────────────────────────────────
-function BgOrbs({ isDark }: { isDark: boolean }) {
+const BgOrbs = React.memo(function BgOrbs({ isDark }: { isDark: boolean }) {
   const t = isDark ? D.dark : D.light;
-  const f1 = useSharedValue(0);
-  const f2 = useSharedValue(0);
-  useEffect(() => {
-    f1.value = withRepeat(withSequence(withTiming(1, { duration: 7000 }), withTiming(0, { duration: 7000 })), -1, false);
-    f2.value = withDelay(3500, withRepeat(withSequence(withTiming(1, { duration: 6000 }), withTiming(0, { duration: 6000 })), -1, false));
-  }, []);
-  const a1 = useAnimatedStyle(() => ({ opacity: interpolate(f1.value, [0, 1], [0.6, 1]) }));
-  const a2 = useAnimatedStyle(() => ({ opacity: interpolate(f2.value, [0, 1], [0.4, 0.9]) }));
   return (
-    <>
-      <Animated.View style={[styles.orb, { width: 340, height: 340, top: -100, right: -120, borderRadius: 170, backgroundColor: t.orbA }, a1]} />
-      <Animated.View style={[styles.orb, { width: 260, height: 260, top: 200, left: -120, borderRadius: 130, backgroundColor: t.orbB }, a2]} />
-      <Animated.View style={[styles.orb, { width: 200, height: 200, bottom: 280, right: -60, borderRadius: 100, backgroundColor: t.orbC }]} />
-    </>
+    <Animated.View entering={FadeIn.duration(1000)} style={StyleSheet.absoluteFill}>
+      <View style={[styles.orb, { width: 340, height: 340, top: -100, right: -120, borderRadius: 170, backgroundColor: t.orbA }]} />
+      <View style={[styles.orb, { width: 260, height: 260, top: 200, left: -120, borderRadius: 130, backgroundColor: t.orbB }]} />
+      <View style={[styles.orb, { width: 200, height: 200, bottom: 280, right: -60, borderRadius: 100, backgroundColor: t.orbC }]} />
+    </Animated.View>
   );
-}
+});
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // ─── Premium Claymorphic Graphics ─────────────────────────────────────────────
-function ClayGraphic({ type, size, style, isDark }: { type: 'clock' | 'book' | 'pencil' | 'cap'; size: number; style?: any; isDark: boolean }) {
+const ClayGraphic = React.memo(function ClayGraphic({ type, size, style, isDark }: { type: 'clock' | 'book' | 'pencil' | 'cap'; size: number; style ?: any; isDark: boolean }) {
   if (type === 'clock') {
     return (
       <View style={[{ width: size, height: size, position: 'absolute', zIndex: 1 }, style]}>
@@ -196,7 +188,7 @@ function ClayGraphic({ type, size, style, isDark }: { type: 'clock' | 'book' | '
           </Defs>
           {/* Base shadow */}
           <Path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="rgba(217, 119, 6, 0.2)" transform="translate(1, 1)" />
-          
+
           {/* Pencil Shaft */}
           <Path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="url(#pencilGrad)" />
           {/* Lead Tip */}
@@ -238,10 +230,10 @@ function ClayGraphic({ type, size, style, isDark }: { type: 'clock' | 'book' | '
   }
 
   return null;
-}
+});
 
 // ─── Circular Attendance Arc ──────────────────────────────────────────────────
-function AttendanceArc({
+const AttendanceArc = React.memo(function AttendanceArc({
   pct,
   isDark,
   size,
@@ -249,8 +241,8 @@ function AttendanceArc({
 }: {
   pct: number;
   isDark: boolean;
-  size?: number;
-  stroke?: number;
+  size ?: number;
+  stroke ?: number;
 }) {
   const SIZE = size || 210;
   const STROKE = stroke || 14;
@@ -296,7 +288,7 @@ function AttendanceArc({
         <Circle cx={cx} cy={cy} r={R} fill="none" stroke={isDark ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.05)'} strokeWidth={STROKE + 6} />
         <Circle cx={cx} cy={cy} r={R + 2} fill="none" stroke={isDark ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.02)'} strokeWidth={2} />
         <Circle cx={cx} cy={cy} r={R - 2} fill="none" stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)'} strokeWidth={2} />
-        
+
         {/* Progress Arc */}
         <AnimatedCircle
           cx={cx} cy={cy} r={R}
@@ -327,10 +319,10 @@ function AttendanceArc({
       </View>
     </View>
   );
-}
+});
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ value, label, type, isDark }: { value: number | string; label: string; type: 'present' | 'absent' | 'pending'; isDark: boolean }) {
+const StatCard = React.memo(function StatCard({ value, label, type, isDark }: { value: number | string; label: string; type: 'present' | 'absent' | 'pending'; isDark: boolean }) {
   const config = {
     present: {
       icon: 'checkmark-circle-outline',
@@ -392,10 +384,10 @@ function StatCard({ value, label, type, isDark }: { value: number | string; labe
       <Text style={{ fontSize: 24, fontWeight: '800', color: valueColor, letterSpacing: -0.5 }}>{value}</Text>
     </View>
   );
-}
+});
 
 // ─── Attendance Hero Card ─────────────────────────────────────────────────────
-function AttendanceHero({ data, onPress, isDark }: { data: DashboardMetrics | null; onPress: () => void; isDark: boolean }) {
+const AttendanceHero = React.memo(function AttendanceHero({ data, onPress, isDark }: { data: DashboardMetrics | null; onPress: () => void; isDark: boolean }) {
   const { width: winWidth } = useWindowDimensions();
   const isWideLayout = IS_WEB && winWidth > 820;
 
@@ -442,8 +434,8 @@ function AttendanceHero({ data, onPress, isDark }: { data: DashboardMetrics | nu
           overflow: 'hidden',
           backgroundColor: cardBg,
           ...(Platform.OS === 'web' ? {
-            boxShadow: isDark 
-              ? '0px 20px 50px rgba(0,0,0,0.8), inset 2px 2px 4px rgba(255,255,255,0.06), inset -2px -2px 4px rgba(0,0,0,0.5)' 
+            boxShadow: isDark
+              ? '0px 20px 50px rgba(0,0,0,0.8), inset 2px 2px 4px rgba(255,255,255,0.06), inset -2px -2px 4px rgba(0,0,0,0.5)'
               : '0px 20px 50px rgba(150,170,200,0.4), 0px 8px 16px rgba(150,170,200,0.2), inset 3px 3px 8px rgba(255,255,255,1), inset -3px -3px 8px rgba(0,0,0,0.04)'
           } : {
             shadowColor: isDark ? '#000' : '#8A9BAE',
@@ -487,8 +479,8 @@ function AttendanceHero({ data, onPress, isDark }: { data: DashboardMetrics | nu
               borderRadius: 24,
               backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F1F5F9',
               ...(Platform.OS === 'web' ? {
-                boxShadow: isDark 
-                  ? 'inset 2px 2px 4px rgba(255,255,255,0.06), inset -2px -2px 4px rgba(0,0,0,0.3)' 
+                boxShadow: isDark
+                  ? 'inset 2px 2px 4px rgba(255,255,255,0.06), inset -2px -2px 4px rgba(0,0,0,0.3)'
                   : 'inset 3px 3px 6px rgba(255,255,255,1), inset -3px -3px 6px rgba(150,170,200,0.3), 0px 2px 8px rgba(0,0,0,0.04)'
               } : {})
             }}>
@@ -518,22 +510,22 @@ function AttendanceHero({ data, onPress, isDark }: { data: DashboardMetrics | nu
 
           {/* 4. Footer Button */}
           <View style={{
-              borderRadius: 20,
-              backgroundColor: '#6366F1',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 18,
-              ...(Platform.OS === 'web' ? {
-                boxShadow: '0px 12px 24px rgba(99, 102, 241, 0.4), inset 3px 3px 8px rgba(255, 255, 255, 0.6), inset -3px -3px 8px rgba(0, 0, 0, 0.25)'
-              } : {
-                shadowColor: '#6366F1',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.5,
-                shadowRadius: 16,
-                elevation: 10,
-              })
-            }}>
+            borderRadius: 20,
+            backgroundColor: '#6366F1',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 18,
+            ...(Platform.OS === 'web' ? {
+              boxShadow: '0px 12px 24px rgba(99, 102, 241, 0.4), inset 3px 3px 8px rgba(255, 255, 255, 0.6), inset -3px -3px 8px rgba(0, 0, 0, 0.25)'
+            } : {
+              shadowColor: '#6366F1',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
+              elevation: 10,
+            })
+          }}>
             <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.2 }}>Mark Attendance</Text>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
           </View>
@@ -541,10 +533,10 @@ function AttendanceHero({ data, onPress, isDark }: { data: DashboardMetrics | nu
       </View>
     </Animated.View>
   );
-}
+});
 
 // ─── Hero Banner ──────────────────────────────────────────────────────────────
-function HeroBanner({ name, card }: { name: string; isDark: boolean; card?: React.ReactNode }) {
+const HeroBanner = React.memo(function HeroBanner({ name, card, isDark }: { name: string; isDark: boolean; card ?: React.ReactNode }) {
   return (
     <View style={{ marginTop: 4, marginBottom: 20 }}>
       <DashboardHero
@@ -558,27 +550,22 @@ function HeroBanner({ name, card }: { name: string; isDark: boolean; card?: Reac
       />
     </View>
   );
-}
+});
 
 // ─── Leave Alert ──────────────────────────────────────────────────────────────
-function LeaveAlert({ count, onPress, isDark }: { count: number; onPress: () => void; isDark: boolean }) {
+const LeaveAlert = React.memo(function LeaveAlert({ count, onPress, isDark }: { count: number; onPress: () => void; isDark: boolean }) {
   const t = isDark ? D.dark : D.light;
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value = withRepeat(withSequence(withTiming(1.06, { duration: 900 }), withTiming(1, { duration: 900 })), -1, false);
-  }, []);
-  const dotAnim = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
   return (
     <Animated.View entering={FadeInDown.delay(60).duration(420).springify()} style={{ marginBottom: 20 }}>
       <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
         <LinearGradient
-          colors={isDark ? ['rgba(255,176,26,0.15)', 'rgba(255,176,26,0.07)'] : ['rgba(255,176,26,0.12)', 'rgba(255,176,26,0.05)']}
+          colors={isDark ? ['rgba(255,176,26,0.15)', 'rgba(255,176,26,0.07)'] : ['rgba(255,176,26,0.05)', 'rgba(255,176,26,0.02)']}
           style={[styles.leaveAlert, { borderColor: 'rgba(255,176,26,0.25)' }]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
         >
           <View style={styles.leaveAlertLeft}>
-            <Animated.View style={[styles.leaveAlertDot, dotAnim]} />
-            <View style={[styles.leaveAlertIconBox, { backgroundColor: 'rgba(255,176,26,0.20)' }]}>
+            <View style={styles.leaveAlertDot} />
+            <View style={[styles.leaveAlertIconBox, { backgroundColor: 'rgba(255,176,26,0.15)' }]}>
               <Ionicons name="time" size={15} color={ACCENT.amber} />
             </View>
             <View>
@@ -593,10 +580,10 @@ function LeaveAlert({ count, onPress, isDark }: { count: number; onPress: () => 
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 // ─── Section Label ────────────────────────────────────────────────────────────
-function SectionLabel({ label, isDark }: { label: string; isDark: boolean }) {
+const SectionLabel = React.memo(function SectionLabel({ label, isDark }: { label: string; isDark: boolean }) {
   const t = isDark ? D.dark : D.light;
   return (
     <View style={styles.sectionLabel}>
@@ -604,7 +591,7 @@ function SectionLabel({ label, isDark }: { label: string; isDark: boolean }) {
       <Text style={[styles.sectionLabelText, { color: t.text3 }]}>{label}</Text>
     </View>
   );
-}
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── ENHANCED MENU CARD SYSTEM ────────────────────────────────────────────────
@@ -622,6 +609,26 @@ interface MenuConfig {
 }
 
 const MENU_CONFIGS: Record<string, MenuConfig> = {
+  notices: {
+    icon: <Ionicons name="megaphone" size={26} color="#fff" />,
+    grad: ['#818CF8', '#4F46E5', '#3730A3'] as const,
+    accentLight: '#A5B4FC',
+    accentBar: ['#A5B4FC', '#6366F1'],
+    shadowColor: '#4F46E5',
+    category: 'UPDATES',
+    shimmerColor: 'rgba(129,140,248,0.38)',
+    patternType: 'arc',
+  },
+  messages: {
+    icon: <Ionicons name="chatbubbles" size={26} color="#fff" />,
+    grad: ['#818CF8', '#6366F1', '#4338CA'] as const,
+    accentLight: '#C7D2FE',
+    accentBar: ['#C7D2FE', '#818CF8'],
+    shadowColor: '#4F46E5',
+    category: 'COMMS',
+    shimmerColor: 'rgba(129,140,248,0.36)',
+    patternType: 'dots',
+  },
   diary: {
     icon: <FontAwesome5 name="book" size={26} color="#fff" />,
     grad: ['#2D7FFF', '#1254D4', '#0830A0'] as const,
@@ -704,35 +711,9 @@ const MENU_CONFIGS: Record<string, MenuConfig> = {
   },
 };
 
-// ─── Shimmer Sweep (kept from original) ──────────────────────────────────────
-function ShimmerSweep({ color, width, delay }: { color: string; width: number; delay: number }) {
-  const sweep = useSharedValue(-80);
-  useEffect(() => {
-    sweep.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(width + 80, { duration: 780 }),
-          withDelay(4200 + Math.random() * 1200, withTiming(-80, { duration: 0 }))
-        ),
-        -1, false
-      )
-    );
-  }, []);
-  const sweepStyle = useAnimatedStyle(() => ({ transform: [{ translateX: sweep.value }] }));
-  return (
-    <Animated.View
-      style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 68, zIndex: 8, overflow: 'hidden' }, sweepStyle]}
-      pointerEvents="none"
-    >
-      <LinearGradient colors={['transparent', color, 'transparent']} style={{ flex: 1 }} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-    </Animated.View>
-  );
-}
-
 // ─── Card Pattern Decoration ──────────────────────────────────────────────────
 // Each pattern type adds a unique geometric decoration to the gradient zone
-function CardPattern({ type, accentLight }: { type: MenuConfig['patternType']; accentLight: string }) {
+const CardPattern = React.memo(function CardPattern({ type, accentLight }: { type: MenuConfig['patternType']; accentLight: string }) {
   if (type === 'rings') {
     // Concentric quarter-arc rings in the bottom-right corner
     return (
@@ -844,63 +825,60 @@ function CardPattern({ type, accentLight }: { type: MenuConfig['patternType']; a
     );
   }
   return null;
-}
+});
 
 // ─── Live Badge (notification indicator) ─────────────────────────────────────
-function LiveBadge({ count }: { count: string }) {
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(withTiming(1.15, { duration: 750 }), withTiming(1, { duration: 750 })),
-      -1, true
-    );
-  }, []);
-  const dotStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
-
+const LiveBadge = React.memo(function LiveBadge({ count }: { count: string }) {
   return (
     <View style={mc.badgeOuter}>
-      <Animated.View style={[mc.badgePulseDot, dotStyle]} />
+      <View style={mc.badgePulseDot} />
       <View style={mc.badgeInner}>
         <Text style={mc.badgeCountText}>{count}</Text>
       </View>
     </View>
   );
-}
+});
 
 // ─── Enhanced Menu Card ───────────────────────────────────────────────────────
 function getStaffClayColors(configKey: string, isDark: boolean) {
-  let bg = '#4A72E6';
-  let shadowColor = '#253FA3';
+  let bg = '#3D5AFE'; // Default: Vibrant Indigo
+  let shadowColor = '#1A237E';
 
-  if (configKey === 'diary') {
-    bg = isDark ? '#3053C4' : '#4A72E6'; // Periwinkle Blue
-    shadowColor = isDark ? '#1C318F' : '#253FA3';
+  if (configKey === 'notices') {
+    bg = isDark ? '#2E3FA7' : '#3D5AFE'; // Vibrant Indigo
+    shadowColor = isDark ? '#1C2570' : '#1A237E';
+  } else if (configKey === 'messages') {
+    bg = isDark ? '#0070A3' : '#00B0FF'; // Electric Cyan
+    shadowColor = isDark ? '#003E5C' : '#01579B';
+  } else if (configKey === 'diary') {
+    bg = isDark ? '#5033B3' : '#7C4DFF'; // Vivid Violet
+    shadowColor = isDark ? '#2F187A' : '#4A148C';
   } else if (configKey === 'timetable') {
-    bg = isDark ? '#1B7F5F' : '#2CB288'; // Emerald Green
-    shadowColor = isDark ? '#0D4E3A' : '#136146';
+    bg = isDark ? '#00A352' : '#00C853'; // Vibrant Green
+    shadowColor = isDark ? '#005E2E' : '#1B5E20';
   } else if (configKey === 'attendance') {
-    bg = isDark ? '#9B531C' : '#E58539'; // Tangerine Orange
-    shadowColor = isDark ? '#5C2D0B' : '#75390E';
+    bg = isDark ? '#C44E00' : '#FF6D00'; // Vivid Orange
+    shadowColor = isDark ? '#802F00' : '#E65100';
   } else if (configKey === 'leaves') {
-    bg = isDark ? '#9E2E3B' : '#E65565'; // Crimson Red
-    shadowColor = isDark ? '#5E131C' : '#7A1621';
+    bg = isDark ? '#B30B2C' : '#FF1744'; // Vivid Scarlet
+    shadowColor = isDark ? '#6E0013' : '#9E001F';
   } else if (configKey === 'results') {
-    bg = isDark ? '#9E731D' : '#E6AE3C'; // Amber Yellow
-    shadowColor = isDark ? '#5A3E08' : '#7D550A';
+    bg = isDark ? '#C48400' : '#FFAB00'; // Vibrant Gold
+    shadowColor = isDark ? '#7A4D00' : '#FF6F00';
   } else if (configKey === 'complaints') {
-    bg = isDark ? '#5033B3' : '#825AE6'; // Purple
-    shadowColor = isDark ? '#2F187A' : '#4925A3';
+    bg = isDark ? '#AB1054' : '#FF2A85'; // Hot Magenta
+    shadowColor = isDark ? '#6E0031' : '#880E4F';
   } else if (configKey === 'lms') {
-    bg = isDark ? '#A12A76' : '#E65AAB'; // Pink
-    shadowColor = isDark ? '#601142' : '#7D1F57';
+    bg = isDark ? '#008573' : '#00BFA5'; // Vivid Teal
+    shadowColor = isDark ? '#004F43' : '#004D40';
   } else if (configKey === 'payslips') {
-    bg = isDark ? '#117E77' : '#1CB3AA'; // Teal
-    shadowColor = isDark ? '#054D48' : '#0B615C';
+    bg = isDark ? '#2E3C42' : '#546E7A'; // Blue Slate
+    shadowColor = isDark ? '#1C2529' : '#263238';
   }
   return { bg, shadowColor };
 }
 
-function MenuCard({
+const MenuCard = React.memo(function MenuCard({
   title,
   subtitle,
   configKey,
@@ -912,13 +890,14 @@ function MenuCard({
   title: string;
   subtitle: string;
   configKey: string;
-  badge?: string;
+  badge ?: string;
   onPress: () => void;
   index: number;
   isDark: boolean;
 }) {
   const cfg = MENU_CONFIGS[configKey];
   const t = isDark ? D.dark : D.light;
+  const borderRadius = IS_WEB ? 28 : 24;
 
   const pressScale = useSharedValue(1);
   const translateY = useSharedValue(0);
@@ -934,7 +913,6 @@ function MenuCard({
 
   const clayStyle = useMemo(() => {
     const { bg, shadowColor } = getStaffClayColors(configKey, isDark);
-    const borderRadius = IS_WEB ? 28 : 24;
 
     if (Platform.OS === 'web') {
       return {
@@ -961,7 +939,7 @@ function MenuCard({
       shadowRadius: 12,
       elevation: 6,
     };
-  }, [configKey, isDark]);
+  }, [configKey, isDark, borderRadius]);
 
   const handlePressIn = () => {
     pressScale.value = withTiming(0.97, { duration: 150 });
@@ -1012,6 +990,15 @@ function MenuCard({
           Platform.OS === 'web' && { cursor: 'pointer' },
         ]}
       >
+        {/* Tactile claymorphic highlight linear gradient */}
+        <LinearGradient
+          colors={isDark ? ['rgba(255, 255, 255, 0.05)', 'rgba(0, 0, 0, 0.15)'] : ['rgba(255, 255, 255, 0.26)', 'rgba(0, 0, 0, 0.06)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFill, { borderRadius }]}
+          pointerEvents="none"
+        />
+
         {/* Abstract Background graphics */}
         <View
           pointerEvents="none"
@@ -1189,7 +1176,7 @@ function MenuCard({
       </Pressable>
     </Animated.View>
   );
-}
+});
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function StaffDashboard() {
@@ -1245,7 +1232,9 @@ export default function StaffDashboard() {
     return () => sub.remove();
   }, [isViewingAsAdmin]));
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
+    { title: 'Notices', subtitle: 'School updates', configKey: 'notices', route: '/staff/notices' },
+    { title: 'Messages', subtitle: 'In-app chat', configKey: 'messages', route: '/staff/messages' },
     { title: 'Diary', subtitle: 'Daily logs & notes', configKey: 'diary', route: '/staff/diary' },
     { title: 'Timetable', subtitle: 'Class schedule', configKey: 'timetable', route: '/staff/timetable' },
     { title: 'My Attendance', subtitle: 'History & reports', configKey: 'attendance', route: '/staff/attendance' },
@@ -1254,12 +1243,20 @@ export default function StaffDashboard() {
     { title: 'Complaints', subtitle: 'Student issues', configKey: 'complaints', route: '/staff/complaints' },
     { title: 'LMS', subtitle: 'Upload resources', configKey: 'lms', route: '/staff/lms-upload' },
     ...(payslipsEnabled ? [{ title: 'Payslips', subtitle: 'Salary & docs', configKey: 'payslips', route: '/staff/payslip' }] : []),
-  ];
+  ], [data?.pendingLeaves, payslipsEnabled]);
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e: any) => { scrollY.value = e.contentOffset.y; },
   });
+
+  const handleLeavesPress = useCallback(() => {
+    router.push('/staff/leaves' as any);
+  }, [router]);
+
+  const handleManageStudentsPress = useCallback(() => {
+    router.push({ pathname: '/staff/manage-students', params: viewAsParams } as any);
+  }, [router, viewAsParams]);
 
   const firstName = (isViewingAsAdmin ? viewAsName : user?.displayName)?.split(' ')[0] || 'Teacher';
 
@@ -1297,12 +1294,12 @@ export default function StaffDashboard() {
         {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
         <HeroBanner name={firstName} isDark={isDark} card={headerProfileCard} />
         {!isViewingAsAdmin && !!data?.pendingLeaves && (
-          <LeaveAlert count={data.pendingLeaves} onPress={() => router.push('/staff/leaves' as any)} isDark={isDark} />
+          <LeaveAlert count={data.pendingLeaves} onPress={handleLeavesPress} isDark={isDark} />
         )}
         <SectionLabel label="TODAY'S CLASS" isDark={isDark} />
         <AttendanceHero
           data={data}
-          onPress={() => router.push({ pathname: '/staff/manage-students', params: viewAsParams } as any)}
+          onPress={handleManageStudentsPress}
           isDark={isDark}
         />
         <SectionLabel label="QUICK ACTIONS" isDark={isDark} />
@@ -1544,7 +1541,7 @@ const mc = StyleSheet.create({
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { paddingTop: 108, paddingHorizontal: 20, paddingBottom: 40 },
+  scroll: { paddingTop: 76, paddingHorizontal: 20, paddingBottom: 40 },
   orb: { position: 'absolute' },
 
   // ── Hero Banner ──────────────────────────────────────────────────────────

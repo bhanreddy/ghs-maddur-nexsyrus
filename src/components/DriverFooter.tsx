@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Pressable, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialTopTabBarProps } from '@react-navigation/material-top-tabs';
@@ -13,6 +14,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { useStaffPortalConfig } from '../hooks/useStaffPortalConfig';
+import { BusAttendanceService } from '../services/busAttendanceService';
 
 const { width } = Dimensions.get('window');
 
@@ -20,22 +22,32 @@ const TAB_CONFIG: Record<string, { icon: string; label: string }> = {
     'trip': { icon: 'navigate-outline', label: 'My Trip' },
     'dashboard': { icon: 'bus-outline', label: 'Route' },
     'students': { icon: 'people-outline', label: 'Students' },
+    'bus-attendance': { icon: 'clipboard-outline', label: 'Attendance' },
     'payslip': { icon: 'wallet-outline', label: 'Payslips' },
     'profile': { icon: 'person-outline', label: 'Profile' },
 };
 
-const ORDERED_TABS = ['trip', 'dashboard', 'students', 'payslip', 'profile'];
-
-const ACTIVE_G_START = '#F472B6';
-const ACTIVE_G_END = '#DB2777';
+const ORDERED_TABS = ['trip', 'dashboard', 'students', 'bus-attendance', 'payslip', 'profile'];
 
 export default function DriverFooter({ state, descriptors, navigation }: MaterialTopTabBarProps) {
+    const { t } = useTranslation();
     const { theme, isDark } = useTheme();
     const { payslipsEnabled } = useStaffPortalConfig();
+    const [busAttendanceEnabled, setBusAttendanceEnabled] = React.useState(false);
 
-    const orderedTabs = payslipsEnabled
-        ? ORDERED_TABS
-        : ORDERED_TABS.filter((tab) => tab !== 'payslip');
+    React.useEffect(() => {
+        BusAttendanceService.isEnabled()
+            .then(res => setBusAttendanceEnabled(res?.enabled))
+            .catch(() => setBusAttendanceEnabled(false));
+    }, []);
+
+    let orderedTabs = ORDERED_TABS;
+    if (!payslipsEnabled) {
+        orderedTabs = orderedTabs.filter((tab) => tab !== 'payslip');
+    }
+    if (!busAttendanceEnabled) {
+        orderedTabs = orderedTabs.filter((tab) => tab !== 'bus-attendance');
+    }
 
     // Filter and sort routes to only show the main tabs
     const visibleRoutes = state.routes
@@ -106,7 +118,7 @@ export default function DriverFooter({ state, descriptors, navigation }: Materia
             width: '70%',
             height: 60,
             borderRadius: theme.shape.borderRadiusXL + 2,
-            shadowColor: ACTIVE_G_END,
+            shadowColor: theme.colors.primary,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
@@ -150,7 +162,7 @@ export default function DriverFooter({ state, descriptors, navigation }: Materia
                 >
                     <Animated.View style={[styles.activeIndicatorContainer, indicatorStyle]}>
                         <LinearGradient
-                            colors={[ACTIVE_G_START, ACTIVE_G_END]}
+                            colors={[theme.colors.primary, theme.colors.primaryDark]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.activeIndicator}
@@ -192,7 +204,7 @@ export default function DriverFooter({ state, descriptors, navigation }: Materia
                                         style={[styles.label, { color: theme.colors.surface }]}
                                         numberOfLines={1}
                                     >
-                                        {config.label}
+                                        {t(`driver_ui.${route.name}`, config.label)}
                                     </Animated.Text>
                                 )}
                             </Pressable>

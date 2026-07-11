@@ -323,7 +323,7 @@ export const FeeService = {
     /**
      * Admin Finance & Collection screen — full stats + recent transactions (not visibility-gated).
      */
-    getAdminFinanceStats: async (): Promise<{
+    getAdminFinanceStats: async (params?: { date?: string }): Promise<{
         today_collection: number;
         monthly_collection: number;
         collected_total: number;
@@ -331,7 +331,7 @@ export const FeeService = {
         defaulter_count: number;
         recent_transactions?: FeeTransaction[];
     }> => {
-        return api.get('/admin/finance-stats');
+        return api.get('/admin/finance-stats', params);
     },
 
     /**

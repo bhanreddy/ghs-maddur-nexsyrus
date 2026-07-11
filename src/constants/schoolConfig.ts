@@ -13,8 +13,17 @@
 import type { SchoolTheme } from '../theme/types';
 import { defaultDarkTheme, defaultLightTheme } from '../theme/types';
 
-/** Build `rgba(...)` from `#RRGGBB` / `#RGB` for ribbon overlays and dividers. */
+/**
+ * Build `rgba(...)` from `#RRGGBB` / `#RGB` for ribbon overlays and dividers.
+ *
+ * Marked as a Reanimated worklet so it can be called from inside `useAnimatedStyle`
+ * on the UI thread (the scroll-driven dashboard headers do this). Reanimated 4 throws
+ * a hard "tried to synchronously call a non-worklet function on the UI thread" error
+ * otherwise, which blanks every dashboard after login. It remains a normal function
+ * when called from the JS thread (PDFs, welcome screen, ribbon, etc.).
+ */
 export function schoolColorWithAlpha(hex: string, alpha: number): string {
+  'worklet';
   let h = hex.trim().replace('#', '');
   if (h.length === 3) {
     h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Platform, Switch, ViewStyle, TextStyle } from 'react-native';
+import { View, StyleSheet, Pressable, Platform, Switch, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,11 +11,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import MenuOverlay from './MenuOverlay';
 import ClayIconButton from './ClayIconButton';
-import { Shadows, Radii, Spacing } from '../theme/themes';
+import { Shadows, Spacing } from '../theme/themes';
 import { useTheme } from '../hooks/useTheme';
 import { useFeatures } from '../hooks/useFeatures';
+import { useAuth } from '../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SCHOOL_NAME } from '../constants/school';
 import { schoolColorWithAlpha } from '../constants/schoolConfig';
 
 /** Brand violet used to tint every clay puck's shadow across the app. */
@@ -35,14 +35,63 @@ interface StudentHeaderProps {
 
 const isWeb = Platform.OS === 'web';
 
-const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, title?: string, showSettingsButton?: boolean }> = ({ onMenuPress, showBackButton = false, title, showSettingsButton = true, scrollY, menuUserType = 'student', style: containerStyleOverride, titleStyle: titleStyleOverride }) => {
+type HeaderQuickCardProps = {
+    label: string;
+    colors: readonly [string, string];
+    shadowColor: string;
+    icon: React.ReactNode;
+    compact: boolean;
+    onPress: () => void;
+};
+
+/** Small navigation card that stays legible over both hero and scrolled headers. */
+function HeaderQuickCard({ label, colors, shadowColor, icon, compact, onPress }: HeaderQuickCardProps) {
+    return (
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            hitSlop={4}
+            onPress={onPress}
+            style={({ pressed }) => [
+                styles.quickCardPressable,
+                compact && styles.quickCardPressableCompact,
+                { shadowColor },
+                Platform.OS === 'web' && ({ cursor: 'pointer' } as unknown as ViewStyle),
+                pressed && styles.quickCardPressed,
+            ]}
+        >
+            <LinearGradient
+                colors={colors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.quickCardGradient, compact && styles.quickCardGradientCompact]}
+            >
+                <View style={styles.quickCardGlow} />
+                <View style={[styles.tabIconBox, compact && styles.tabIconBoxCompact]}>{icon}</View>
+                <Animated.Text style={[styles.tabText, compact && styles.tabTextCompact]} numberOfLines={1}>
+                    {label}
+                </Animated.Text>
+                {!compact && (
+                    <View style={styles.quickCardArrow}>
+                        <Ionicons name="chevron-forward" size={12} color="#FFFFFF" />
+                    </View>
+                )}
+            </LinearGradient>
+        </Pressable>
+    );
+}
+
+const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, title?: string, showSettingsButton?: boolean, rightAction?: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void } }> = ({ onMenuPress, showBackButton = false, title, showSettingsButton = true, rightAction, scrollY, menuUserType = 'student', style: containerStyleOverride, titleStyle: titleStyleOverride }) => {
     const router = useRouter();
-    const { theme, isDark } = useTheme();
+    const { isDark } = useTheme();
     const { isEnabled } = useFeatures();
     const { t, i18n } = useTranslation();
     const [isTeluguLang, setIsTeluguLang] = useState(isTeluguCheck(i18n.language));
     const [menuVisible, setMenuVisible] = useState(false);
     const insets = useSafeAreaInsets();
+    const { user } = useAuth();
+    const { width: viewportWidth } = useWindowDimensions();
+    const useCompactQuickCards = viewportWidth < 720;
 
     React.useEffect(() => {
         setIsTeluguLang(isTeluguCheck(i18n.language));
@@ -131,22 +180,15 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
         };
     }, [isDark]);
 
-    const iconColorStyle = useAnimatedStyle(() => {
-        if (!scrollY) return { backgroundColor: 'rgba(255,255,255,0.1)' };
-        const endBg = isDark ? 'rgba(30,41,59,0.95)' : '#F8FAFC';
-        return {
-            backgroundColor: interpolateColor(
-                scrollY.value,
-                [0, 50],
-                ['rgba(255,255,255,0.1)', endBg]
-            )
-        };
-    }, [isDark]);
-
     return (
         <Animated.View style={[
             styles.container,
-            { paddingTop: Math.max(insets.top, 36), shadowColor: CLAY_ACCENT }, // Guarantee enough space for status bar
+            // On the student tabs the header sits inside a nested SafeAreaProvider
+            // (ScreenLayout), so insets.top collapses to ~0 and the header rode up
+            // under the school ribbon. The global stackShell already applies the real
+            // safe-area offset, so a small fixed floor is all that's needed to clear
+            // the ribbon's wave without re-introducing a large gap.
+            { paddingTop: isWeb ? 12 : Math.max(insets.top, 16), shadowColor: CLAY_ACCENT },
             isAbsolute && styles.absoluteHeader,
             animatedStyle,
             containerStyleOverride,
@@ -184,36 +226,28 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
                     </Animated.Text>
                 ) : !showBackButton ? (
                     <View style={styles.homeTitleRow}>
-                        <Animated.Text style={[styles.headerTitle, styles.headerTitleHome, fontColorStyle]} numberOfLines={1}>
-                            {t('schoolRibbon.brandName', { defaultValue: SCHOOL_NAME })}
-                        </Animated.Text>
+
                         <View style={styles.tabsContainer}>
                             {isEnabled('topbar.diary') && (
-                            <Pressable
+                            <HeaderQuickCard
+                                label={t('diary', 'Diary')}
+                                colors={['#38BDF8', '#2563EB']}
+                                shadowColor="#2563EB"
+                                compact={useCompactQuickCards}
                                 onPress={() => handleTabPress('Diary')}
-                                style={Platform.OS === 'web' && { cursor: 'pointer' }}
-                            >
-                                <Animated.View style={[styles.tabButton, iconColorStyle]}>
-                                    <View style={[styles.tabIconBox, { backgroundColor: 'rgba(3,105,161,0.1)' }]}>
-                                        <Ionicons name="book" size={12} color="#0284C7" />
-                                    </View>
-                                    <Animated.Text style={[styles.tabText, fontColorStyle]}>{t('diary', 'Diary')}</Animated.Text>
-                                </Animated.View>
-                            </Pressable>
+                                icon={<Ionicons name="book" size={17} color="#FFFFFF" />}
+                            />
                             )}
 
                             {isEnabled('topbar.lms') && (
-                            <Pressable
+                            <HeaderQuickCard
+                                label={t('lMS', 'LMS')}
+                                colors={['#34D399', '#059669']}
+                                shadowColor="#059669"
+                                compact={useCompactQuickCards}
                                 onPress={() => handleTabPress('LMS')}
-                                style={Platform.OS === 'web' && { cursor: 'pointer' }}
-                            >
-                                <Animated.View style={[styles.tabButton, iconColorStyle]}>
-                                    <View style={[styles.tabIconBox, { backgroundColor: 'rgba(22,163,74,0.1)' }]}>
-                                        <MaterialIcons name="computer" size={12} color="#16A34A" />
-                                    </View>
-                                    <Animated.Text style={[styles.tabText, fontColorStyle]}>{t('lMS', 'LMS')}</Animated.Text>
-                                </Animated.View>
-                            </Pressable>
+                                icon={<MaterialIcons name="computer" size={17} color="#FFFFFF" />}
+                            />
                             )}
                         </View>
                     </View>
@@ -255,6 +289,22 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
                     </Animated.Text>
                 </View>
 
+                {/* Optional page-specific action (e.g. compose a new message) */}
+                {rightAction && (
+                    <ClayIconButton
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            rightAction.onPress();
+                        }}
+                        isDark
+                        accent={CLAY_ACCENT}
+                        round
+                        size={38}
+                    >
+                        <Ionicons name={rightAction.icon} size={18} color="#F4F0FB" />
+                    </ClayIconButton>
+                )}
+
                 {/* Settings Button */}
                 {showSettingsButton && (
                     <ClayIconButton
@@ -272,7 +322,7 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
                 )}
             </View>
 
-            <MenuOverlay visible={menuVisible} onClose={() => setMenuVisible(false)} userType={menuUserType} />
+            <MenuOverlay visible={menuVisible} onClose={() => setMenuVisible(false)} userType={menuUserType} photoUrl={user?.photoUrl} />
         </Animated.View>
     );
 };
@@ -282,7 +332,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: Spacing.md,
-        paddingBottom: Spacing.sm + 4, // Added more bottom padding
+        paddingBottom: Spacing.sm,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: 'transparent',
         borderBottomLeftRadius: 26,
@@ -318,28 +368,84 @@ const styles = StyleSheet.create({
     tabsContainer: {
         flexDirection: 'row',
         flexShrink: 0,
-        gap: Spacing.xs,
+        gap: 10,
     },
-    tabButton: {
+    quickCardPressable: {
+        minWidth: 124,
+        borderRadius: 16,
+        shadowOffset: { width: 0, height: 7 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 6,
+    },
+    quickCardPressableCompact: {
+        minWidth: 0,
+        borderRadius: 14,
+    },
+    quickCardPressed: {
+        transform: [{ translateY: 2 }, { scale: 0.98 }],
+        shadowOpacity: 0.16,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    quickCardGradient: {
+        height: 48,
+        paddingHorizontal: 10,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.28)',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: Spacing.xs + 2,
-        paddingVertical: 4,
-        borderRadius: Radii.sm,
-        backgroundColor: 'transparent',
-        gap: 6,
+        gap: 8,
+        overflow: 'hidden',
+    },
+    quickCardGradientCompact: {
+        height: 42,
+        paddingHorizontal: 9,
+        borderRadius: 14,
+        gap: 7,
+    },
+    quickCardGlow: {
+        position: 'absolute',
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        top: -40,
+        right: -12,
+        backgroundColor: 'rgba(255,255,255,0.22)',
     },
     tabIconBox: {
-        width: 20,
-        height: 20,
-        borderRadius: 5,
+        width: 30,
+        height: 30,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.22)',
+    },
+    tabIconBoxCompact: {
+        width: 26,
+        height: 26,
+        borderRadius: 8,
     },
     tabText: {
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.3,
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: 0.2,
+        color: '#FFFFFF',
+        flexGrow: 1,
+    },
+    tabTextCompact: {
+        fontSize: 13,
+    },
+    quickCardArrow: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.12)',
     },
     rightActions: {
         flexShrink: 0,

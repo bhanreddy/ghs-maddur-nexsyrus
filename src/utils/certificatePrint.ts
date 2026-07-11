@@ -81,7 +81,7 @@ async function uriToDataUri(uri: string): Promise<string> {
     });
   }
 
-  const FileSystem: any = await import('expo-file-system');
+  const FileSystem: any = await import('expo-file-system/legacy');
   const base64Logo = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
   const mime = uri.toLowerCase().includes('.jpg') || uri.toLowerCase().includes('.jpeg') ? 'jpeg' : 'png';
   return `data:image/${mime};base64,${base64Logo}`;

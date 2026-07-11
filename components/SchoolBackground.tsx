@@ -9,7 +9,7 @@
  */
 
 import React, { useEffect, memo } from 'react';
-import { StyleSheet, View, useColorScheme } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, {
   Defs,
   Pattern,
@@ -30,25 +30,26 @@ import Animated, {
   useAnimatedProps,
   Easing,
 } from 'react-native-reanimated';
+import { schoolTheme } from '@/src/constants/schoolConfig';
+import { useTheme } from '@/src/hooks/useTheme';
 
 // ─── Animated SVG <G> ────────────────────────────────────────────────────────
 const AnimatedG = Animated.createAnimatedComponent(G);
 
-// ─── Theme ───────────────────────────────────────────────────────────────────
-const THEME = {
-  light: { cream: '#F5F7FA', gold: '#CFA141' },
-  dark:  { cream: '#000E1A', gold: '#E0B84D' },
-} as const;
-
 // ─── Component ───────────────────────────────────────────────────────────────
 function SchoolBackgroundComponent() {
-  const scheme = useColorScheme();
-  const { cream, gold } = THEME[scheme === 'dark' ? 'dark' : 'light'];
+  // Follow the APP's light/dark toggle (not the OS scheme) so the chat backdrop
+  // always matches the rest of the UI. schoolTheme still drives the colours so
+  // the pattern stays on-brand.
+  const { isDark } = useTheme();
+  const themed = schoolTheme[isDark ? 'dark' : 'light'].colors;
+  const cream = themed.background;   // base tint
+  const gold = themed.primary;       // school brand colour drives the icon strokes
 
   // Shared values for 3 pulse phases (matches CSS pa/pb/pc with 1.4s offsets)
-  const opA = useSharedValue(0.38);
-  const opB = useSharedValue(0.38);
-  const opC = useSharedValue(0.38);
+  const opA = useSharedValue(0.26);
+  const opB = useSharedValue(0.26);
+  const opC = useSharedValue(0.26);
 
   useEffect(() => {
     const pulse = (sv: typeof opA, delayMs: number) => {
@@ -56,8 +57,8 @@ function SchoolBackgroundComponent() {
         delayMs,
         withRepeat(
           withSequence(
-            withTiming(0.60, { duration: 2100, easing: Easing.inOut(Easing.ease) }),
-            withTiming(0.38, { duration: 2100, easing: Easing.inOut(Easing.ease) })
+            withTiming(0.44, { duration: 2100, easing: Easing.inOut(Easing.ease) }),
+            withTiming(0.26, { duration: 2100, easing: Easing.inOut(Easing.ease) })
           ),
           -1,
           false
@@ -103,7 +104,7 @@ function SchoolBackgroundComponent() {
             width="480"
             height="480"
             patternUnits="userSpaceOnUse"
-            patternTransform="scale(0.34)"
+            patternTransform="scale(0.55)"
           >
             {/* ── Base fill ─────────────────────────────────────────────── */}
             <Rect width="480" height="480" fill={cream} />
@@ -119,7 +120,7 @@ function SchoolBackgroundComponent() {
                        Compact Calculator, Open Book, Scissors variant
                 DECORATIVES: circles, diamonds, plus-marks, arcs, sparkles, fillers
                 ══════════════════════════════════════════════════════════════ */}
-            <G {...S} opacity={0.44}>
+            <G {...S} opacity={0.32}>
 
               {/* ── ROW A  y=44 ──────────────────────────────────────────── */}
 

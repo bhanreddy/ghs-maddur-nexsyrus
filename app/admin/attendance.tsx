@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  Image,
 } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { useTranslation } from 'react-i18next';
@@ -141,8 +142,13 @@ function StatusBadge({ status, isDark }: { status: string; isDark: boolean }) {
   const pillBg = isDark ? meta.darkBg : meta.lightBg;
   const textClr = isDark ? meta.darkText : meta.lightText;
 
+  // The pill has a translucent tinted background; pairing that with the
+  // clayGlow elevation makes Android draw a boxy shadow artifact behind the
+  // capsule. The badge doesn't need a drop shadow, so skip the glow on Android.
+  const glow = Platform.OS === 'android' ? null : clayGlow(meta.dot, 'sm');
+
   return (
-    <View style={[styles.statusBadge, { backgroundColor: pillBg }, clayGlow(meta.dot, 'sm')]}>
+    <View style={[styles.statusBadge, { backgroundColor: pillBg }, glow]}>
       <Ionicons name={meta.icon as any} size={13} color={textClr} style={{ marginRight: 5 }} />
       <Text style={[styles.statusBadgeText, { color: textClr }]}>{meta.label}</Text>
     </View>
@@ -192,13 +198,22 @@ function DonutRing({
 function StatChip({
   value, label, color, icon, isDark,
 }: { value: number; label: string; color: string; icon: string; isDark: boolean }) {
-  const chipBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+  const isAndroid = Platform.OS === 'android';
+  // Android elevation shadows only render as a clean rounded card when the
+  // background is opaque. With a translucent bg the platform draws the shadow
+  // as a hard grey frame around a see-through centre (the broken "white box"
+  // look), so use solid equivalents of the translucent tints on Android.
+  const chipBg = isAndroid
+    ? (isDark ? '#22242E' : '#F4F5F8')
+    : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)');
   const chipBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
   const labelColor = isDark ? 'rgba(255,255,255,0.40)' : 'rgba(0,0,0,0.42)';
 
   return (
     <View style={[styles.statChip, { backgroundColor: chipBg, borderColor: chipBorder }, clay(isDark, 'sm')]}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}22` }, clayGlow(color, 'sm')]}>
+      {/* The icon disc keeps its colour tint but drops the elevation glow on
+          Android — a tiny translucent view + elevation casts a boxy artifact. */}
+      <View style={[styles.statIcon, { backgroundColor: `${color}22` }, isAndroid ? null : clayGlow(color, 'sm')]}>
         <Ionicons name={icon as any} size={14} color={color} />
       </View>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
@@ -255,7 +270,11 @@ function StaffCard({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={styles.avatarText}>{initials}</Text>
+            {staff.photo_url ? (
+              <Image source={{ uri: staff.photo_url }} style={styles.avatarImg} resizeMode="cover" />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </LinearGradient>
 
           {/* Info */}
@@ -363,6 +382,7 @@ export default function AdminAttendanceScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   // ── Filters ─────────────────────────────────────────────────────────────────
   const todayYMD = toYMD(new Date());
@@ -418,6 +438,29 @@ export default function AdminAttendanceScreen() {
           ? { ...s, status: STATUS_CYCLE[s.status || 'absent'] }
           : s
       )
+    );
+  };
+
+  const handleMarkAll = (status: string) => {
+    alertCompat(
+      'Confirm Bulk Update',
+      `Are you sure you want to mark all staff as ${STATUS_META[status]?.label}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          style: 'default',
+          onPress: () => {
+            setIsBulkUpdating(true);
+            setTimeout(() => {
+              setStaffList((prev) =>
+                prev.map((s) => ({ ...s, status }))
+              );
+              setIsBulkUpdating(false);
+            }, 50);
+          },
+        },
+      ]
     );
   };
 
@@ -653,24 +696,47 @@ export default function AdminAttendanceScreen() {
       )}
 
       {/* ── Footer CTA ──────────────────────────────────────────────────────── */}
-      <View style={[styles.footer, { backgroundColor: footerBg, borderTopColor: footerBorder }, clay(isDark, 'lg')]}>
-        <View style={styles.footerMeta}>
-          <Text style={[styles.footerCount, { color: titleColor }]}>
-            {stats.present}
-            <Text style={[styles.footerTotal, { color: subColor }]}> / {stats.total} present</Text>
-          </Text>
+      <View style={[styles.footerContainer, { backgroundColor: footerBg, borderTopColor: footerBorder }, clay(isDark, 'lg')]}>
+        <View style={styles.quickActions}>
+          <TouchableOpacity onPress={() => handleMarkAll('present')} style={[styles.quickBtn, { backgroundColor: isDark ? STATUS_META.present.darkBg : STATUS_META.present.lightBg }]}>
+            <Ionicons name="checkmark-circle" size={14} color={isDark ? STATUS_META.present.darkText : STATUS_META.present.lightText} />
+            <Text style={[styles.quickBtnText, { color: isDark ? STATUS_META.present.darkText : STATUS_META.present.lightText }]}>All Present</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleMarkAll('absent')} style={[styles.quickBtn, { backgroundColor: isDark ? STATUS_META.absent.darkBg : STATUS_META.absent.lightBg }]}>
+            <Ionicons name="close-circle" size={14} color={isDark ? STATUS_META.absent.darkText : STATUS_META.absent.lightText} />
+            <Text style={[styles.quickBtnText, { color: isDark ? STATUS_META.absent.darkText : STATUS_META.absent.lightText }]}>All Absent</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleMarkAll('half_day')} style={[styles.quickBtn, { backgroundColor: isDark ? STATUS_META.half_day.darkBg : STATUS_META.half_day.lightBg }]}>
+            <Ionicons name="time" size={14} color={isDark ? STATUS_META.half_day.darkText : STATUS_META.half_day.lightText} />
+            <Text style={[styles.quickBtnText, { color: isDark ? STATUS_META.half_day.darkText : STATUS_META.half_day.lightText }]}>All Half</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={submitAttendance} activeOpacity={0.85} style={[styles.submitBtn, clayGlow('#7C6FFF', 'md')]}>
-          <LinearGradient
-            colors={['#7C6FFF', '#5A4FE0']}
-            style={styles.submitGrad}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Ionicons name="checkmark-done" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.submitText}>Mark Attendance</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+
+        <View style={styles.footerRow}>
+          <View style={styles.footerMeta}>
+            <Text style={[styles.footerCount, { color: titleColor }]}>
+              {stats.present}
+              <Text style={[styles.footerTotal, { color: subColor }]}> / {stats.total} present</Text>
+            </Text>
+          </View>
+          <TouchableOpacity onPress={submitAttendance} disabled={isBulkUpdating} activeOpacity={0.85} style={[styles.submitBtn, clayGlow('#7C6FFF', 'md')]}>
+            <LinearGradient
+              colors={['#7C6FFF', '#5A4FE0']}
+              style={styles.submitGrad}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              {isBulkUpdating ? (
+                <LogoLoader size={20} color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.submitText}>Mark Attendance</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -685,7 +751,7 @@ const styles = StyleSheet.create({
   orb2: { position: 'absolute', width: 200, height: 200, borderRadius: 100, bottom: 140, left: -80 },
 
   // Scroll
-  scrollContent: { paddingTop: 100, paddingHorizontal: 20, paddingBottom: 120 },
+  scrollContent: { paddingTop: 100, paddingHorizontal: 20, paddingBottom: 160 },
 
   // Loader
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
@@ -791,8 +857,10 @@ const styles = StyleSheet.create({
   avatar: {
     width: 46, height: 46, borderRadius: 23,
     alignItems: 'center', justifyContent: 'center', marginRight: 13,
+    overflow: 'hidden',
   },
   avatarText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.3 },
+  avatarImg: { width: '100%', height: '100%', borderRadius: 23 },
   cardInfo: { flex: 1 },
   staffName: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2, marginBottom: 3 },
   staffRole: { fontSize: 12, fontWeight: '500' },
@@ -815,10 +883,31 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 13, fontWeight: '500', textAlign: 'center', paddingHorizontal: 40 },
 
   // Footer
-  footer: {
+  footerContainer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 20, paddingVertical: 14,
     borderTopWidth: 1,
+    flexDirection: 'column',
+    gap: 12,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  quickBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  footerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
   },
   footerMeta: { justifyContent: 'center' },

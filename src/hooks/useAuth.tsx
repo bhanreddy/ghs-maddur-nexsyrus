@@ -4,7 +4,7 @@ import { supabase } from '../services/supabaseConfig';
 import { AuthService, clearAuthState, isInternalSessionSwap } from '../services/authService';
 import { AuthSession, ValidatedUser } from '../types/auth';
 import { SCHOOL_ID } from '../constants/school';
-import { registerLogoutCallback } from '../services/apiClient';
+import { registerLogoutCallback, suppressTransientApiAlerts } from '../services/apiClient';
 import { isStudentRole, isPersistentSessionRole } from '../utils/roleHelpers';
 import { getBackupRefreshToken, clearBackupRefreshToken } from '../services/secureTokenStore';
 import { SessionPolicy } from '../services/sessionPolicyService';
@@ -53,7 +53,6 @@ interface AuthContextType {
   refreshPortalContexts: () => Promise<PortalContextsPayload>;
   switchPortalContext: (contextId: string) => Promise<PortalContextsPayload>;
   authChecked: boolean;
-  isAppLocked?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -74,7 +73,6 @@ const AuthContext = createContext<AuthContextType>({
   refreshPortalContexts: async () => ({ activeContextId: null, activeContext: null, groups: [], total: 0 }),
   switchPortalContext: async () => ({ activeContextId: null, activeContext: null, groups: [], total: 0 }),
   authChecked: false,
-  isAppLocked: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -458,6 +456,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // full-screen flash, defeating the "seamless" goal; the session swap itself is
   // what the UI re-renders against.
   const switchAccount = async (userId: string) => {
+    // While the session flips to the new account, the outgoing portal's screens
+    // are still mounted+focused and briefly refetch under the new identity,
+    // producing expected cross-role 4xx (e.g. 404 "Staff profile not found").
+    // Suppress the blocking error dialogs for those until navigation settles.
+    suppressTransientApiAlerts();
     const result = await AuthService.switchAccount(userId);
     if (result.session) {
       try {
@@ -466,6 +469,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // non-fatal — vault switch uses its own JWT, not server context
       }
+      // Re-arm the suppression window right before the session flips, so it fully
+      // covers the post-flip cross-role refetch storm even if the swap above was
+      // slow (the outgoing portal's screens refetch under the new identity here).
+      suppressTransientApiAlerts();
       // Update snapshot before React state so layout role guards see the new
       // account before AccountSwitcherSheet navigates (flushSync unavailable on RN).
       authSessionSnapshotRef.current = result.session;
@@ -510,6 +517,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const switchPortalContext = async (contextId: string): Promise<PortalContextsPayload> => {
+    suppressTransientApiAlerts();
     const payload = await switchPortalContextApi(contextId);
     setPortalContexts(payload);
     if (payload.activeContext) {
@@ -546,7 +554,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, loading, authChecked, isAppLocked: false, user, role, isStudent, schoolId,
+      session, loading, authChecked, user, role, isStudent, schoolId,
       signIn, signOut, refreshSession, updateUserPhoto, switchAccount, addAccount,
       portalContexts, refreshPortalContexts, switchPortalContext,
     }}>

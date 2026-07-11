@@ -16,6 +16,7 @@ export default function AdminLayout() {
                 <Stack.Screen name="academics" />
                 <Stack.Screen name="notices" />
                 <Stack.Screen name="complaints" />
+                <Stack.Screen name="messages" />
                 <Stack.Screen name="leaves" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="upi-settings" />

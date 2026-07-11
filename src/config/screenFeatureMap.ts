@@ -19,5 +19,3 @@ export const SCREEN_FEATURE_MAP: Record<string, FeatureKey> = {
   '/Screen/fees': 'nav.fees',
   '/Screen/attendance': 'home.todays_snapshot',
 };
-
-export const GIRL_SAFETY_FEATURE: FeatureKey = 'menu.girl_safety';

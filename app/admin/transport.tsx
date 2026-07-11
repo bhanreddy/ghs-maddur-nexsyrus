@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -58,10 +59,11 @@ export default function AdminTransport() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
-  const [tab, setTab] = useState<'buses' | 'routes' | 'live'>('buses');
+  const [tab, setTab] = useState<'buses' | 'routes' | 'live' | 'settings'>('buses');
   const [transportData, setTransportData] = useState<BusItem[]>([]);
   const [routeRows, setRouteRows] = useState<RouteRow[]>([]);
   const [liveRows, setLiveRows] = useState<LiveRouteRow[]>([]);
+  const [busAttendanceEnabled, setBusAttendanceEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -130,11 +132,34 @@ export default function AdminTransport() {
     }
   }, []);
 
+  const fetchSettings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get<any>('/school-settings');
+      setBusAttendanceEnabled(res?.enable_driver_bus_attendance === 'true');
+    } catch {
+      alertCompat('Error', 'Failed to load transport settings');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const toggleBusAttendance = async (value: boolean) => {
+    setBusAttendanceEnabled(value);
+    try {
+      await api.put('/school-settings', { enable_driver_bus_attendance: value ? 'true' : 'false' });
+    } catch (e: any) {
+      setBusAttendanceEnabled(!value);
+      alertCompat('Error', e?.message || 'Failed to update setting');
+    }
+  };
+
   useEffect(() => {
     if (tab === 'buses') fetchTransportData();
     else if (tab === 'routes') fetchRoutes();
-    else fetchLive();
-  }, [tab, fetchTransportData, fetchRoutes, fetchLive]);
+    else if (tab === 'live') fetchLive();
+    else fetchSettings();
+  }, [tab, fetchTransportData, fetchRoutes, fetchLive, fetchSettings]);
 
   useEffect(() => {
     if (tab !== 'live') return undefined;
@@ -559,7 +584,8 @@ export default function AdminTransport() {
   const onRefresh = () => {
     if (tab === 'buses') fetchTransportData();
     else if (tab === 'routes') fetchRoutes();
-    else fetchLive();
+    else if (tab === 'live') fetchLive();
+    else fetchSettings();
   };
 
   const EmptyState = ({ message, icon }: { message: string; icon: keyof typeof Ionicons.glyphMap }) => (
@@ -585,9 +611,9 @@ export default function AdminTransport() {
       />
 
       <FlatList
-        data={(tab === 'buses' ? transportData : tab === 'routes' ? routeRows : liveRows) as any[]}
+        data={(tab === 'buses' ? transportData : tab === 'routes' ? routeRows : tab === 'live' ? liveRows : []) as any[]}
         keyExtractor={(item: any) => item.route_id ? String(item.route_id) : item.id ? String(item.id) : Math.random().toString()}
-        renderItem={tab === 'buses' ? renderBusItem as any : tab === 'routes' ? renderRouteItem as any : renderLiveRow as any}
+        renderItem={tab === 'buses' ? renderBusItem as any : tab === 'routes' ? renderRouteItem as any : tab === 'live' ? renderLiveRow as any : null}
         contentContainerStyle={[styles.listContent, isDesktop && styles.listContentDesktop]}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor="#6366F1" />}
         ListHeaderComponent={
@@ -647,6 +673,13 @@ export default function AdminTransport() {
                 >
                   <Text style={[styles.pillTxt, tab === 'live' && styles.pillTxtOn]}>Live Today</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pillBtn, tab === 'settings' && styles.pillBtnOn]}
+                  onPress={() => setTab('settings')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.pillTxt, tab === 'settings' && styles.pillTxtOn]}>Settings</Text>
+                </TouchableOpacity>
               </View>
 
               {tab === 'routes' && (
@@ -666,14 +699,42 @@ export default function AdminTransport() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {tab === 'settings' && (
+              <Animated.View
+                entering={FadeInDown.duration(400).springify()}
+                style={styles.settingsCard}
+              >
+                <View style={styles.settingsHeader}>
+                  <Ionicons name="settings-outline" size={20} color="#6366F1" style={{ marginRight: 8 }} />
+                  <Text style={styles.settingsTitle}>General Settings</Text>
+                </View>
+                <View style={styles.settingsRow}>
+                  <View style={{ flex: 1, paddingRight: 16 }}>
+                    <Text style={styles.settingLabel}>Enable Driver Bus Attendance</Text>
+                    <Text style={styles.settingDesc}>
+                      Allow drivers to mark student attendance at each assigned bus stop during trips.
+                    </Text>
+                  </View>
+                  <Switch
+                    value={busAttendanceEnabled}
+                    onValueChange={toggleBusAttendance}
+                    trackColor={{ false: '#D1D5DB', true: '#C7D2FE' }}
+                    thumbColor={busAttendanceEnabled ? '#6366F1' : '#F3F4F6'}
+                  />
+                </View>
+              </Animated.View>
+            )}
           </>
         }
         ListEmptyComponent={
           !loading ? (
-            <EmptyState
-              message={tab === 'buses' ? 'No buses found' : tab === 'routes' ? 'No routes found' : 'No live trips today'}
-              icon={tab === 'buses' ? 'bus-outline' : tab === 'routes' ? 'map-outline' : 'navigate-outline'}
-            />
+            tab === 'settings' ? null : (
+              <EmptyState
+                message={tab === 'buses' ? 'No buses found' : tab === 'routes' ? 'No routes found' : 'No live trips today'}
+                icon={tab === 'buses' ? 'bus-outline' : tab === 'routes' ? 'map-outline' : 'navigate-outline'}
+              />
+            )
           ) : (
             <View style={styles.loaderArea}>
               <LogoLoader size={60} color="#6366F1" />
@@ -1320,5 +1381,47 @@ const getStyles = (theme: Theme) =>
       color: '#fff',
       fontWeight: '700',
       fontSize: 14,
+    },
+    settingsCard: {
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      padding: 20,
+      marginHorizontal: 4,
+      marginTop: 8,
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    settingsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#F3F4F6',
+      paddingBottom: 12,
+    },
+    settingsTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#111827',
+    },
+    settingsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    settingLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#111827',
+      marginBottom: 4,
+    },
+    settingDesc: {
+      fontSize: 12,
+      color: '#6B7280',
+      lineHeight: 18,
     },
   });

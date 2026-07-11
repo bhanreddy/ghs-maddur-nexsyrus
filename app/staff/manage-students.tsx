@@ -45,6 +45,7 @@ interface StudentUI {
   enrollmentId?: string;
   name: string;
   rollNo: string;
+  photoUrl: string | null;
   morningStatus: SessionStatus;
   afternoonStatus: SessionStatus;
 }
@@ -264,6 +265,7 @@ export default function ManageStudents() {
           enrollmentId: s.enrollment_id,
           name: s.student_name,
           rollNo: s.roll_number != null ? String(s.roll_number) : (s.admission_no ?? '—'),
+          photoUrl: s.photo_url ?? null,
           morningStatus: toSessionStatus(s.morning_status),
           afternoonStatus: toSessionStatus(s.afternoon_status),
         }))
@@ -474,7 +476,7 @@ export default function ManageStudents() {
         <StaffHeader
           title="Attendance"
           subtitle={new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
-          showBackButton={false}
+          showBackButton={true}
           showMenuButton={false}
         />
         {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
@@ -521,7 +523,7 @@ export default function ManageStudents() {
             ListFooterComponent={renderFooter}
             renderItem={({ item }) => (
               <SwipeableStudentCard
-                student={{ id: item.id, name: item.name, rollNo: item.rollNo, status: statusOf(item) }}
+                student={{ id: item.id, name: item.name, rollNo: item.rollNo, status: statusOf(item), photoUrl: item.photoUrl }}
                 onStatusChange={handleStatusChange}
                 isDark={isDark}
               />

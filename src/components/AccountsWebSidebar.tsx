@@ -183,39 +183,52 @@ export default function AccountsWebSidebar({
       <Pressable
         key={item.route}
         onPress={() => onNavigate(item.route)}
-        style={[styles.row, collapsed && styles.rowCollapsed, Platform.OS === 'web' && { cursor: 'pointer' }]}
+        style={[
+          styles.row,
+          collapsed && styles.rowCollapsed,
+          Platform.OS === 'web' && { cursor: 'pointer' },
+          {
+            borderRadius: 18,
+            marginBottom: 8,
+            backgroundColor: active ? (isDark ? '#2A3142' : '#EEF1F8') : (isDark ? '#1E293B' : '#F8FAFC'),
+            borderTopWidth: 1.5,
+            borderTopColor: active ? (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)'),
+            borderBottomWidth: 3,
+            borderBottomColor: active ? (isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.18)') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(76,90,120,0.08)'),
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: active ? 8 : 4 },
+            shadowOpacity: active ? (isDark ? 0.35 : 0.22) : (isDark ? 0.2 : 0.08),
+            shadowRadius: active ? 12 : 6,
+            elevation: active ? 4 : 2,
+          }
+        ]}
       >
-        {active ? (
-          <>
-            <LinearGradient
-              colors={[g0, g1]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={[StyleSheet.absoluteFill, styles.rowActiveFill]}
-            />
-            <LinearGradient
-              colors={[`${g0}FF`, `${g0}00`]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={styles.activeLeftGlow}
-            />
-          </>
-        ) : (
-          <View style={styles.rowGhost} />
-        )}
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+          {active && (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: g0, opacity: isDark ? 0.35 : 0.30 }]} />
+          )}
+          <LinearGradient
+            colors={active 
+              ? (isDark ? ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)'])
+              : (isDark ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'])}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
 
         <View
-          style={[styles.iconWrap, collapsed && styles.iconWrapCollapsed, active && styles.iconWrapActive]}
+          style={[styles.iconWrap, collapsed && styles.iconWrapCollapsed, active && { backgroundColor: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.7)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }]}
         >
           <Ionicons
             name={item.icon}
             size={22}
             color={
               active
-                ? '#FFFFFF'
+                ? (isDark ? '#FFFFFF' : g0)
                 : isDark
-                  ? 'rgba(255,255,255,0.38)'
-                  : 'rgba(15,23,42,0.42)'
+                  ? 'rgba(255,255,255,0.45)'
+                  : 'rgba(15,23,42,0.5)'
             }
           />
           {collapsed && showBadge ? <View style={styles.badgeDot} /> : null}
@@ -224,7 +237,7 @@ export default function AccountsWebSidebar({
         {!collapsed ? (
           <View style={styles.meta}>
             <View style={styles.titleRow}>
-              <Text style={[styles.itemTitle, active && styles.itemTitleActive]} numberOfLines={2}>
+              <Text style={[styles.itemTitle, active && { color: isDark ? '#FFFFFF' : '#1E293B' }]} numberOfLines={2}>
                 {item.title}
               </Text>
               {showBadge ? (
@@ -234,7 +247,7 @@ export default function AccountsWebSidebar({
               ) : null}
             </View>
             {item.category ? (
-              <Text style={[styles.category, active && styles.categoryActive]} numberOfLines={1}>
+              <Text style={[styles.category, active && { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(30,41,59,0.7)' }]} numberOfLines={1}>
                 {item.category.toUpperCase()}
               </Text>
             ) : null}
@@ -310,9 +323,39 @@ export default function AccountsWebSidebar({
 
         <Pressable
           onPress={onLogout}
-          style={[styles.logoutRow, collapsed && styles.logoutRowCollapsed, Platform.OS === 'web' && { cursor: 'pointer' }]}
+          style={[
+            styles.logoutRow,
+            collapsed && styles.logoutRowCollapsed,
+            Platform.OS === 'web' && { cursor: 'pointer' },
+            {
+              borderRadius: 18,
+              borderTopWidth: 1.5,
+              backgroundColor: isDark ? '#2A3142' : '#FEE2E2',
+              borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+              borderBottomWidth: 3,
+              borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(220,38,38,0.2)',
+              shadowColor: isDark ? '#000' : '#DC2626',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isDark ? 0.2 : 0.15,
+              shadowRadius: 8,
+              elevation: 2,
+              paddingVertical: 10,
+              paddingHorizontal: 10,
+              marginHorizontal: 10,
+              marginBottom: 16,
+              marginTop: 10,
+            }
+          ]}
         >
-          <View style={styles.iconWrapLogout}>
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+            <LinearGradient
+              colors={isDark ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </View>
+          <View style={[styles.iconWrapLogout, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.6)', marginLeft: 0 }]}>
             <Ionicons
               name="log-out-outline"
               size={22}
@@ -320,7 +363,7 @@ export default function AccountsWebSidebar({
             />
           </View>
           {!collapsed ? (
-            <Text style={styles.logoutLabel}>Logout</Text>
+            <Text style={[styles.logoutLabel, { marginLeft: 10 }]}>Logout</Text>
           ) : null}
         </Pressable>
       </View>

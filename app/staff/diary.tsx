@@ -11,6 +11,7 @@ import ViewAsBanner from '../../src/components/ViewAsBanner';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
 import { DiaryService, DiaryEntry, TeacherService, TeacherClassAssignment } from '../../src/services/commonServices';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../src/hooks/useTheme';
 import { Shadows, Radii, Spacing, Typography, Theme } from '../../src/theme/themes';
 import { styles as fieldStyles } from '@/src/theme/styles';
@@ -76,39 +77,7 @@ function clayCard(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md'): any {
   };
 }
 
-/** Staff diary form copy — teachers post homework in Telugu. */
-const TE = {
-  header: 'డైరీ & హోంవర్క్',
-  today: 'ఈరోజు',
-  history: 'చరిత్ర',
-  selectClass: 'తరగతి & విషయం ఎంచుకోండి',
-  cancelEdit: 'సవరణ రద్దు',
-  postNew: 'కొత్త హోంవర్క్ పోస్ట్ చేయండి',
-  modify: 'హోంవర్క్ సవరించండి',
-  existingEntry: 'ఇప్పటికే ఉంది',
-  teluguHint: 'హోంవర్క్‌ను తెలుగులో రాయండి',
-  titleLabel: 'శీర్షిక (ఐచ్ఛికం)',
-  titlePlaceholder: 'ఉదా: 5వ అధ్యాయం సారాంశం',
-  descLabel: 'వివరణ',
-  descPlaceholder: 'తెలుగులో హోంవర్క్ వివరాలు రాయండి…',
-  dueDate: 'గడువు తేదీ',
-  postHomework: 'హోంవర్క్ పోస్ట్ చేయండి',
-  updateHomework: 'హోంవర్క్ నవీకరించండి',
-  todayHomework: 'ఈరోజు హోంవర్క్',
-  historyHomework: 'ఎంచుకున్న రోజు హోంవర్క్',
-  noHomework: 'ఈ రోజు హోంవర్క్ లేదు',
-  due: 'గడువు',
-  posted: 'పోస్ట్',
-  edit: 'సవరించు',
-  errClass: 'దయచేసి తరగతి మరియు విషయం ఎంచుకోండి',
-  errDesc: 'దయచేసి హోంవర్క్ వివరణను తెలుగులో రాయండి',
-  successPost: 'హోంవర్క్ విజయవంతంగా పోస్ట్ అయింది!',
-  successUpdate: 'హోంవర్క్ విజయవంతంగా నవీకరించబడింది!',
-  errSave: 'హోంవర్క్ సేవ్ చేయడం విఫలమైంది',
-  errLoadClass: 'మీ తరగతులు లోడ్ కాలేదు',
-  noticeInactive: 'ఈ అసైన్‌మెంట్ ఇప్పుడు మీ జాబితాలో లేదు',
-  noticeReadOnly: 'మరొక స్టాఫ్ పోర్టల్‌ను చూస్తున్నప్పుడు డైరీ ఎంట్రీలు పోస్ట్ చేయలేరు',
-};
+
 
 function diaryDisplayTitle(entry: DiaryEntry): string {
   return entry.title_te?.trim() || entry.title || '';
@@ -119,13 +88,10 @@ function diaryDisplayContent(entry: DiaryEntry): string {
 }
 
 export default function StaffDiary() {
-  const {
-    user
-  } = useAuth();
-  const {
-    theme,
-    isDark
-  } = useTheme();
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const TE = t('staffDiary', { returnObjects: true }) as any;
+  const { theme, isDark } = useTheme();
   const { isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
   const styles = React.useMemo(() => getStyles(theme), [theme]);
   const [title, setTitle] = useState('');
@@ -561,7 +527,7 @@ function HomeworkDayList({
   diaryEntries: DiaryEntry[];
   displayYmd: string;
   onEdit: (entry: DiaryEntry) => void;
-  labels: typeof TE;
+  labels: Record<string, string>;
 }) {
   const items = diaryEntries.filter((e) => e.entry_date === displayYmd);
   if (items.length === 0) {

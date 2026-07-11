@@ -16,7 +16,8 @@ export default function DriverLayout() {
                 swipeEnabled: true,
                 animationEnabled: true,
                 lazy: true,
-            }}
+                headerShown: false,
+            } as any}
         >
             <MaterialTopTabs.Screen
                 name="trip"
@@ -29,6 +30,10 @@ export default function DriverLayout() {
             <MaterialTopTabs.Screen
                 name="students"
                 options={{ title: "Students" }}
+            />
+            <MaterialTopTabs.Screen
+                name="bus-attendance"
+                options={{ title: "Attendance" }}
             />
             <MaterialTopTabs.Screen
                 name="payslip"

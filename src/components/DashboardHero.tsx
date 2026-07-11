@@ -117,7 +117,8 @@ const styles = StyleSheet.create({
     panel: {
         borderRadius: 28,
         borderWidth: 1,
-        padding: 22,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
         overflow: 'hidden',
         ...Platform.select({
             web: { boxShadow: '0 18px 45px rgba(79,70,229,0.10)' } as any,

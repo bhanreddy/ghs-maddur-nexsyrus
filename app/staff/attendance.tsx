@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     orb1: { position: 'absolute', width: 350, height: 350, borderRadius: 175, top: -100, right: -120 },
     orb2: { position: 'absolute', width: 250, height: 250, borderRadius: 125, bottom: 100, left: -100 },
 
-    scrollContent: { paddingTop: 96, paddingHorizontal: 20, paddingBottom: 60 },
+    scrollContent: { paddingTop: 76, paddingHorizontal: 20, paddingBottom: 60 },
 
     // Hero card
     heroShadowWrap: { borderRadius: 24, marginBottom: 14 },

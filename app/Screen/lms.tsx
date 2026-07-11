@@ -7,25 +7,15 @@ import {
   StyleSheet,
   FlatList,
   Pressable,
-  Image,
   StatusBar,
   ScrollView,
-  TouchableOpacity,
   useWindowDimensions,
   Platform,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
 import StudentHeader from '../../src/components/StudentHeader';
 import { api } from '../../src/services/apiClient';
 import { useTheme } from '../../src/hooks/useTheme';
@@ -35,7 +25,8 @@ import LMSVideoModal, { type LMSVideoMaterial } from '@/src/components/lms/LMSVi
 import { extractYoutubeVideoId } from '@/src/utils/youtube';
 import { getVideoProgressMap, type VideoProgress } from '@/src/utils/lmsVideoProgress';
 
-const TABLET_MIN_W = 768;
+const TABLET_MIN_W = 720;
+const DESKTOP_MIN_W = 1180;
 const NEW_DAYS = 7;
 
 /** `duration` from API is seconds (integer); format for badge. Legacy string like "10:00" is passed through. */
@@ -128,89 +119,17 @@ function topicAccent(courseTitle: string): string {
   return '#4F46E5';
 }
 
-function AnimatedProgressFill({
-  ratio,
-  theme,
-  isDark,
-}: {
-  ratio: number;
-  theme: Theme;
-  isDark: boolean;
-}) {
-  const [trackW, setTrackW] = useState(0);
-  const wPx = useSharedValue(0);
-
-  useEffect(() => {
-    const target = trackW * Math.min(1, Math.max(0, ratio));
-    wPx.value = withTiming(target, { duration: 420, easing: Easing.out(Easing.cubic) });
-  }, [trackW, ratio, wPx]);
-
-  const fillStyle = useAnimatedStyle(() => ({
-    width: wPx.value,
-  }));
-
-  return (
-    <View
-      style={{
-        height: 8,
-        borderRadius: 999,
-        overflow: 'hidden',
-        width: '100%',
-        backgroundColor: isDark ? theme.colors.borderLight : theme.colors.border,
-      }}
-      onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
-    >
-      <Animated.View
-        style={[
-          {
-            height: '100%',
-            borderRadius: 999,
-            backgroundColor: theme.colors.info,
-          },
-          fillStyle,
-        ]}
-      />
-    </View>
-  );
-}
-
-function ThumbnailShimmer({ active, theme }: { active: boolean; theme: Theme }) {
-  const p = useSharedValue(0);
-  useEffect(() => {
-    if (!active) return;
-    p.value = withRepeat(
-      withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true
-    );
-  }, [active, p]);
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + p.value * 0.45,
-  }));
-  if (!active) return null;
-  return (
-    <Animated.View
-      style={[
-        StyleSheet.absoluteFillObject,
-        { backgroundColor: theme.colors.border, zIndex: 0 },
-        animStyle,
-      ]}
-    />
-  );
-}
-
 export default function LMSPage() {
   const { theme, isDark } = useTheme();
   const { width: winW } = useWindowDimensions();
   const isWide = winW >= TABLET_MIN_W;
-  const numCols = isWide ? 2 : 1;
+  const numCols = winW >= DESKTOP_MIN_W ? 3 : isWide ? 2 : 1;
   const styles = useMemo(() => getStyles(theme, isDark, isWide, winW), [theme, isDark, isWide, winW]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<SubjectKey>('All');
   const [materials, setMaterials] = useState<LMSMaterial[]>([]);
   const [loading, setLoading] = useState(true);
-  const [thumbLoaded, setThumbLoaded] = useState<Record<string, boolean>>({});
   const [progressMap, setProgressMap] = useState<Record<string, VideoProgress>>({});
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [activeVideo, setActiveVideo] = useState<LMSVideoMaterial | null>(null);
@@ -271,15 +190,6 @@ export default function LMSPage() {
     return filteredContent.findIndex((it) => !progressMap[it.id]?.completed);
   }, [filteredContent, progressMap]);
 
-  const scrollToFirstIncomplete = useCallback(() => {
-    if (firstIncompleteIndex < 0) return;
-    listRef.current?.scrollToIndex({
-      index: firstIncompleteIndex,
-      animated: true,
-      viewPosition: 0.12,
-    });
-  }, [firstIncompleteIndex]);
-
   const openMaterial = useCallback((item: LMSMaterial) => {
     const vid = extractYoutubeVideoId(item.content_url);
     if (vid) {
@@ -307,67 +217,44 @@ export default function LMSPage() {
     return Date.now() - t < NEW_DAYS * 24 * 60 * 60 * 1000;
   };
 
-  const renderItem = ({ item, index }: { item: LMSMaterial; index: number }) => {
+  const renderItem = ({ item }: { item: LMSMaterial }) => {
     const accent = topicAccent(item.course_title);
     const yid = extractYoutubeVideoId(item.content_url);
     const thumbUri = yid ? `https://img.youtube.com/vi/${yid}/hqdefault.jpg` : null;
-    const loaded = !!thumbLoaded[item.id];
     const completed = !!progressMap[item.id]?.completed;
     const isNew = isNewMaterial(item.createdAtIso);
 
     return (
-      <Animated.View
-        entering={FadeInDown.delay(Math.min(index, 12) * 70).duration(520)}
-        style={numCols > 1 ? styles.gridCell : undefined}
-      >
+      <View style={numCols > 1 ? styles.gridCell : undefined}>
         <Pressable
           onPress={() => openMaterial(item)}
+          accessibilityRole="button"
+          accessibilityLabel={`${completed ? 'Completed' : 'Play'} ${item.title}, ${item.course_title}`}
           style={({ pressed, hovered }) => [
             styles.card,
-            { borderLeftColor: accent },
             Platform.OS === 'web' && hovered ? styles.cardHoverWeb : null,
             pressed ? styles.cardPressed : null,
           ]}
         >
-          <View style={styles.thumbFrame}>
-            <View style={styles.thumbnailContainer}>
-              <ThumbnailShimmer active={!!thumbUri && !loaded} theme={theme} />
+          <View style={styles.thumbnailContainer}>
               {thumbUri ? (
                 <Image
                   source={{ uri: thumbUri }}
-                  style={[styles.thumbnail, !loaded && styles.thumbnailHidden]}
-                  resizeMode="cover"
-                  onLoadEnd={() => setThumbLoaded((prev) => ({ ...prev, [item.id]: true }))}
+                  style={styles.thumbnail}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <View style={[styles.thumbnail, styles.thumbPlaceholder]}>
                   <Ionicons name="logo-youtube" size={40} color={theme.colors.textTertiary} />
                 </View>
               )}
-              <LinearGradient
-                pointerEvents="none"
-                colors={
-                  isDark
-                    ? ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0)', 'transparent']
-                    : ['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']
-                }
-                locations={[0, 0.45, 1]}
-                style={styles.thumbnailTopShine}
-              />
               <View style={styles.playButtonOverlay} pointerEvents="none">
-                <View style={styles.playOuterRing}>
-                  {Platform.OS === 'web' ? (
-                    <View style={[styles.playBlurFallback, isDark && styles.playBlurFallbackDark]}>
-                      <Ionicons name="play" size={28} color="#FFF" style={{ marginLeft: 5 }} />
-                    </View>
-                  ) : (
-                    <BlurView intensity={52} tint={isDark ? 'dark' : 'light'} style={styles.playBlurInner}>
-                      <Ionicons name="play" size={28} color="#FFF" style={{ marginLeft: 5 }} />
-                    </BlurView>
-                  )}
+                <View style={[styles.playButton, { backgroundColor: accent }]}>
+                  <Ionicons name="play" size={22} color="#FFF" style={{ marginLeft: 3 }} />
                 </View>
               </View>
-              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']} style={styles.thumbnailGradient} />
+              <LinearGradient colors={['transparent', 'rgba(8,15,35,0.76)']} style={styles.thumbnailGradient} />
               <View style={styles.durationBadge}>
                 <MaterialIcons name="schedule" size={12} color="rgba(255,255,255,0.95)" style={{ marginRight: 4 }} />
                 <Text style={styles.durationText}>{item.duration}</Text>
@@ -382,7 +269,6 @@ export default function LMSPage() {
                   <Ionicons name="checkmark-circle" size={28} color={theme.colors.success} />
                 </View>
               ) : null}
-            </View>
           </View>
 
           <View style={styles.cardContent}>
@@ -409,92 +295,152 @@ export default function LMSPage() {
               </View>
               <Text style={styles.date}>{item.created_at}</Text>
             </View>
+            <View style={styles.cardActionRow}>
+              <Text style={[styles.cardActionText, { color: accent }]}>
+                {completed ? 'Watch again' : 'Start lesson'}
+              </Text>
+              <Ionicons name="arrow-forward" size={16} color={accent} />
+            </View>
           </View>
         </Pressable>
-      </Animated.View>
+      </View>
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
-      <StudentHeader showBackButton={true} title="LMS" />
+  const nextMaterial = firstIncompleteIndex >= 0 ? filteredContent[firstIncompleteIndex] : filteredContent[0];
 
-      <View style={styles.tabsContainer}>
+  const listHeader = (
+    <View>
+      <View style={styles.heroShell}>
+        <LinearGradient
+          colors={isDark ? ['#1C2750', '#151B35'] : ['#E7E9FF', '#DDE9FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={styles.heroCopy}>
+            <View style={styles.eyebrow}>
+              <Ionicons name="sparkles" size={13} color={isDark ? '#C7D2FE' : '#4338CA'} />
+              <Text style={styles.eyebrowText}>YOUR LEARNING SPACE</Text>
+            </View>
+            <Text style={styles.heroTitle}>Learn a little.{isWide ? '\n' : ' '}Grow a lot.</Text>
+            <Text style={styles.heroSubtitle}>
+              Pick up where you left off or explore a new subject at your own pace.
+            </Text>
+            {nextMaterial ? (
+              <Pressable
+                onPress={() => openMaterial(nextMaterial)}
+                accessibilityRole="button"
+                accessibilityLabel={`Continue learning ${nextMaterial.title}`}
+                style={({ pressed }) => [styles.continueButton, pressed && styles.continueButtonPressed]}
+              >
+                <View style={styles.continueIcon}>
+                  <Ionicons name="play" size={14} color="#FFFFFF" style={{ marginLeft: 2 }} />
+                </View>
+                <View style={styles.continueCopy}>
+                  <Text style={styles.continueLabel}>{firstIncompleteIndex >= 0 ? 'CONTINUE LEARNING' : 'REPLAY LESSON'}</Text>
+                  <Text style={styles.continueTitle} numberOfLines={1}>{nextMaterial.title}</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.progressClay}>
+            <View style={styles.progressTopRow}>
+              <View>
+                <Text style={styles.progressOverline}>COURSE PROGRESS</Text>
+                <Text style={styles.progressPercent}>{Math.round(progressStats.ratio * 100)}%</Text>
+              </View>
+              <View style={styles.progressIconWell}>
+                <Ionicons name="trophy-outline" size={24} color={isDark ? '#FCD34D' : '#B45309'} />
+              </View>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.round(progressStats.ratio * 100)}%` as any }]} />
+            </View>
+            <Text style={styles.progressCaption}>
+              {progressStats.done} of {progressStats.total} lessons complete
+            </Text>
+          </View>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.discoverySection}>
+        <View style={styles.searchBar}>
+          <View style={styles.searchIconWell}>
+            <Ionicons name="search" size={19} color={theme.colors.primary} />
+          </View>
+          <AppTextInput
+            style={[ds.inputInChrome, styles.searchInput]}
+            placeholder="Search lessons, topics, or subjects"
+            placeholderTextColor={theme.colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            accessibilityLabel="Search lessons"
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 ? (
+            <Pressable
+              onPress={() => setSearchQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={10}
+              style={styles.searchClear}
+            >
+              <Ionicons name="close" size={18} color={theme.colors.textSecondary} />
+            </Pressable>
+          ) : null}
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
           {SUBJECTS.map((subject) => {
             const active = selectedSubject === subject;
             const tabMeta = SUBJECT_TAB[subject] ?? SUBJECT_TAB.All;
             return (
-              <TouchableOpacity
+              <Pressable
                 key={subject}
-                activeOpacity={0.85}
-                style={[styles.tabItem, active && styles.tabItemActiveShell]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
                 onPress={() => setSelectedSubject(subject)}
+                style={({ pressed }) => [
+                  styles.tabItem,
+                  active && { backgroundColor: tabMeta.accent, borderColor: tabMeta.accent },
+                  pressed && styles.tabPressed,
+                ]}
               >
-                {active ? (
-                  <LinearGradient
-                    colors={['#2563EB', '#4F46E5']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                ) : null}
-                <View style={styles.tabInner}>
-                  <Text style={styles.tabEmoji}>{tabMeta.icon}</Text>
-                  <Text style={[styles.tabText, active && styles.activeTabText]}>{subject}</Text>
-                </View>
-              </TouchableOpacity>
+                <Text style={styles.tabEmoji}>{tabMeta.icon}</Text>
+                <Text style={[styles.tabText, active && styles.activeTabText]}>{subject}</Text>
+              </Pressable>
             );
           })}
         </ScrollView>
-      </View>
 
-      <TouchableOpacity
-        activeOpacity={0.88}
-        style={styles.progressBanner}
-        onPress={scrollToFirstIncomplete}
-        disabled={firstIncompleteIndex < 0}
-      >
-        <View style={styles.progressBannerHeader}>
-          <Text style={styles.progressBannerTitle}>
-            You&apos;ve completed {progressStats.done} of {progressStats.total} videos
-          </Text>
-          {firstIncompleteIndex >= 0 ? (
-            <Ionicons name="chevron-down" size={18} color={theme.colors.primary} />
-          ) : null}
-        </View>
-        <AnimatedProgressFill ratio={progressStats.ratio} theme={theme} isDark={isDark} />
-      </TouchableOpacity>
-
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, ds.searchBarWrapper]}>
-          <Ionicons name="search" size={20} color={theme.colors.textTertiary} />
-          <AppTextInput
-            style={[
-              ds.inputInChrome,
-              styles.searchInput,
-              {
-                minHeight: 40,
-                color: theme.colors.textStrong,
-              },
-            ]}
-            placeholder="Search topics..."
-            placeholderTextColor={theme.colors.textTertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.searchClear}
+        <View style={styles.sectionHeadingRow}>
+          <View>
+            <Text style={styles.sectionTitle}>{selectedSubject === 'All' ? 'All lessons' : selectedSubject}</Text>
+            <Text style={styles.sectionMeta}>
+              {filteredContent.length} {filteredContent.length === 1 ? 'lesson' : 'lessons'} available
+            </Text>
+          </View>
+          {searchQuery || selectedSubject !== 'All' ? (
+            <Pressable
+              onPress={() => { setSearchQuery(''); setSelectedSubject('All'); }}
+              accessibilityRole="button"
+              style={styles.resetButton}
             >
-              <Ionicons name="close-circle" size={22} color={theme.colors.textTertiary} />
-            </TouchableOpacity>
+              <Text style={styles.resetText}>Reset filters</Text>
+            </Pressable>
           ) : null}
         </View>
       </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
+      <StudentHeader showBackButton={true} title="LMS" />
 
       {loading ? (
         <View style={styles.loaderWrap}>
@@ -510,7 +456,12 @@ export default function LMSPage() {
           numColumns={numCols}
           columnWrapperStyle={numCols > 1 ? styles.columnWrap : undefined}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={listHeader}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={numCols * 2}
+          maxToRenderPerBatch={numCols * 2}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS !== 'web'}
           onScrollToIndexFailed={(info) => {
             const approx = 360;
             setTimeout(() => {
@@ -522,8 +473,11 @@ export default function LMSPage() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <MaterialIcons name="video-library" size={64} color={theme.colors.border} />
-              <Text style={styles.emptyText}>No content found</Text>
+              <View style={styles.emptyIconWell}>
+                <MaterialIcons name="video-library" size={34} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.emptyText}>No lessons found</Text>
+              <Text style={styles.emptyCaption}>Try another subject or clear your search.</Text>
             </View>
           }
         />
@@ -542,424 +496,500 @@ export default function LMSPage() {
 }
 
 function getStyles(theme: Theme, isDark: boolean, isWide: boolean, winW: number) {
-  const pad = 20;
-  const gap = 12;
-  const colBasis = isWide ? (winW - pad * 2 - gap) / 2 : winW - pad * 2;
+  const pad = isWide ? 24 : 16;
+  const gap = isWide ? 18 : 14;
+  const contentW = Math.min(winW, 1480);
+  const columns = winW >= DESKTOP_MIN_W ? 3 : isWide ? 2 : 1;
+  const colBasis = (contentW - pad * 2 - gap * (columns - 1)) / columns;
+  const clayBase = isDark ? '#171D30' : '#EEF2FA';
+  const clayRaised = isDark ? '#20283D' : '#F7F9FE';
+  const clayBorder = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.88)';
+  const webClay = isDark
+    ? '-6px -6px 14px rgba(48,58,84,0.34), 8px 10px 22px rgba(3,7,18,0.46)'
+    : '-7px -7px 16px rgba(255,255,255,0.95), 8px 10px 22px rgba(94,108,137,0.18)';
+  const webClaySmall = isDark
+    ? '-3px -3px 8px rgba(48,58,84,0.26), 4px 5px 10px rgba(3,7,18,0.34)'
+    : '-4px -4px 9px rgba(255,255,255,0.95), 4px 5px 11px rgba(94,108,137,0.14)';
 
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: 'transparent',
+      backgroundColor: clayBase,
     },
     loaderWrap: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: clayBase,
     },
-    tabsContainer: {
-      backgroundColor: theme.colors.background,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    tabsContent: {
+    listContent: {
+      width: '100%',
+      maxWidth: 1480,
+      alignSelf: 'center',
       paddingHorizontal: pad,
-      gap: 10,
-      alignItems: 'center',
+      paddingBottom: 48,
     },
-    tabItem: {
-      paddingHorizontal: 14,
-      paddingVertical: 9,
-      borderRadius: 999,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      overflow: 'hidden',
-      position: 'relative',
+    heroShell: {
+      paddingTop: isWide ? 24 : 16,
+      paddingBottom: isWide ? 26 : 18,
     },
-    tabItemActiveShell: {
-      borderColor: 'transparent',
-    },
-    tabInner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      zIndex: 1,
-    },
-    tabEmoji: {
-      fontSize: 15,
-    },
-    tabText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: theme.colors.textSecondary,
-    },
-    activeTabText: {
-      color: '#FFFFFF',
-    },
-    progressBanner: {
-      marginHorizontal: pad,
-      marginTop: 12,
-      marginBottom: 4,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      borderRadius: 14,
-      backgroundColor: theme.colors.background,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    progressBannerHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    hero: {
+      minHeight: isWide ? 258 : 0,
+      borderRadius: isWide ? 32 : 24,
+      padding: isWide ? 30 : 20,
+      flexDirection: isWide ? 'row' : 'column',
+      alignItems: isWide ? 'stretch' : 'flex-start',
       justifyContent: 'space-between',
-      marginBottom: 10,
+      gap: 22,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(165,180,252,0.12)' : 'rgba(255,255,255,0.75)',
+      shadowColor: isDark ? '#000000' : '#7582A0',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDark ? 0.35 : 0.18,
+      shadowRadius: 22,
+      elevation: 7,
+      ...Platform.select({ web: { boxShadow: webClay }, default: {} }),
     },
-    progressBannerTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: theme.colors.textStrong,
+    heroCopy: {
       flex: 1,
-      paddingRight: 8,
+      maxWidth: 720,
+      justifyContent: 'center',
     },
-    searchContainer: {
-      paddingHorizontal: pad,
-      paddingVertical: 12,
-      backgroundColor: theme.colors.card,
+    eyebrow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 11,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.55)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(165,180,252,0.16)' : 'rgba(255,255,255,0.78)',
+    },
+    eyebrowText: {
+      color: isDark ? '#C7D2FE' : '#4338CA',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.15,
+    },
+    heroTitle: {
+      color: isDark ? '#F8FAFC' : '#18214B',
+      fontSize: isWide ? 38 : 28,
+      lineHeight: isWide ? 43 : 34,
+      fontWeight: '800',
+      letterSpacing: -1.1,
+      marginTop: 14,
+    },
+    heroSubtitle: {
+      color: isDark ? '#B7C1D8' : '#536181',
+      fontSize: isWide ? 15 : 14,
+      lineHeight: 22,
+      maxWidth: 570,
+      marginTop: 9,
+    },
+    continueButton: {
+      marginTop: 18,
+      minHeight: 54,
+      maxWidth: isWide ? 430 : '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 11,
+      paddingHorizontal: 10,
+      paddingRight: 16,
+      borderRadius: 18,
+      backgroundColor: '#4F46E5',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.22)',
+      shadowColor: '#312E81',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.28,
+      shadowRadius: 10,
+      elevation: 5,
+      ...Platform.select({
+        web: {
+          cursor: 'pointer',
+          boxShadow: 'inset 2px 2px 3px rgba(255,255,255,0.22), inset -3px -3px 5px rgba(49,46,129,0.24), 0 8px 16px rgba(67,56,202,0.25)',
+        },
+        default: {},
+      }),
+    },
+    continueButtonPressed: {
+      opacity: 0.92,
+      transform: [{ translateY: 1 }],
+    },
+    continueIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.18)',
+    },
+    continueCopy: { flex: 1 },
+    continueLabel: {
+      color: '#C7D2FE',
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 0.9,
+    },
+    continueTitle: {
+      color: '#FFFFFF',
+      fontSize: 14,
+      fontWeight: '700',
+      marginTop: 2,
+    },
+    progressClay: {
+      width: isWide ? 280 : '100%',
+      alignSelf: 'stretch',
+      justifyContent: 'center',
+      padding: 20,
+      borderRadius: 24,
+      backgroundColor: isDark ? 'rgba(21,27,48,0.78)' : 'rgba(247,249,255,0.72)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.78)',
+      shadowColor: isDark ? '#020617' : '#8C99B7',
+      shadowOffset: { width: 7, height: 8 },
+      shadowOpacity: isDark ? 0.35 : 0.2,
+      shadowRadius: 16,
+      elevation: 4,
+      ...Platform.select({ web: { boxShadow: webClaySmall }, default: {} }),
+    },
+    progressTopRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
+    progressOverline: {
+      color: isDark ? '#9AA6C1' : '#64718C',
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 1,
+    },
+    progressPercent: {
+      color: isDark ? '#FFFFFF' : '#18214B',
+      fontSize: 38,
+      lineHeight: 44,
+      fontWeight: '800',
+      letterSpacing: -1.2,
+      marginTop: 3,
+    },
+    progressIconWell: {
+      width: 46,
+      height: 46,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? '#252D45' : '#F6EBCB',
+      borderWidth: 1,
+      borderColor: clayBorder,
+      ...Platform.select({ web: { boxShadow: webClaySmall }, default: { elevation: 2 } }),
+    },
+    progressTrack: {
+      height: 10,
+      marginTop: 14,
+      borderRadius: 999,
+      overflow: 'hidden',
+      backgroundColor: isDark ? '#111727' : '#D7DEED',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(119,132,161,0.1)',
+    },
+    progressFill: {
+      height: '100%',
+      minWidth: 0,
+      borderRadius: 999,
+      backgroundColor: '#4F46E5',
+    },
+    progressCaption: {
+      marginTop: 9,
+      color: isDark ? '#A7B0C5' : '#67728D',
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    discoverySection: {
+      paddingTop: 2,
     },
     searchBar: {
+      minHeight: 56,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.colors.background,
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      minHeight: 44,
+      paddingHorizontal: 9,
+      paddingRight: 14,
       gap: 10,
+      borderRadius: 20,
+      backgroundColor: clayRaised,
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      borderColor: clayBorder,
+      shadowColor: isDark ? '#020617' : '#8B98B5',
+      shadowOffset: { width: 5, height: 6 },
+      shadowOpacity: isDark ? 0.32 : 0.18,
+      shadowRadius: 12,
+      elevation: 3,
+      ...Platform.select({ web: { boxShadow: webClaySmall }, default: {} }),
+    },
+    searchIconWell: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: isDark ? '#252D45' : '#E5E9F5',
+      borderWidth: 1,
+      borderColor: clayBorder,
     },
     searchInput: {
       flex: 1,
-      fontSize: 15,
+      minHeight: 44,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      borderWidth: 0,
+      backgroundColor: 'transparent',
       color: theme.colors.textStrong,
-      minHeight: 40,
+      fontSize: 14,
     },
     searchClear: {
-      padding: 2,
+      width: 30,
+      height: 30,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? '#2A3248' : '#E9EDF6',
     },
-    listContent: {
-      padding: pad,
-      paddingTop: 8,
-      paddingBottom: 32,
+    tabsContent: {
+      gap: 10,
+      paddingVertical: 20,
+      paddingHorizontal: 2,
     },
-    columnWrap: {
-      gap,
-      marginBottom: gap,
-    },
-    gridCell: {
-      width: colBasis,
-    },
-    card: {
-      backgroundColor: theme.colors.background,
-      borderRadius: 18,
-      overflow: 'hidden',
-      borderLeftWidth: 4,
-      marginBottom: isWide ? 0 : gap,
-      shadowColor: theme.colors.text,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.25 : 0.06,
-      shadowRadius: 10,
+    tabItem: {
+      minHeight: 42,
+      paddingHorizontal: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      borderRadius: 15,
+      backgroundColor: clayRaised,
+      borderWidth: 1,
+      borderColor: clayBorder,
+      shadowColor: isDark ? '#020617' : '#8B98B5',
+      shadowOffset: { width: 3, height: 4 },
+      shadowOpacity: isDark ? 0.28 : 0.14,
+      shadowRadius: 7,
       elevation: 2,
+      ...Platform.select({ web: { cursor: 'pointer', boxShadow: webClaySmall }, default: {} }),
+    },
+    tabPressed: { opacity: 0.86, transform: [{ translateY: 1 }] },
+    tabEmoji: { fontSize: 14 },
+    tabText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary },
+    activeTabText: { color: '#FFFFFF' },
+    sectionHeadingRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      marginTop: 2,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      color: theme.colors.textStrong,
+      fontSize: isWide ? 24 : 21,
+      lineHeight: 29,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+    },
+    sectionMeta: {
+      marginTop: 3,
+      color: theme.colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    resetButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: isDark ? '#252D45' : '#E5E9F5',
+    },
+    resetText: { color: theme.colors.primary, fontSize: 12, fontWeight: '700' },
+    columnWrap: { gap, marginBottom: gap },
+    gridCell: { width: colBasis },
+    card: {
+      flex: 1,
+      minHeight: '100%',
+      borderRadius: 24,
+      overflow: 'hidden',
+      marginBottom: columns > 1 ? 0 : gap,
+      backgroundColor: clayRaised,
+      borderWidth: 1,
+      borderColor: clayBorder,
+      shadowColor: isDark ? '#020617' : '#8B98B5',
+      shadowOffset: { width: 6, height: 8 },
+      shadowOpacity: isDark ? 0.36 : 0.18,
+      shadowRadius: 14,
+      elevation: 4,
       ...Platform.select({
         web: {
-          boxShadow: isDark
-            ? '0 2px 12px rgba(0,0,0,0.35)'
-            : '0 2px 12px rgba(15,23,42,0.08)',
-          transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+          cursor: 'pointer',
+          boxShadow: webClay,
+          transition: 'transform 160ms ease, box-shadow 160ms ease',
         },
         default: {},
       }),
     },
     cardHoverWeb: {
-      shadowOpacity: isDark ? 0.4 : 0.14,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 10 },
       transform: [{ translateY: -3 }],
       ...Platform.select({
         web: {
           boxShadow: isDark
-            ? '0 14px 28px rgba(0,0,0,0.45)'
-            : '0 14px 28px rgba(15,23,42,0.14)',
+            ? '-6px -6px 16px rgba(48,58,84,0.38), 12px 16px 28px rgba(3,7,18,0.55)'
+            : '-7px -7px 17px rgba(255,255,255,1), 12px 16px 28px rgba(94,108,137,0.24)',
         },
         default: {},
       }),
     },
-    cardPressed: {
-      opacity: 0.96,
-      elevation: 4,
-      shadowOpacity: isDark ? 0.35 : 0.1,
-    },
-    thumbFrame: {
-      paddingHorizontal: 12,
-      paddingTop: 12,
-      paddingBottom: 10,
-      backgroundColor: theme.colors.card,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-    },
+    cardPressed: { opacity: 0.94, transform: [{ translateY: 1 }] },
     thumbnailContainer: {
       position: 'relative',
       width: '100%',
       aspectRatio: 16 / 9,
-      borderRadius: 14,
       overflow: 'hidden',
-      backgroundColor: isDark ? '#1E293B' : theme.colors.border,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)',
-      ...Platform.select({
-        web: {
-          boxShadow: isDark
-            ? '0 6px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)'
-            : '0 6px 20px rgba(15,23,42,0.1), inset 0 1px 0 rgba(255,255,255,0.85)',
-        },
-        default: {
-          elevation: 4,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: isDark ? 0.45 : 0.12,
-          shadowRadius: 10,
-        },
-      }),
+      backgroundColor: isDark ? '#0F172A' : '#DCE3F0',
     },
-    thumbnailTopShine: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '42%',
-      zIndex: 2,
-    },
-    thumbnail: {
-      width: '100%',
-      height: '100%',
-      zIndex: 1,
-    },
-    thumbnailHidden: {
-      opacity: 0,
-    },
-    thumbPlaceholder: {
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: theme.colors.border,
-    },
+    thumbnail: { width: '100%', height: '100%' },
+    thumbPlaceholder: { justifyContent: 'center', alignItems: 'center' },
     thumbnailGradient: {
       position: 'absolute',
-      bottom: 0,
       left: 0,
       right: 0,
-      height: '48%',
-      zIndex: 3,
+      bottom: 0,
+      height: '44%',
     },
     playButtonOverlay: {
       ...StyleSheet.absoluteFillObject,
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 4,
     },
-    playOuterRing: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
-      padding: 3,
-      justifyContent: 'center',
+    playButton: {
+      width: 54,
+      height: 54,
+      borderRadius: 18,
       alignItems: 'center',
+      justifyContent: 'center',
       borderWidth: 2,
-      borderColor: 'rgba(255,255,255,0.5)',
-      backgroundColor: 'rgba(0,0,0,0.22)',
-      overflow: 'hidden',
+      borderColor: 'rgba(255,255,255,0.7)',
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 5 },
+      shadowOpacity: 0.28,
+      shadowRadius: 8,
+      elevation: 5,
       ...Platform.select({
-        web: {
-          boxShadow: '0 10px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12) inset',
-          backdropFilter: 'blur(10px)',
-        },
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.5,
-          shadowRadius: 14,
-          elevation: 10,
-        },
+        web: { boxShadow: 'inset 2px 2px 3px rgba(255,255,255,0.3), inset -3px -3px 5px rgba(0,0,0,0.2), 0 7px 15px rgba(0,0,0,0.3)' },
+        default: {},
       }),
-    },
-    playBlurInner: {
-      width: '100%',
-      height: '100%',
-      borderRadius: 32,
-      justifyContent: 'center',
-      alignItems: 'center',
-      overflow: 'hidden',
-    },
-    playBlurFallback: {
-      width: '100%',
-      height: '100%',
-      borderRadius: 32,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.32)',
-    },
-    playBlurFallbackDark: {
-      backgroundColor: 'rgba(30,41,59,0.55)',
     },
     durationBadge: {
       position: 'absolute',
       bottom: 10,
       right: 10,
+      zIndex: 4,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(8,12,22,0.78)',
-      paddingHorizontal: 10,
+      paddingHorizontal: 8,
       paddingVertical: 5,
-      borderRadius: 10,
-      zIndex: 5,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.14)',
-      ...Platform.select({
-        web: {
-          boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
-          backdropFilter: 'blur(8px)',
-        },
-        default: {},
-      }),
+      borderRadius: 9,
+      backgroundColor: 'rgba(8,15,35,0.84)',
     },
-    durationText: {
-      color: '#FFF',
-      fontSize: 11,
-      fontWeight: '700',
-      fontVariant: ['tabular-nums'],
-    },
+    durationText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', fontVariant: ['tabular-nums'] },
     newBadge: {
       position: 'absolute',
       top: 10,
       left: 10,
-      backgroundColor: theme.colors.success,
+      zIndex: 4,
       paddingHorizontal: 9,
-      paddingVertical: 4,
-      borderRadius: 8,
-      zIndex: 6,
+      paddingVertical: 5,
+      borderRadius: 9,
+      backgroundColor: '#10B981',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.25)',
-      ...Platform.select({
-        web: {
-          boxShadow: '0 2px 8px rgba(16,185,129,0.45)',
-        },
-        default: {
-          elevation: 3,
-          shadowColor: theme.colors.success,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.35,
-          shadowRadius: 4,
-        },
-      }),
+      borderColor: 'rgba(255,255,255,0.5)',
     },
-    newBadgeText: {
-      color: '#FFFFFF',
-      fontSize: 10,
-      fontWeight: '800',
-      letterSpacing: 0.5,
-    },
+    newBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.7, textTransform: 'uppercase' },
     doneCorner: {
       position: 'absolute',
-      top: 8,
-      right: 8,
-      zIndex: 7,
-      backgroundColor: isDark ? 'rgba(11,15,25,0.82)' : 'rgba(255,255,255,0.94)',
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
-      ...Platform.select({
-        web: { boxShadow: '0 2px 10px rgba(0,0,0,0.12)' },
-        default: { elevation: 2 },
-      }),
-    },
-    cardContent: {
-      paddingHorizontal: 15,
-      paddingTop: 14,
-      paddingBottom: 15,
-    },
-    badgesRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 8,
-      flexWrap: 'wrap',
-    },
-    topicBadge: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
-    topicText: {
-      fontSize: 11,
-      fontWeight: '700',
-      textTransform: 'uppercase',
-    },
-    classBadge: {
-      backgroundColor: theme.colors.card,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 6,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    classBadgeText: {
-      color: theme.colors.textSecondary,
-      fontSize: 10,
-      fontWeight: '600',
-    },
-    subTopic: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: theme.colors.textStrong,
-      marginBottom: 6,
-      lineHeight: 22,
-    },
-    description: {
-      fontSize: 13,
-      color: theme.colors.textSecondary,
-      marginBottom: 12,
-      lineHeight: 18,
-    },
-    footer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border,
-    },
-    teacherInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    teacherName: {
-      fontSize: 12,
-      color: theme.colors.textSecondary,
-      fontWeight: '500',
-    },
-    date: {
-      fontSize: 12,
-      color: theme.colors.textTertiary,
-    },
-    emptyState: {
+      top: 9,
+      right: 9,
+      zIndex: 5,
+      width: 32,
+      height: 32,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingTop: 60,
+      backgroundColor: isDark ? '#152E2B' : '#ECFDF5',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(52,211,153,0.18)' : '#A7F3D0',
     },
-    emptyText: {
-      marginTop: 10,
-      color: theme.colors.textTertiary,
+    cardContent: { flex: 1, padding: 16 },
+    badgesRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 9 },
+    topicBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    topicText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.65, textTransform: 'uppercase' },
+    classBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: isDark ? '#252D45' : '#E7EBF4',
+      borderWidth: 1,
+      borderColor: clayBorder,
+    },
+    classBadgeText: { color: theme.colors.textSecondary, fontSize: 9, fontWeight: '700' },
+    subTopic: {
+      color: theme.colors.textStrong,
       fontSize: 16,
+      lineHeight: 22,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+      marginBottom: 5,
     },
+    description: { color: theme.colors.textSecondary, fontSize: 12, lineHeight: 18, marginBottom: 11 },
+    footer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+      marginTop: 'auto',
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(100,116,139,0.12)',
+    },
+    teacherInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    teacherName: { flex: 1, color: theme.colors.textSecondary, fontSize: 11, fontWeight: '600' },
+    date: { color: theme.colors.textTertiary, fontSize: 10, fontWeight: '600' },
+    cardActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 13,
+      paddingTop: 2,
+    },
+    cardActionText: { fontSize: 12, fontWeight: '800' },
+    emptyState: {
+      minHeight: 260,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 32,
+      borderRadius: 24,
+      backgroundColor: clayRaised,
+      borderWidth: 1,
+      borderColor: clayBorder,
+      ...Platform.select({ web: { boxShadow: webClaySmall }, default: { elevation: 2 } }),
+    },
+    emptyIconWell: {
+      width: 66,
+      height: 66,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? '#252D45' : '#E5E9F5',
+      borderWidth: 1,
+      borderColor: clayBorder,
+    },
+    emptyText: { marginTop: 16, color: theme.colors.textStrong, fontSize: 17, fontWeight: '800' },
+    emptyCaption: { marginTop: 5, color: theme.colors.textSecondary, fontSize: 13, textAlign: 'center' },
   });
 }

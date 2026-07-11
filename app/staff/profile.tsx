@@ -12,15 +12,21 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
 import { useTheme } from '../../src/hooks/useTheme';
 import { Theme } from '../../src/theme/themes';
-import { Staff, StaffService } from '../../src/services/staffService';
+import { Staff, StaffMyProfile, StaffService } from '../../src/services/staffService';
 
-/** Returns the first human-readable ID (not a UUID) from the user object */
-function getHumanId(user: any): string {
-  const candidates = [user?.staff_code, user?.admission_no];
-  for (const c of candidates) {
-    if (c && typeof c === 'string' && c.trim().length > 0) return c;
-  }
-  return 'N/A';
+/** True when a DB value is actually present (not null/blank/placeholder). */
+function hasVal(v: unknown): v is string {
+  if (v == null) return false;
+  const s = String(v).trim();
+  return s.length > 0 && s !== 'N/A' && s !== '-';
+}
+
+/** Format a DB date string for display; returns undefined when unparseable/empty. */
+function formatDate(v?: string | null): string | undefined {
+  if (!hasVal(v)) return undefined;
+  const d = new Date(v as string);
+  if (isNaN(d.getTime())) return undefined;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 const StaffProfileScreen = () => {
@@ -28,26 +34,59 @@ const StaffProfileScreen = () => {
     theme,
     isDark
   } = useTheme();
-  const styles = React.useMemo(() => getStyles(theme), [theme]);
+  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   const {
     user
   } = useAuth();
   const { staffId, isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
   const [viewedStaff, setViewedStaff] = React.useState<Staff | null>(null);
+  const [myProfile, setMyProfile] = React.useState<StaffMyProfile | null>(null);
 
   React.useEffect(() => {
     if (!isViewingAsAdmin || !staffId) { setViewedStaff(null); return; }
     StaffService.getById(staffId).then(setViewedStaff).catch(() => setViewedStaff(null));
   }, [isViewingAsAdmin, staffId]);
 
-  const displayName = isViewingAsAdmin ? (viewedStaff?.display_name || viewAsName) : user?.name;
-  const photoUrl = isViewingAsAdmin ? viewedStaff?.photo_url : user?.photoUrl;
-  const roleLabel = isViewingAsAdmin
-    ? (viewedStaff?.designation_name || viewedStaff?.designation || 'Staff')
-    : (user?.role ? user.role.name.charAt(0).toUpperCase() + user.role.name.slice(1) : 'Staff');
-  const humanId = isViewingAsAdmin ? (viewedStaff?.staff_code || 'N/A') : getHumanId(user);
-  const email = isViewingAsAdmin ? viewedStaff?.email : user?.email;
-  const phone = isViewingAsAdmin ? viewedStaff?.phone : user?.phone;
+  // Self view: pull the full DB-backed profile (dob, gender, address, joining date …).
+  React.useEffect(() => {
+    if (isViewingAsAdmin || !user) { setMyProfile(null); return; }
+    StaffService.getMyProfile().then(setMyProfile).catch(() => setMyProfile(null));
+  }, [isViewingAsAdmin, user?.userId]);
+
+  // Every field below is sourced only from the DB record. Nothing is invented;
+  // if the DB has no value, the row/section simply isn't rendered.
+  const displayName = isViewingAsAdmin
+    ? (viewedStaff?.display_name || viewAsName)
+    : (myProfile?.display_name || user?.name);
+  const photoUrl = isViewingAsAdmin ? viewedStaff?.photo_url : (myProfile?.photo_url || user?.photoUrl);
+  const designation = isViewingAsAdmin
+    ? (viewedStaff?.designation_name || viewedStaff?.designation)
+    : myProfile?.designation;
+  const roleLabel = hasVal(designation)
+    ? designation
+    : (!isViewingAsAdmin && user?.role ? user.role.name.charAt(0).toUpperCase() + user.role.name.slice(1) : 'Staff');
+  const staffCode = isViewingAsAdmin ? viewedStaff?.staff_code : (myProfile?.staff_code || user?.staff_code);
+  const status = isViewingAsAdmin ? (viewedStaff?.status_name || viewedStaff?.status) : myProfile?.status;
+  const email = isViewingAsAdmin ? viewedStaff?.email : (myProfile?.email || user?.email);
+  const phone = isViewingAsAdmin ? viewedStaff?.phone : (myProfile?.phone || user?.phone);
+  const dob = isViewingAsAdmin ? undefined : myProfile?.dob;
+  const gender = isViewingAsAdmin ? undefined : myProfile?.gender;
+  const address = isViewingAsAdmin ? undefined : myProfile?.address;
+  const joiningDate = isViewingAsAdmin ? viewedStaff?.joining_date : myProfile?.joining_date;
+
+  const personalRows = [
+    { icon: 'mail-outline' as const, label: 'Email Address', value: email, isLink: true, onPress: () => hasVal(email) && handleEmail(email as string) },
+    { icon: 'call-outline' as const, label: 'Phone Number', value: phone, isLink: true, onPress: () => hasVal(phone) && handleCall(phone as string) },
+    { icon: 'calendar-outline' as const, label: 'Date of Birth', value: formatDate(dob) },
+    { icon: 'male-female-outline' as const, label: 'Gender', value: gender },
+    { icon: 'location-outline' as const, label: 'Current Address', value: address },
+  ].filter((r) => hasVal(r.value));
+
+  const employmentRows = [
+    { icon: 'ribbon-outline' as const, label: 'Designation', value: designation },
+    { icon: 'shield-checkmark-outline' as const, label: 'Status', value: status },
+    { icon: 'time-outline' as const, label: 'Joining Date', value: formatDate(joiningDate) },
+  ].filter((r) => hasVal(r.value));
 
   const handleCall = (number: string) => {
     Haptics.selectionAsync();
@@ -90,7 +129,7 @@ const StaffProfileScreen = () => {
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* --- Header Profile Card --- */}
       <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.headerCard}>
-        <LinearGradient colors={['#4F46E5', '#4338CA']} start={{
+        <LinearGradient colors={isDark ? ['rgba(30, 41, 59, 1)', 'rgba(15, 23, 42, 1)'] : [theme.colors.primary, theme.colors.primary]} start={{
           x: 0,
           y: 0
         }} end={{
@@ -111,102 +150,49 @@ const StaffProfileScreen = () => {
                 ringWidth={4}
               />
             )}
-            <View style={styles.statusBadge}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Active</Text>
-            </View>
+            {hasVal(status) && (
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>{status}</Text>
+              </View>
+            )}
           </View>
 
           <Text style={styles.name}>{displayName || 'Staff Member'}</Text>
           <Text style={styles.designation}>{roleLabel}</Text>
-          <Text style={styles.staffId}>Staff ID: {humanId}</Text>
-
-          <View style={styles.quickStatsRow}>
-            <View style={styles.quickStat}>
-              <Text style={styles.statNumber}>10+ Years</Text>
-              <Text style={styles.statLabel}>Experience</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.quickStat}>
-              <Text style={styles.statNumber}>M.Sc, B.Ed</Text>
-              <Text style={styles.statLabel}>Qualification</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.quickStat}>
-              <Text style={styles.statNumber}>Full Time</Text>
-              <Text style={styles.statLabel}>Shift</Text>
-            </View>
-          </View>
+          {hasVal(staffCode) && <Text style={styles.staffId}>Staff ID: {staffCode}</Text>}
         </View>
       </Animated.View>
 
-      {/* --- Personal Information --- */}
-      <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Personal Information</Text>
-        <View style={styles.infoCard}>
-          <InfoRow icon="mail-outline" label="Email Address" value={email || 'N/A'} isLink onPress={() => email && handleEmail(email)} />
-          <View style={styles.divider} />
-          <InfoRow icon="call-outline" label="Phone Number" value={phone || 'N/A'} isLink onPress={() => phone && handleCall(phone)} />
-          <View style={styles.divider} />
-          <InfoRow icon="calendar-outline" label="Date of Birth" value="-" />
-          <View style={styles.divider} />
-          <InfoRow icon="water-outline" label="Blood Group" value="-" />
-          <View style={styles.divider} />
-          <InfoRow icon="location-outline" label="Current Address" value="-" />
-        </View>
-      </Animated.View>
+      {/* --- Personal Information (DB-driven; only populated fields) --- */}
+      {personalRows.length > 0 && (
+        <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <View style={styles.infoCard}>
+            {personalRows.map((r, i) => (
+              <React.Fragment key={r.label}>
+                {i > 0 && <View style={styles.divider} />}
+                <InfoRow icon={r.icon} label={r.label} value={r.value as string} isLink={r.isLink} onPress={r.onPress} />
+              </React.Fragment>
+            ))}
+          </View>
+        </Animated.View>
+      )}
 
-      {/* --- Academic Details --- */}
-      <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Academic Details</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={[styles.iconBox, {
-              backgroundColor: '#ECFDF5'
-            }]}>
-              <Ionicons name="school-outline" size={20} color="#10B981" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Primary Subject</Text>
-              <Text style={styles.infoValue}>Mathematics</Text>
-            </View>
+      {/* --- Employment (DB-driven; only populated fields) --- */}
+      {employmentRows.length > 0 && (
+        <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Employment</Text>
+          <View style={styles.infoCard}>
+            {employmentRows.map((r, i) => (
+              <React.Fragment key={r.label}>
+                {i > 0 && <View style={styles.divider} />}
+                <InfoRow icon={r.icon} label={r.label} value={r.value as string} />
+              </React.Fragment>
+            ))}
           </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <View style={[styles.iconBox, {
-              backgroundColor: '#EEF2FF'
-            }]}>
-              <Ionicons name="book-outline" size={20} color="#4F46E5" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Secondary Subject</Text>
-              <Text style={styles.infoValue}>Physics</Text>
-            </View>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <View style={[styles.iconBox, {
-              backgroundColor: '#FFFBEB'
-            }]}>
-              <Ionicons name="people-outline" size={20} color="#F59E0B" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Class Teacher</Text>
-              <Text style={styles.infoValue}>Class 10th - Section A</Text>
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* --- Emergency Contact --- */}
-      <Animated.View entering={FadeInUp.delay(400).duration(600)} style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Emergency Contact</Text>
-        <View style={styles.infoCard}>
-          <InfoRow icon="person-outline" label="Contact Person" value="Suresh Reddy (Brother)" />
-          <View style={styles.divider} />
-          <InfoRow icon="call-outline" label="Emergency Number" value="+91 98989 89898" isLink onPress={() => handleCall('+919898989898')} />
-        </View>
-      </Animated.View>
+        </Animated.View>
+      )}
 
       <View style={{
         height: 40
@@ -215,7 +201,7 @@ const StaffProfileScreen = () => {
   </View>;
 };
 export default StaffProfileScreen;
-const getStyles = (theme: Theme) => StyleSheet.create({
+const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent'
@@ -225,18 +211,19 @@ const getStyles = (theme: Theme) => StyleSheet.create({
   },
   // Header Card
   headerCard: {
-    borderRadius: 24,
+    borderRadius: 32,
     overflow: 'hidden',
     marginBottom: 24,
-    shadowColor: theme.colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 10
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-    backgroundColor: theme.colors.background
+    shadowColor: theme.colors.primaryDark,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 28,
+    elevation: 14,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1.2,
+    borderBottomWidth: 4,
+    borderColor: theme.colors.border,
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)'
   },
   headerBackground: {
     position: 'absolute',
@@ -349,17 +336,18 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     marginLeft: 4
   },
   infoCard: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 16,
-    padding: 8,
-    shadowColor: theme.colors.text,
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2
+    backgroundColor: theme.colors.card,
+    borderRadius: 28,
+    padding: 12,
+    shadowColor: isDark ? '#000' : theme.colors.primaryDark,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: isDark ? 0.35 : 0.08,
+    shadowRadius: 24,
+    elevation: 8,
+    borderWidth: 1.2,
+    borderBottomWidth: 4,
+    borderColor: theme.colors.border,
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)'
   },
   infoRow: {
     flexDirection: 'row',

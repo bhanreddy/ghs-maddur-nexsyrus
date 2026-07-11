@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Modal, Pressable, Animated,
   Dimensions, Platform, BackHandler,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 export type AlertType = 'success' | 'error' | 'warning' | 'confirm' | 'info';
@@ -104,11 +105,37 @@ function AlertContent({
     <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
       <Pressable style={styles.backdrop} onPress={handleDismiss} />
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        {/* Clay sheen — single top-left highlight gradient (the inflated read) */}
+        <LinearGradient
+          colors={['rgba(255,255,255,0.55)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.65, y: 0.55 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+
         {/* Accent stripe */}
         <View style={[styles.accentStripe, { backgroundColor: icon.ring }]} />
 
-        {/* Icon circle */}
-        <Animated.View style={[styles.iconCircle, { backgroundColor: icon.bg, borderColor: icon.ring, transform: [{ scale: iconBounce }] }]}>
+        {/* Icon disc — raised clay pebble with a soft colored glow */}
+        <Animated.View
+          style={[
+            styles.iconCircle,
+            { backgroundColor: icon.bg, borderColor: icon.ring, transform: [{ scale: iconBounce }] },
+            Platform.OS === 'web'
+              ? ({ boxShadow: `0 10px 24px -8px ${icon.ring}80` } as any)
+              : Platform.OS === 'android'
+                ? { elevation: 4 }
+                : { shadowColor: icon.ring, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 10 },
+          ]}
+        >
+          <LinearGradient
+            colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.8, y: 1 }}
+            style={[StyleSheet.absoluteFill, { borderRadius: 28 }]}
+            pointerEvents="none"
+          />
           <Text style={[styles.iconText, { color: icon.text }]}>{icon.emoji}</Text>
         </Animated.View>
 
@@ -118,8 +145,16 @@ function AlertContent({
           {message ? <Text style={styles.message}>{message}</Text> : null}
         </View>
 
-        {/* Buttons */}
-        <View style={[styles.buttonRow, resolvedButtons.length === 1 && styles.buttonRowSingle]}>
+        {/* Buttons — stack vertically past two options so long labels
+            (e.g. a list of filter choices) don't overflow the row. */}
+        {(() => {
+          const stacked = resolvedButtons.length > 2;
+          return (
+        <View style={[
+          styles.buttonRow,
+          resolvedButtons.length === 1 && styles.buttonRowSingle,
+          stacked && styles.buttonColumn,
+        ]}>
           {resolvedButtons.map((btn, i) => {
             const isCancel = btn.style === 'cancel';
             const isDestructive = btn.style === 'destructive';
@@ -128,13 +163,15 @@ function AlertContent({
             return (
               <Pressable
                 key={i}
-                style={[
+                style={({ pressed }) => [
                   styles.btn,
+                  stacked && styles.btnStacked,
                   isCancel && styles.btnCancel,
                   isDestructive && styles.btnDestructive,
                   isPrimary && [styles.btnPrimary, { backgroundColor: icon.ring }],
                   resolvedButtons.length === 1 && styles.btnFull,
-                  Platform.OS === 'web' && { cursor: 'pointer' }
+                  Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+                  pressed && styles.btnPressed,
                 ]}
                 onPress={() => {
                   btn.onPress?.();
@@ -153,6 +190,8 @@ function AlertContent({
             );
           })}
         </View>
+          );
+        })()}
       </Animated.View>
     </Animated.View>
   );
@@ -329,37 +368,44 @@ const styles = StyleSheet.create({
       pointerEvents: 'auto',
     } as any : {}),
   },
+  // Clay body: soft off-white fill, generous radius, darker bottom edge + soft
+  // ambient lift. Depth comes from the sheen gradient + edge, not shadow spam.
   card: {
     width: CARD_W,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: '#F5F7FC',
+    borderRadius: 28,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(76,90,120,0.14)',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.2,
-        shadowRadius: 32,
+        shadowColor: '#3A4667',
+        shadowOffset: { width: 0, height: 18 },
+        shadowOpacity: 0.24,
+        shadowRadius: 34,
       },
       android: { elevation: 24 },
       web: {
-        boxShadow: '0 25px 60px -12px rgba(0,0,0,0.25)',
+        boxShadow: '0 30px 70px -18px rgba(30,41,80,0.38)',
       } as any,
     }),
   },
   accentStripe: {
-    height: 4,
+    height: 3,
     width: '100%',
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 3,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginTop: 24,
+    marginTop: 26,
   },
   iconText: {
     fontSize: 24,
@@ -374,14 +420,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2A3142',
     textAlign: 'center',
     letterSpacing: -0.3,
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#6B7590',
     textAlign: 'center',
     lineHeight: 21,
     fontWeight: '500',
@@ -396,43 +442,76 @@ const styles = StyleSheet.create({
   buttonRowSingle: {
     justifyContent: 'center',
   },
+  buttonColumn: {
+    flexDirection: 'column',
+  },
+  // Default (option) button = soft clay chip: pastel body, light top border,
+  // darker bottom edge for the inflated read. No per-button shadow (rationed).
   btn: {
     flex: 1,
     paddingVertical: 13,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 48,
+    minHeight: 50,
+    backgroundColor: '#EAEEF7',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(76,90,120,0.14)',
+  },
+  btnStacked: {
+    flex: undefined,
+    width: '100%',
   },
   btnFull: {
     flex: undefined,
     minWidth: 160,
     alignSelf: 'center',
   },
+  btnPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.92,
+  },
   btnCancel: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'rgba(76,90,120,0.06)',
+    borderColor: 'rgba(255,255,255,0.6)',
+    borderBottomColor: 'rgba(76,90,120,0.12)',
   },
   btnDestructive: {
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    backgroundColor: '#FCE4E4',
+    borderColor: 'rgba(255,255,255,0.6)',
+    borderBottomColor: 'rgba(176,32,44,0.22)',
   },
+  // Primary = accent-filled clay (backgroundColor injected from icon.ring):
+  // light top rim + dark bottom edge sell the raised, tactile surface.
   btnPrimary: {
-    // backgroundColor set dynamically
+    borderColor: 'rgba(255,255,255,0.4)',
+    borderBottomColor: 'rgba(0,0,0,0.2)',
+    borderBottomWidth: 3,
+    ...Platform.select({
+      web: { boxShadow: '0 8px 18px -6px rgba(30,41,80,0.35)' } as any,
+      ios: {
+        shadowColor: '#3A4667',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+      },
+      android: {},
+    }),
   },
   btnText: {
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.2,
+    color: '#2A3142',
   },
   btnTextCancel: {
-    color: '#6B7280',
+    color: '#6B7590',
   },
   btnTextDestructive: {
-    color: '#DC2626',
+    color: '#C0203B',
   },
   btnTextPrimary: {
     color: '#FFFFFF',

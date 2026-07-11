@@ -9,17 +9,16 @@ import * as Haptics from '@/src/utils/haptics';
 import StudentHeader from '../../src/components/StudentHeader';
 import AvatarUploader from '../../src/components/AvatarUploader';
 import { useAuth } from '../../src/hooks/useAuth';
-import { StaffService, StaffMyProfile } from '../../src/services/staffService';
 import { useStaffPortalConfig } from '../../src/hooks/useStaffPortalConfig';
+import { useTheme } from '../../src/hooks/useTheme';
 import LogoLoader from '../../src/components/LogoLoader';
 import {
   SWITCH_ACCOUNT_SETTINGS,
   SettingsAccountSwitcherSheet,
   useSettingsAccountSwitcher,
 } from '../../src/components/SettingsAccountSwitcher';
+import { StaffService, StaffMyProfile } from '../../src/services/staffService';
 
-const DRIVER_PINK = '#EC4899';
-const DRIVER_GRADIENT: [string, string] = ['#EC4899', '#BE185D'];
 const EMPTY = '—';
 
 function displayOrEmpty(value?: string | null): string {
@@ -59,9 +58,9 @@ interface Payslip {
 }
 
 /* ─── Reusable Info Row ─── */
-const InfoRow = ({ icon, label, value, iconBg, iconColor, isLink, onPress
+const InfoRow = ({ icon, label, value, iconBg, iconColor, isLink, onPress, theme, styles
 
-}: { icon: any; label: string; value: string; iconBg?: string; iconColor?: string; isLink?: boolean; onPress?: () => void; }) =>
+}: { icon: any; label: string; value: string; iconBg?: string; iconColor?: string; isLink?: boolean; onPress?: () => void; theme: any; styles: any; }) =>
   <TouchableOpacity
     style={styles.infoRow}
     activeOpacity={isLink ? 0.7 : 1}
@@ -69,7 +68,7 @@ const InfoRow = ({ icon, label, value, iconBg, iconColor, isLink, onPress
     disabled={!isLink}>
 
     <View style={[styles.iconBox, iconBg ? { backgroundColor: iconBg } : {}]}>
-      <Ionicons name={icon} size={18} color={iconColor || DRIVER_PINK} />
+      <Ionicons name={icon} size={18} color={iconColor || theme.colors.primary} />
     </View>
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -79,12 +78,12 @@ const InfoRow = ({ icon, label, value, iconBg, iconColor, isLink, onPress
   </TouchableOpacity>;
 
 /* ─── Payslip Card ─── */
-const PayslipCard = ({ item, index, onDownload }: { item: Payslip; index: number; onDownload: (id: string) => void; }) =>
+const PayslipCard = ({ item, index, onDownload, theme, styles }: { item: Payslip; index: number; onDownload: (id: string) => void; theme: any; styles: any }) =>
   <Animated.View entering={FadeInDown.delay(500 + index * 80).duration(500)} style={styles.payslipCard}>
     <View style={styles.payslipHeader}>
       <View style={styles.payslipMonthRow}>
         <View style={styles.payslipIcon}>
-          <Ionicons name="calendar" size={16} color={DRIVER_PINK} />
+          <Ionicons name="calendar" size={16} color={theme.colors.primary} />
         </View>
         <Text style={styles.payslipMonth}>{item.month}</Text>
       </View>
@@ -112,8 +111,8 @@ const PayslipCard = ({ item, index, onDownload }: { item: Payslip; index: number
       </View>
     </View>
     <TouchableOpacity style={styles.downloadBtn} onPress={() => onDownload(item.id)} activeOpacity={0.7}>
-      <Ionicons name="download-outline" size={16} color={DRIVER_PINK} />
-      <Text style={styles.downloadBtnText}>Download PDF</Text>
+      <Ionicons name="download-outline" size={16} color={theme.colors.primary} />
+      <Text style={[styles.downloadBtnText, { color: theme.colors.primary }]}>Download PDF</Text>
     </TouchableOpacity>
   </Animated.View>;
 
@@ -129,6 +128,9 @@ export default function DriverProfile() {
   const [loadingPayslips, setLoadingPayslips] = useState(true);
   const { payslipsEnabled } = useStaffPortalConfig();
   const { switcherOpen, openSwitcher, closeSwitcher } = useSettingsAccountSwitcher();
+  const { theme } = useTheme();
+  const PRIMARY_GRADIENT: [string, string] = [theme.colors.primary, theme.colors.primaryDark];
+  const styles = React.useMemo(() => getStyles(theme), [theme]);
 
   const displayName = profile?.display_name || user?.displayName || (user as any)?.first_name || 'Driver';
   const email = displayOrEmpty(profile?.email || (user as any)?.email);
@@ -198,14 +200,14 @@ export default function DriverProfile() {
 
         {loadingProfile ?
           <View style={styles.loadingBox}>
-            <LogoLoader size={36} color={DRIVER_PINK} />
+            <LogoLoader size={36} color={theme.colors.primary} />
             <Text style={styles.loadingText}>Loading profile…</Text>
           </View> :
           <>
         {/* ═══════ Profile Hero Card ═══════ */}
         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.heroCard}>
           <LinearGradient
-            colors={DRIVER_GRADIENT}
+            colors={PRIMARY_GRADIENT}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroBg} />
@@ -221,7 +223,7 @@ export default function DriverProfile() {
                 size={100}
                 ringColor="#FFF"
                 ringWidth={3}
-                accentColor={DRIVER_PINK}
+                accentColor={theme.colors.primary}
                 onUploaded={(url) => setProfile((prev) => (prev ? { ...prev, photo_url: url } : prev))}
                 onRemoved={() => setProfile((prev) => (prev ? { ...prev, photo_url: null } : prev))}
               />
@@ -231,7 +233,7 @@ export default function DriverProfile() {
               </View>
             </View>
             <Text style={styles.heroName}>{displayName}</Text>
-            <View style={styles.rolePill}>
+            <View style={[styles.rolePill, { backgroundColor: theme.colors.primary }]}>
               <Ionicons name="bus" size={12} color="#FFF" />
               <Text style={styles.rolePillText}>Driver</Text>
             </View>
@@ -259,26 +261,32 @@ export default function DriverProfile() {
         <Animated.View entering={FadeInUp.delay(200).duration(600)} style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconBox}>
-              <Ionicons name="person" size={14} color={DRIVER_PINK} />
+              <Ionicons name="person" size={14} color={theme.colors.primary} />
             </View>
             <Text style={styles.sectionTitle}>Personal Information</Text>
           </View>
           <View style={styles.card}>
             <InfoRow icon="mail-outline" label="Email Address" value={email}
+              theme={theme} styles={styles}
+              iconColor={theme.colors.primary}
               iconBg="#FDF2F8" isLink={email !== EMPTY && email !== 'N/A'}
               onPress={() => handleEmail(email)} />
             <View style={styles.rowDivider} />
             <InfoRow icon="call-outline" label="Phone Number" value={phone}
+              theme={theme} styles={styles}
               iconBg="#ECFDF5" iconColor="#10B981" />
             <View style={styles.rowDivider} />
             <InfoRow icon="calendar-outline" label="Date of Birth" value={dob}
+              theme={theme} styles={styles}
               iconBg="#EEF2FF" iconColor="#6366F1" />
             <View style={styles.rowDivider} />
             <InfoRow icon="water-outline" label="Blood Group" value={EMPTY}
+              theme={theme} styles={styles}
               iconBg="#FEF3C7" iconColor="#F59E0B" />
             <View style={styles.rowDivider} />
             <InfoRow icon="location-outline" label="Address" value={address}
-              iconBg="#F0FDF4" iconColor="#22C55E" />
+              theme={theme} styles={styles}
+              iconBg="#F0FDF4" iconColor={theme.colors.success} />
           </View>
         </Animated.View>
         {/* ═══════ Vehicle & Route ═══════ */}
@@ -291,15 +299,19 @@ export default function DriverProfile() {
           </View>
           <View style={styles.card}>
             <InfoRow icon="car-outline" label="Assigned Bus" value={busNo}
+              theme={theme} styles={styles}
               iconBg="#EEF2FF" iconColor="#6366F1" />
             <View style={styles.rowDivider} />
             <InfoRow icon="navigate-outline" label="Route Name" value={routeName}
-              iconBg="#FDF2F8" iconColor={DRIVER_PINK} />
+              theme={theme} styles={styles}
+              iconBg="#FDF2F8" iconColor={theme.colors.primary} />
             <View style={styles.rowDivider} />
             <InfoRow icon="card-outline" label="License Number" value={EMPTY}
+              theme={theme} styles={styles}
               iconBg="#FEF3C7" iconColor="#F59E0B" />
             <View style={styles.rowDivider} />
             <InfoRow icon="shield-checkmark-outline" label="License Expiry" value={EMPTY}
+              theme={theme} styles={styles}
               iconBg="#ECFDF5" iconColor="#10B981" />
           </View>
         </Animated.View>
@@ -315,7 +327,7 @@ export default function DriverProfile() {
           {/* Earnings Summary */}
           <Animated.View entering={FadeInDown.delay(450).duration(500)} style={styles.earningsCard}>
             <LinearGradient
-              colors={DRIVER_GRADIENT}
+              colors={PRIMARY_GRADIENT}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.earningsGradient}>
@@ -332,7 +344,7 @@ export default function DriverProfile() {
           {/* Payslip Cards */}
           {loadingPayslips ?
             <View style={styles.loadingBox}>
-              <LogoLoader size={30} color={DRIVER_PINK} />
+              <LogoLoader size={30} color={theme.colors.primary} />
               <Text style={styles.loadingText}>Loading payslips…</Text>
             </View> :
             payslips.length === 0 ?
@@ -346,7 +358,7 @@ export default function DriverProfile() {
 
               <View style={styles.payslipList}>
                 {payslips.map((item, index) =>
-                  <PayslipCard key={item.id} item={item} index={index} onDownload={handleDownload} />
+                  <PayslipCard key={item.id} item={item} index={index} onDownload={handleDownload} theme={theme} styles={styles} />
                 )}
               </View>
           }
@@ -383,18 +395,21 @@ export default function DriverProfile() {
 }
 
 /* ════════════════════════════ STYLES ════════════════════════════ */
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' },
   scrollContent: { padding: 20 },
 
   /* ── Hero Card ── */
   heroCard: {
-    borderRadius: 24, overflow: 'hidden', marginBottom: 24,
-    shadowColor: DRIVER_PINK, shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25, shadowRadius: 20, elevation: 10,
-    backgroundColor: '#FFF'
+    borderRadius: 32, overflow: 'hidden', marginBottom: 28,
+    shadowColor: theme.colors.primaryDark, shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25, shadowRadius: 28, elevation: 14,
+    backgroundColor: '#FFF',
+    borderWidth: 1.2, borderBottomWidth: 4,
+    borderColor: 'rgba(226, 232, 240, 0.6)',
+    borderBottomColor: 'rgba(15,23,42,0.1)'
   },
-  heroBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 130 },
+  heroBg: { position: 'absolute', top: 0, left: 0, right: 0, height: 140 },
   decorCircle: {
     position: 'absolute', borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.08)'
@@ -412,7 +427,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF2F8',
     justifyContent: 'center', alignItems: 'center'
   },
-  avatarText: { fontSize: 32, fontWeight: '800', color: DRIVER_PINK, letterSpacing: 1 },
+  avatarText: { fontSize: 32, fontWeight: '800', color: theme.colors.primary, letterSpacing: 1 },
   onlineBadge: {
     position: 'absolute', bottom: 2, right: -4,
     flexDirection: 'row', alignItems: 'center',
@@ -424,7 +439,7 @@ const styles = StyleSheet.create({
   heroName: { fontSize: 24, fontWeight: '800', color: '#0F172A', marginBottom: 6, letterSpacing: 0.2 },
   rolePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: DRIVER_PINK, paddingHorizontal: 12, paddingVertical: 4,
+    paddingHorizontal: 12, paddingVertical: 4,
     borderRadius: 20, marginBottom: 6
   },
   rolePillText: { fontSize: 11, fontWeight: '700', color: '#FFF', letterSpacing: 0.5, textTransform: 'uppercase' },
@@ -454,27 +469,31 @@ const styles = StyleSheet.create({
 
   /* ── Card ── */
   card: {
-    backgroundColor: '#FFF', borderRadius: 16, padding: 6,
-    shadowColor: '#64748B', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
+    backgroundColor: '#FFF', borderRadius: 28, padding: 12,
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
+    borderWidth: 1.2, borderBottomWidth: 4,
+    borderColor: 'rgba(226, 232, 240, 0.6)',
+    borderBottomColor: 'rgba(15,23,42,0.1)'
   },
   infoRow: { flexDirection: 'row', alignItems: 'center', padding: 12 },
   iconBox: {
-    width: 36, height: 36, borderRadius: 10,
+    width: 36, height: 36, borderRadius: 12,
     backgroundColor: '#FDF2F8',
     justifyContent: 'center', alignItems: 'center', marginRight: 12
   },
   infoContent: { flex: 1 },
   infoLabel: { fontSize: 11, color: '#94A3B8', marginBottom: 2, fontWeight: '500' },
-  infoValue: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  linkText: { color: DRIVER_PINK },
+  infoValue: { fontSize: 14, fontWeight: '700', color: '#1F2937' },
+  linkText: { color: theme.colors.primary },
   rowDivider: { height: 1, backgroundColor: '#F8FAFC', marginLeft: 60 },
 
   /* ── Earnings Summary ── */
   earningsCard: {
-    borderRadius: 18, overflow: 'hidden', marginBottom: 16,
-    shadowColor: DRIVER_PINK, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 12, elevation: 5
+    borderRadius: 28, overflow: 'hidden', marginBottom: 16,
+    shadowColor: theme.colors.primaryDark, shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25, shadowRadius: 24, elevation: 8,
+    borderBottomWidth: 4, borderBottomColor: 'rgba(0,0,0,0.2)'
   },
   earningsGradient: {
     padding: 22, flexDirection: 'row',
@@ -489,11 +508,14 @@ const styles = StyleSheet.create({
   },
 
   /* ── Payslip Cards ── */
-  payslipList: { gap: 14 },
+  payslipList: { gap: 16 },
   payslipCard: {
-    backgroundColor: '#FFF', borderRadius: 16, padding: 18,
-    shadowColor: '#64748B', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2
+    backgroundColor: '#FFF', borderRadius: 24, padding: 20,
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15, shadowRadius: 20, elevation: 6,
+    borderWidth: 1.2, borderBottomWidth: 4,
+    borderColor: 'rgba(226, 232, 240, 0.6)',
+    borderBottomColor: 'rgba(15,23,42,0.1)'
   },
   payslipHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   payslipMonthRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -516,10 +538,10 @@ const styles = StyleSheet.create({
   payslipStatValue: { fontSize: 14, fontWeight: '600' },
   downloadBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    paddingVertical: 10, backgroundColor: '#FDF2F8',
-    borderRadius: 10, gap: 6
+    paddingVertical: 12, backgroundColor: '#FDF2F8',
+    borderRadius: 14, gap: 8, marginTop: 4
   },
-  downloadBtnText: { color: DRIVER_PINK, fontWeight: '600', fontSize: 13 },
+  downloadBtnText: { fontWeight: '700', fontSize: 13 },
 
   /* ── Empty / Loading ── */
   loadingBox: { alignItems: 'center', paddingVertical: 30, gap: 8 },

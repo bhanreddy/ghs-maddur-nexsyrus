@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -765,28 +766,23 @@ export default function NotificationsTriggerPage() {
   const scrollY = useSharedValue(0);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isWideScreen = windowWidth >= 768;
-  const isExtraWide = windowWidth >= 1200;
-  const horizontalPad = isWideScreen ? 32 : 24;
+  // Keep portrait tablets and foldables in the safer phone flow. The split
+  // composer starts only when both panels have enough room for 48dp targets.
+  const isWideScreen = windowWidth >= 900;
+  const horizontalPad = isWideScreen ? 32 : windowWidth >= 600 ? 24 : 16;
   const contentWidth = Math.max(windowWidth - horizontalPad * 2, 280);
-  const gridColumns = isExtraWide ? 2 : 1;
-  const gridGap = isWideScreen ? 24 : 20;
-  const cardWidth =
-    gridColumns === 2
-      ? Math.floor((contentWidth - gridGap) / 2)
-      : contentWidth;
   const scrollPaddingTop = insets.top + (isWideScreen ? 148 : 130);
 
   const THEME_COLORS = useMemo(() => ({
-    background: isDark ? '#0A0C14' : '#FBFCFE',
-    gradientEnd: isDark ? '#05070B' : '#F2F5FB',
-    surface: isDark ? '#111524' : '#FFFFFF',
-    surfaceHighlight: isDark ? '#171D32' : '#F5F7FB',
+    background: isDark ? '#10131C' : '#EEF2F8',
+    gradientEnd: isDark ? '#090B11' : '#F7F9FD',
+    surface: isDark ? '#181C28' : '#F5F7FB',
+    surfaceHighlight: isDark ? '#121620' : '#E9EDF5',
     text: isDark ? '#F1F5F9' : '#0B1220',
     textMuted: isDark ? '#94A3B8' : '#64748B',
     textFaint: isDark ? '#64748B' : '#94A3B8',
-    border: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)',
-    borderStrong: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)',
+    border: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.82)',
+    borderStrong: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(107,122,153,0.18)',
   }), [isDark]);
 
   const styles = useMemo(
@@ -795,6 +791,7 @@ export default function NotificationsTriggerPage() {
   );
 
   const [loadingType, setLoadingType] = useState<TriggerType | null>(null);
+  const [selectedType, setSelectedType] = useState<TriggerType>('FEE_REMINDER');
   const [retrying, setRetrying] = useState(false);
   const [classTargetsByChannel, setClassTargetsByChannel] = useState<Record<string, ClassTarget[]>>({});
   const [allSchoolCountByChannel, setAllSchoolCountByChannel] = useState<Record<string, number>>({});
@@ -849,10 +846,10 @@ export default function NotificationsTriggerPage() {
   }, []);
 
   useEffect(() => {
-    TRIGGERS.forEach((trigger) => {
-      fetchClassTargets(trigger.id);
-    });
-  }, [fetchClassTargets]);
+    if (!classTargetsByChannel[selectedType] && !targetsLoadingByChannel[selectedType]) {
+      fetchClassTargets(selectedType);
+    }
+  }, [selectedType, classTargetsByChannel, targetsLoadingByChannel, fetchClassTargets]);
 
   const pollBroadcastStatus = useCallback(
     (batchId: string, channel: TriggerCard) => {
@@ -1023,6 +1020,16 @@ export default function NotificationsTriggerPage() {
           .reduce((sum, c) => sum + c.recipient_count, 0)
     : 0;
 
+  const selectedTrigger = TRIGGERS.find((trigger) => trigger.id === selectedType)!;
+  const selectedClassIds = selectedClassesByChannel[selectedType] || [];
+  const selectedTargets = classTargetsByChannel[selectedType] || [];
+  const isWholeSchool = selectedClassIds.length === 0;
+  const selectedEstimate = isWholeSchool
+    ? allSchoolCountByChannel[selectedType] ?? 0
+    : selectedTargets
+        .filter((target) => selectedClassIds.includes(target.class_id))
+        .reduce((sum, target) => sum + target.recipient_count, 0);
+
   return (
     <View style={styles.container}>
       <AdminHeader title="Notifications" showBackButton scrollY={scrollY} />
@@ -1048,40 +1055,116 @@ export default function NotificationsTriggerPage() {
             </Animated.View>
 
             <Animated.Text entering={FadeInDown.delay(100).springify()} style={styles.headerTitle}>
-              Send a notification
+              Notify parents
             </Animated.Text>
 
             <Animated.Text entering={FadeInDown.delay(150).springify()} style={styles.headerSubtitle}>
-              Push an instant alert to parents — fee reminders, results, attendance and more. Pick a class or send to the whole school, then review who received it.
+              Choose a message and its audience. You’ll review the exact reach before anything is sent.
             </Animated.Text>
 
-            <Animated.View entering={FadeIn.delay(200)} style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerLabel}>{TRIGGERS.length} NOTIFICATION TYPES</Text>
-              <View style={styles.dividerLine} />
+            <Animated.View entering={FadeIn.delay(200)} style={styles.stepsRow}>
+              {['Choose message', 'Select audience', 'Review & send'].map((label, index) => (
+                <View key={label} style={styles.stepItem}>
+                  <View style={[styles.stepNumber, index === 0 && { backgroundColor: selectedTrigger.accent }]}>
+                    <Text style={[styles.stepNumberText, index === 0 && { color: '#FFF' }]}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.stepText}>{label}</Text>
+                  {index < 2 && <View style={styles.stepLine} />}
+                </View>
+              ))}
             </Animated.View>
           </Animated.View>
 
-          <View style={[styles.grid, gridColumns === 2 && styles.gridTwoCol]}>
-            {TRIGGERS.map((item, index) => (
-              <AnimatedTriggerCard
-                key={item.id}
-                item={item}
-                index={index}
-                isLoading={loadingType === item.id}
-                loadingType={loadingType}
-                selectedClassIds={selectedClassesByChannel[item.id] || []}
-                classTargets={classTargetsByChannel[item.id] || []}
-                targetsLoading={!!targetsLoadingByChannel[item.id]}
-                onToggleClass={handleToggleClass}
-                onSelectAllClasses={handleSelectAllClasses}
-                onPress={handleFireTrigger}
-                styles={styles}
-                THEME_COLORS={THEME_COLORS}
-                allSchoolCount={allSchoolCountByChannel[item.id] ?? 0}
-                cardWidth={cardWidth}
-              />
-            ))}
+          <View style={[styles.composer, isWideScreen && styles.composerWide]}>
+            <View style={[styles.typePanel, isWideScreen && styles.typePanelWide]}>
+              <Text style={styles.panelEyebrow}>1 · MESSAGE</Text>
+              <Text style={styles.panelTitle}>What do you want to send?</Text>
+              <View style={styles.typeList}>
+                {TRIGGERS.map((item) => {
+                  const selected = item.id === selectedType;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`${item.title}. ${item.description}`}
+                      android_ripple={{ color: item.accent + '18', borderless: false }}
+                      onPress={() => { Haptics.selectionAsync(); setSelectedType(item.id); }}
+                      style={({ pressed }) => [
+                        styles.typeOption,
+                        selected && styles.claySelected,
+                        selected && { borderColor: item.accent + '70', backgroundColor: item.tint },
+                        pressed && styles.clayPressed,
+                      ]}
+                    >
+                      <LinearGradient colors={item.gradient} style={styles.typeIcon}>
+                        <Ionicons name={item.icon} size={19} color="#FFF" />
+                      </LinearGradient>
+                      <View style={styles.typeCopy}>
+                        <Text style={styles.typeTitle}>{item.title}</Text>
+                        <Text numberOfLines={isWideScreen ? 1 : 2} style={styles.typeDescription}>{item.description}</Text>
+                      </View>
+                      <View style={[styles.radio, selected && { borderColor: item.accent }]}>
+                        {selected && <View style={[styles.radioDot, { backgroundColor: item.accent }]} />}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={[styles.audiencePanel, isWideScreen && styles.audiencePanelWide]}>
+              <Text style={styles.panelEyebrow}>2 · AUDIENCE</Text>
+              <View style={styles.audienceHeadingRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.panelTitle}>Who should receive it?</Text>
+                  <Text style={styles.panelHint}>Choose the whole school or one or more classes.</Text>
+                </View>
+                {!isWholeSchool && (
+                  <Pressable onPress={() => handleSelectAllClasses(selectedType)} style={styles.resetAudience}>
+                    <Text style={[styles.resetAudienceText, { color: selectedTrigger.accent }]}>Reset</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {targetsLoadingByChannel[selectedType] ? (
+                <View style={styles.audienceLoading}><LogoLoader color={selectedTrigger.accent} size={26} /></View>
+              ) : (
+                <View style={styles.audienceGrid}>
+                  <Pressable
+                    onPress={() => handleSelectAllClasses(selectedType)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isWholeSchool }}
+                    android_ripple={{ color: selectedTrigger.accent + '18' }}
+                    style={({ pressed }) => [styles.audienceOption, isWholeSchool && styles.claySelected, isWholeSchool && { borderColor: selectedTrigger.accent, backgroundColor: selectedTrigger.tint }, pressed && styles.clayPressed]}
+                  >
+                    <Ionicons name="school-outline" size={18} color={isWholeSchool ? selectedTrigger.accent : THEME_COLORS.textMuted} />
+                    <View style={{ flex: 1 }}><Text style={styles.audienceName}>Whole school</Text><Text style={styles.audienceCount}>{(allSchoolCountByChannel[selectedType] ?? 0).toLocaleString()} parents</Text></View>
+                    {isWholeSchool && <Ionicons name="checkmark-circle" size={20} color={selectedTrigger.accent} />}
+                  </Pressable>
+                  {selectedTargets.map((target) => {
+                    const selected = selectedClassIds.includes(target.class_id);
+                    return (
+                      <Pressable key={target.class_id} accessibilityRole="checkbox" accessibilityState={{ checked: selected }} android_ripple={{ color: selectedTrigger.accent + '18' }} onPress={() => handleToggleClass(selectedType, target.class_id)} style={({ pressed }) => [styles.audienceOption, selected && styles.claySelected, selected && { borderColor: selectedTrigger.accent, backgroundColor: selectedTrigger.tint }, pressed && styles.clayPressed]}>
+                        <Ionicons name="people-outline" size={18} color={selected ? selectedTrigger.accent : THEME_COLORS.textMuted} />
+                        <View style={{ flex: 1 }}><Text style={styles.audienceName}>{target.class_name}</Text><Text style={styles.audienceCount}>{target.recipient_count} parents</Text></View>
+                        {selected && <Ionicons name="checkmark-circle" size={20} color={selectedTrigger.accent} />}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+
+              <View style={styles.reviewBar}>
+                <View style={styles.reviewReach}>
+                  <View style={[styles.reviewIcon, { backgroundColor: selectedTrigger.tint }]}><Ionicons name="notifications-outline" size={20} color={selectedTrigger.accent} /></View>
+                  <View><Text style={styles.reviewLabel}>ESTIMATED REACH</Text><Text style={styles.reviewCount}>{selectedEstimate.toLocaleString()} parent{selectedEstimate === 1 ? '' : 's'}</Text></View>
+                </View>
+                <TouchableOpacity disabled={loadingType !== null || selectedEstimate === 0} onPress={() => handleFireTrigger(selectedTrigger)} style={[styles.primarySend, { backgroundColor: selectedTrigger.accent }, (loadingType !== null || selectedEstimate === 0) && styles.primarySendDisabled]}>
+                  {loadingType === selectedType ? <LogoLoader color="#FFF" size={18} /> : <><Text style={styles.primarySendText}>Review & send</Text><Ionicons name="arrow-forward" size={17} color="#FFF" /></>}
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </ResponsiveCard>
 
@@ -1152,19 +1235,19 @@ const getStyles = (
       color: THEME_COLORS.textMuted,
     },
     headerTitle: {
-      fontSize: isWide ? 42 : 36,
-      fontWeight: '800',
+      fontSize: isWide ? 40 : 32,
+      fontWeight: '900',
       color: THEME_COLORS.text,
       letterSpacing: -1,
-      lineHeight: isWide ? 46 : 40,
-      marginBottom: 14,
+      lineHeight: isWide ? 46 : 38,
+      marginBottom: 10,
     },
     headerSubtitle: {
       fontSize: isWide ? 16 : 15,
       color: THEME_COLORS.textMuted,
       lineHeight: isWide ? 25 : 23,
       fontWeight: '400',
-      marginBottom: isWide ? 36 : 32,
+      marginBottom: isWide ? 30 : 24,
       maxWidth: isWide ? undefined : '96%',
     },
     dividerRow: {
@@ -1184,6 +1267,78 @@ const getStyles = (
       letterSpacing: 1.4,
       color: THEME_COLORS.textFaint,
     },
+    stepsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 28,
+      maxWidth: 700,
+    },
+    stepItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      minWidth: 0,
+    },
+    stepNumber: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: THEME_COLORS.surfaceHighlight,
+      borderWidth: 1,
+      borderColor: THEME_COLORS.borderStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    stepNumberText: { fontSize: 11, fontWeight: '800', color: THEME_COLORS.textMuted },
+    stepText: { fontSize: isWide ? 12.5 : 10.5, fontWeight: '700', color: THEME_COLORS.textMuted, flexShrink: 1 },
+    stepLine: { height: 1, backgroundColor: THEME_COLORS.borderStrong, flex: 1, marginHorizontal: isWide ? 14 : 7 },
+    composer: {
+      backgroundColor: THEME_COLORS.surface,
+      borderRadius: isWide ? 30 : 26,
+      borderWidth: isDark ? 1 : 2,
+      borderColor: THEME_COLORS.border,
+      overflow: 'hidden',
+      shadowColor: isDark ? '#000' : '#74829E',
+      shadowOffset: { width: 0, height: 14 },
+      shadowOpacity: isDark ? 0.4 : 0.2,
+      shadowRadius: 28,
+      elevation: Platform.OS === 'android' ? 10 : 0,
+    },
+    composerWide: { flexDirection: 'row', alignItems: 'stretch' },
+    typePanel: { padding: isWide ? 28 : 18, backgroundColor: THEME_COLORS.surfaceHighlight },
+    typePanelWide: { width: '42%', borderRightWidth: 1, borderRightColor: THEME_COLORS.border },
+    audiencePanel: { padding: isWide ? 28 : 18, flex: 1, backgroundColor: THEME_COLORS.surface },
+    audiencePanelWide: { minHeight: 610 },
+    panelEyebrow: { fontSize: 10.5, fontWeight: '800', letterSpacing: 1.4, color: THEME_COLORS.textFaint, marginBottom: 8 },
+    panelTitle: { fontSize: isWide ? 20 : 19, fontWeight: '900', color: THEME_COLORS.text, letterSpacing: -0.4 },
+    panelHint: { fontSize: 13, lineHeight: 19, color: THEME_COLORS.textMuted, marginTop: 5 },
+    typeList: { gap: 12, marginTop: 20 },
+    typeOption: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 66, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surface, overflow: 'hidden', shadowColor: isDark ? '#000' : '#9AA7BF', shadowOffset: { width: 0, height: 5 }, shadowOpacity: isDark ? 0.25 : 0.16, shadowRadius: 10, elevation: Platform.OS === 'android' ? 3 : 0 },
+    typeIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', elevation: Platform.OS === 'android' ? 4 : 0 },
+    typeCopy: { flex: 1, minWidth: 0 },
+    typeTitle: { fontSize: 14.5, fontWeight: '800', color: THEME_COLORS.text, marginBottom: 3 },
+    typeDescription: { fontSize: 11.5, lineHeight: 16.5, color: THEME_COLORS.textMuted },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: THEME_COLORS.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: THEME_COLORS.surface },
+    radioDot: { width: 10, height: 10, borderRadius: 5 },
+    claySelected: { elevation: Platform.OS === 'android' ? 7 : 0, shadowOpacity: isDark ? 0.4 : 0.24, shadowRadius: 14, transform: [{ translateY: -1 }] },
+    clayPressed: { opacity: 0.88, transform: [{ scale: 0.985 }] },
+    audienceHeadingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    resetAudience: { paddingVertical: 6, paddingHorizontal: 8 },
+    resetAudienceText: { fontSize: 12.5, fontWeight: '700' },
+    audienceLoading: { minHeight: 220, alignItems: 'center', justifyContent: 'center' },
+    audienceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 22, marginBottom: 24, alignContent: 'flex-start' },
+    audienceOption: { width: isWide ? '48%' : '100%', minWidth: isWide ? 200 : undefined, flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 15, minHeight: 68, borderRadius: 20, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surfaceHighlight, overflow: 'hidden', shadowColor: isDark ? '#000' : '#9AA7BF', shadowOffset: { width: 0, height: 5 }, shadowOpacity: isDark ? 0.25 : 0.15, shadowRadius: 10, elevation: Platform.OS === 'android' ? 3 : 0 },
+    audienceName: { fontSize: 14, fontWeight: '800', color: THEME_COLORS.text },
+    audienceCount: { fontSize: 11.5, color: THEME_COLORS.textMuted, marginTop: 2 },
+    reviewBar: { marginTop: 'auto', padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surfaceHighlight, flexDirection: isWide ? 'row' : 'column', alignItems: isWide ? 'center' : 'stretch', justifyContent: 'space-between', gap: 16, shadowColor: isDark ? '#000' : '#A4B0C5', shadowOffset: { width: 0, height: 6 }, shadowOpacity: isDark ? 0.28 : 0.18, shadowRadius: 12, elevation: Platform.OS === 'android' ? 5 : 0 },
+    reviewReach: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    reviewIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: THEME_COLORS.surface, elevation: Platform.OS === 'android' ? 2 : 0 },
+    reviewLabel: { fontSize: 9.5, fontWeight: '800', letterSpacing: 1.1, color: THEME_COLORS.textFaint },
+    reviewCount: { fontSize: 18, fontWeight: '800', color: THEME_COLORS.text, marginTop: 2, fontVariant: ['tabular-nums'] },
+    primarySend: { minHeight: 54, minWidth: 180, borderRadius: 18, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.24, shadowRadius: 13, elevation: Platform.OS === 'android' ? 8 : 5 },
+    primarySendDisabled: { opacity: 0.45 },
+    primarySendText: { fontSize: 14, fontWeight: '800', color: '#FFF' },
     grid: {
       gap: isWide ? 24 : 20,
       width: '100%',

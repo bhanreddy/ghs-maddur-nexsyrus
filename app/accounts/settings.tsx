@@ -14,7 +14,6 @@ import Constants from 'expo-constants';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAccountsWebChrome } from '../../src/contexts/AccountsWebChromeContext';
-import { useBiometric } from '../../src/hooks/useBiometric';
 import { Theme } from '../../src/theme/themes';
 import { useTranslation } from 'react-i18next';
 import {
@@ -128,7 +127,6 @@ export default function AccountsSettings() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [updating, setUpdating] = useState(false);
-  const { isBiometricAvailable, isBiometricEnabled, isLoading: biometricLoading, toggleBiometric } = useBiometric();
   const { switcherOpen, openSwitcher, closeSwitcher } = useSettingsAccountSwitcher();
 
   const handlePress = (item: string) =>
@@ -231,19 +229,6 @@ export default function AccountsSettings() {
 
         {/* ── Security ── */}
         <Group title="Security" delay={250} theme={theme}>
-          <SettingRow
-            icon="finger-print" iconColor="#EC4899" iconBg="#FDF2F8"
-            label={isBiometricAvailable ? 'Biometric Login' : 'Biometric (Not Available)'}
-            rightElement={
-              <Switch
-                trackColor={{ false: '#E5E7EB', true: '#F472B6' }}
-                thumbColor={isBiometricEnabled ? '#fff' : '#f4f3f4'}
-                onValueChange={toggleBiometric}
-                value={isBiometricEnabled}
-                disabled={!isBiometricAvailable || biometricLoading} />
-
-            } />
-
           <SettingRow
             icon="lock-closed" iconColor="#3B82F6" iconBg="#EFF6FF"
             label="Change Password"

@@ -79,6 +79,9 @@ export interface StudentEnrollment {
     readonly created_at?: string;
     readonly status?: string;
     readonly class_teacher?: string;
+    readonly class_teacher_id?: string;
+    readonly class_teacher_user_id?: string;
+    readonly class_teacher_photo_url?: string;
 }
 
 export interface Parent {

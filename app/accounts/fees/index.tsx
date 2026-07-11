@@ -3,10 +3,11 @@ import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
 
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Pressable, Platform, ActivityIndicator, RefreshControl, ScrollView
+  View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar, Pressable, Platform, ActivityIndicator, RefreshControl, ScrollView, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import AdminHeader from '../../../src/components/AdminHeader';
 import { useAccountsWebChrome } from '../../../src/contexts/AccountsWebChromeContext';
 import Animated, {
@@ -44,6 +45,7 @@ type FeeListStudent = {
   fatherMobile?: string;
   studentGender?: string;
   parentLine?: string;
+  photoUrl?: string;
   status: FeeSummaryStatus;
   total: number | string;
   paid: number | string;
@@ -109,10 +111,8 @@ const StudentCard = React.memo(function StudentCard({
   }));
 
   const s = (STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.Pending)[isDark ? 'dark' : 'light'];
-  const cardBg = isDark ? '#1C1F2A' : '#FFFFFF';
-  const border = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
   const textPri = isDark ? '#F9FAFB' : '#111827';
-  const textSec = isDark ? 'rgba(255,255,255,0.4)' : '#6B7280';
+  const textSec = isDark ? 'rgba(255,255,255,0.45)' : '#64748B';
 
   const due = parseFloat(item.due) || 0;
   const paid = parseFloat(item.paid) || 0;
@@ -121,21 +121,52 @@ const StudentCard = React.memo(function StudentCard({
   return (
     <Animated.View entering={FadeInDown.delay(index * 60).duration(400).springify()} style={animStyle}>
       <Pressable
-        style={[cardStyles.card, { backgroundColor: cardBg, borderColor: border }]}
+        style={[
+          cardStyles.card,
+          {
+            backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+            borderTopWidth: 1.5,
+            borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)',
+            borderBottomWidth: 3,
+            borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.18)',
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDark ? 0.30 : 0.18,
+            shadowRadius: 14,
+            elevation: 4,
+          }
+        ]}
         onPress={onPress}
         onPressIn={() => { pressed.value = withSpring(1, { damping: 20 }); }}
         onPressOut={() => { pressed.value = withSpring(0, { damping: 20 }); }}
       >
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+
         {/* Left accent line by status */}
         <View style={[cardStyles.accent, { backgroundColor: s.dot }]} />
 
         <View style={cardStyles.inner}>
           {/* Header row */}
           <View style={cardStyles.headerRow}>
-            <View style={cardStyles.avatarWrap}>
-              <Text style={[cardStyles.avatarText, { color: s.dot }]}>
-                {(item.name || 'S').charAt(0).toUpperCase()}
-              </Text>
+            <View style={[cardStyles.avatarWrap, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.7)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, overflow: 'hidden' }]}>
+              {item.photoUrl || item.photo_url || item.profile_pic ? (
+                <Image
+                  source={{ uri: item.photoUrl || item.photo_url || item.profile_pic }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={[cardStyles.avatarText, { color: s.dot }]}>
+                  {(item.name || 'S').charAt(0).toUpperCase()}
+                </Text>
+              )}
             </View>
 
             <View style={cardStyles.nameBlock}>
@@ -149,17 +180,17 @@ const StudentCard = React.memo(function StudentCard({
               ) : null}
               <View style={cardStyles.metaRow}>
                 {item.admissionNo ? (
-                  <View style={[cardStyles.metaTag, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }]}>
+                  <View style={[cardStyles.metaTag, { backgroundColor: isDark ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.6)' }]}>
                     <Text style={[cardStyles.metaTagText, { color: textSec }]}>#{item.admissionNo}</Text>
                   </View>
                 ) : null}
-                <View style={[cardStyles.metaTag, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }]}>
-                  <Text style={[cardStyles.metaTagText, { color: textSec }]}>{item.class}</Text>
+                <View style={[cardStyles.metaTag, { backgroundColor: isDark ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.6)' }]}>
+                  <Text style={[cardStyles.metaTagText, { color: textSec }]}>Class: {item.class}</Text>
                 </View>
               </View>
             </View>
 
-            <View style={[cardStyles.statusBadge, { backgroundColor: s.bg }]}>
+            <View style={[cardStyles.statusBadge, { backgroundColor: s.bg, borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)', borderTopWidth: 1 }]}>
               <View style={[cardStyles.statusDot, { backgroundColor: s.dot }]} />
               <Text style={[cardStyles.statusText, { color: s.text }]}>{item.status}</Text>
             </View>
@@ -168,9 +199,9 @@ const StudentCard = React.memo(function StudentCard({
           {/* Figures row */}
           <View style={cardStyles.figRow}>
             <FigCell label="Total" value={`₹${total.toLocaleString('en-IN')}`} color={textPri} sec={textSec} />
-            <View style={[cardStyles.figSep, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }]} />
+            <View style={[cardStyles.figSep, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]} />
             <FigCell label="Collected" value={`₹${paid.toLocaleString('en-IN')}`} color="#10B981" sec={textSec} />
-            <View style={[cardStyles.figSep, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }]} />
+            <View style={[cardStyles.figSep, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]} />
             <FigCell label="Due" value={`₹${due.toLocaleString('en-IN')}`} color={due > 0 ? '#EF4444' : '#10B981'} sec={textSec} />
           </View>
 
@@ -180,7 +211,7 @@ const StudentCard = React.memo(function StudentCard({
 
         {/* Chevron */}
         <View style={cardStyles.chevronWrap}>
-          <Ionicons name="chevron-forward" size={16} color={isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB'} />
+          <Ionicons name="chevron-forward" size={16} color={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'} />
         </View>
       </Pressable>
     </Animated.View>
@@ -200,26 +231,15 @@ const cardStyles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 18,
-    marginBottom: 10,
-    borderWidth: 1,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: { elevation: 3 },
-    }),
+    borderRadius: 24,
+    marginBottom: 12,
+    position: 'relative',
   },
-  accent: { width: 4, alignSelf: 'stretch' },
-  inner: { flex: 1, padding: 14, paddingLeft: 12 },
+  accent: { width: 4, alignSelf: 'stretch', zIndex: 2 },
+  inner: { flex: 1, padding: 14, paddingLeft: 12, zIndex: 2 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   avatarWrap: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(59,130,246,0.1)',
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 18, fontWeight: '800' },
@@ -227,7 +247,7 @@ const cardStyles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   parentLine: { fontSize: 11, fontWeight: '600', marginBottom: 4 },
   metaRow: { flexDirection: 'row', gap: 5 },
-  metaTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+  metaTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   metaTagText: { fontSize: 10, fontWeight: '700' },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -240,22 +260,47 @@ const cardStyles = StyleSheet.create({
   figLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginBottom: 2, textTransform: 'uppercase' },
   figValue: { fontSize: 14, fontWeight: '800' },
   figSep: { width: 1, height: 28, marginHorizontal: 4 },
-  chevronWrap: { paddingRight: 12 },
+  chevronWrap: { paddingRight: 12, zIndex: 2 },
 });
 
 // ─── Summary Header ───────────────────────────────────────────────────────────
 function SummaryHeader({ stats, isDark }: { stats: SummaryStats; isDark: boolean }) {
-  const bg = isDark ? '#1C1F2A' : '#1E293B';
-  const textSec = 'rgba(255,255,255,0.4)';
+  const bg = isDark ? '#2A3142' : '#EEF1F8';
+  const textSec = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.45)';
 
   return (
-    <Animated.View entering={FadeIn.duration(500)} style={[sumStyles.card, { backgroundColor: bg }]}>
+    <Animated.View
+      entering={FadeIn.duration(500)}
+      style={[
+        sumStyles.card,
+        {
+          backgroundColor: bg,
+          borderTopWidth: 1.5,
+          borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)',
+          borderBottomWidth: 3.5,
+          borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.18)',
+          shadowColor: isDark ? '#000' : '#6B7A99',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: isDark ? 0.35 : 0.22,
+          shadowRadius: 18,
+          elevation: 6,
+        }
+      ]}
+    >
+      <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+        <LinearGradient
+          colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      </View>
       <View style={sumStyles.row}>
-        <SumCell label="Total Collected" value={`₹${stats.collectedTotal.toLocaleString('en-IN')}`} color="#34D399" sec={textSec} />
-        <View style={sumStyles.sep} />
-        <SumCell label="Total Outstanding" value={`₹${stats.pendingDues.toLocaleString('en-IN')}`} color="#F87171" sec={textSec} />
-        <View style={sumStyles.sep} />
-        <SumCell label="Pending Students" value={String(stats.pendingStudents)} color="#60A5FA" sec={textSec} />
+        <SumCell label="Total Collected" value={`₹${stats.collectedTotal.toLocaleString('en-IN')}`} color="#10B981" sec={textSec} />
+        <View style={[sumStyles.sep, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }]} />
+        <SumCell label="Total Outstanding" value={`₹${stats.pendingDues.toLocaleString('en-IN')}`} color="#EF4444" sec={textSec} />
+        <View style={[sumStyles.sep, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)' }]} />
+        <SumCell label="Pending Students" value={String(stats.pendingStudents)} color="#3B82F6" sec={textSec} />
       </View>
     </Animated.View>
   );
@@ -273,24 +318,16 @@ function SumCell({ label, value, color, sec }: { label: string; value: string; c
 const sumStyles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 18,
+    marginBottom: 16,
+    borderRadius: 24,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#2563EB',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.2,
-        shadowRadius: 14,
-      },
-      android: { elevation: 6 },
-    }),
+    position: 'relative',
   },
-  row: { flexDirection: 'row' },
-  sep: { width: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 },
-  cell: { flex: 1, alignItems: 'center' },
-  label: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase', textAlign: 'center' },
-  value: { fontSize: 16, fontWeight: '800' },
+  row: { flexDirection: 'row', zIndex: 2 },
+  sep: { width: 1, marginVertical: 2, zIndex: 2 },
+  cell: { flex: 1, alignItems: 'center', zIndex: 2 },
+  label: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase', textAlign: 'center' },
+  value: { fontSize: 18, fontWeight: '900' },
 });
 
 // ─── Filter Pill ──────────────────────────────────────────────────────────────
@@ -308,19 +345,51 @@ function FilterPill({
         style={[
           pillStyles.pill,
           active
-            ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-            : { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }
+            ? {
+                backgroundColor: '#3B82F6',
+                borderTopWidth: 1.5,
+                borderTopColor: 'rgba(255,255,255,0.45)',
+                borderBottomWidth: 3,
+                borderBottomColor: 'rgba(29,78,216,0.25)',
+                shadowColor: '#3B82F6',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.22,
+                shadowRadius: 8,
+                elevation: 4,
+              }
+            : {
+                backgroundColor: isDark ? '#1C1F2A' : '#EEF1F8',
+                borderTopWidth: 1.5,
+                borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)',
+                borderBottomWidth: 3,
+                borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.1)',
+                shadowColor: isDark ? '#000' : '#6B7A99',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDark ? 0.15 : 0.08,
+                shadowRadius: 4,
+                elevation: 1,
+              }
         ]}
         onPress={onPress}
         onPressIn={() => { scale.value = withSpring(0.92); }}
         onPressOut={() => { scale.value = withSpring(1); }}
       >
-        <Text style={[pillStyles.label, { color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.5)' : '#6B7280') }]}>
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 20, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={active
+              ? ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']
+              : (isDark ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'])}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+        <Text style={[pillStyles.label, { color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.55)' : '#475569'), zIndex: 2 }]}>
           {label}
         </Text>
         {count > 0 && label !== 'All' && (
-          <View style={[pillStyles.badge, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB') }]}>
-            <Text style={[pillStyles.badgeText, { color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.5)' : '#6B7280') }]}>
+          <View style={[pillStyles.badge, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.08)'), zIndex: 2 }]}>
+            <Text style={[pillStyles.badgeText, { color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.5)' : '#475569') }]}>
               {count}
             </Text>
           </View>
@@ -330,7 +399,7 @@ function FilterPill({
   );
 }
 const pillStyles = StyleSheet.create({
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, position: 'relative' },
   label: { fontSize: 13, fontWeight: '700' },
   badge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '800' },
@@ -392,16 +461,39 @@ const ClassStructureCard = React.memo(function ClassStructureCard({
 }: {
   item: ClassFeeStructure; index: number; isDark: boolean;
 }) {
-  const cardBg = isDark ? '#1C1F2A' : '#FFFFFF';
-  const border = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
   const textPri = isDark ? '#F9FAFB' : '#111827';
-  const textSec = isDark ? 'rgba(255,255,255,0.45)' : '#6B7280';
+  const textSec = isDark ? 'rgba(255,255,255,0.45)' : '#64748B';
   const amount = Number(item.amount) || 0;
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).duration(350).springify()}>
-      <View style={[structureStyles.card, { backgroundColor: cardBg, borderColor: border }]}>
-        <View style={structureStyles.classBadge}>
+      <View
+        style={[
+          structureStyles.card,
+          {
+            backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+            borderTopWidth: 1.5,
+            borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)',
+            borderBottomWidth: 3,
+            borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.18)',
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDark ? 0.30 : 0.18,
+            shadowRadius: 14,
+            elevation: 4,
+          }
+        ]}
+      >
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.5)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+
+        <View style={[structureStyles.classBadge, { backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.7)', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 }]}>
           <Text style={structureStyles.classBadgeText}>{classBadgeLabel(item.class_name)}</Text>
         </View>
 
@@ -432,37 +524,28 @@ const structureStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 24,
     padding: 14,
-    marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
+    marginBottom: 12,
+    position: 'relative',
   },
   classBadge: {
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: 'rgba(59,130,246,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
   },
   classBadgeText: {
     fontSize: 18,
     fontWeight: '800',
     color: '#3B82F6',
   },
-  infoBlock: { flex: 1 },
+  infoBlock: { flex: 1, zIndex: 2 },
   title: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
   subtitle: { fontSize: 12, fontWeight: '600' },
-  amountBlock: { alignItems: 'flex-end' },
+  amountBlock: { alignItems: 'flex-end', zIndex: 2 },
   amount: { fontSize: 18, fontWeight: '800', color: '#2563EB' },
   frequency: { fontSize: 10, fontWeight: '700', letterSpacing: 0.4, marginTop: 2 },
 });
@@ -473,30 +556,60 @@ function ViewModePill({
 }: {
   label: ViewMode; active: boolean; isDark: boolean; onPress: () => void;
 }) {
+  const scale = useSharedValue(1);
+  const aStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    flex: 1,
+  }));
+
   return (
-    <Pressable
-      style={[
-        viewModeStyles.pill,
-        active
-          ? { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }
-          : { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6', borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' },
-      ]}
-      onPress={onPress}
-    >
-      <Text style={[viewModeStyles.label, { color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.5)' : '#6B7280') }]}>
-        {label}
-      </Text>
-    </Pressable>
+    <Animated.View style={aStyle}>
+      <Pressable
+        style={[
+          viewModeStyles.pill,
+          active && {
+            backgroundColor: isDark ? '#2A3142' : '#FFFFFF',
+            borderTopWidth: 1.5,
+            borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)',
+            borderBottomWidth: 3,
+            borderBottomColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(76,90,120,0.15)',
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDark ? 0.25 : 0.12,
+            shadowRadius: 8,
+            elevation: 3,
+          }
+        ]}
+        onPress={onPress}
+        onPressIn={() => { scale.value = withSpring(0.96); }}
+        onPressOut={() => { scale.value = withSpring(1); }}
+      >
+        {active && (
+          <View style={[StyleSheet.absoluteFill, { borderRadius: 16, overflow: 'hidden' }]}>
+            <LinearGradient
+              colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+              start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+          </View>
+        )}
+        <Text style={[viewModeStyles.label, { color: active ? (isDark ? '#FFF' : '#1E293B') : (isDark ? 'rgba(255,255,255,0.4)' : '#64748B'), zIndex: 2 }]}>
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const viewModeStyles = StyleSheet.create({
   pill: {
-    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 16,
+    height: 40,
+    position: 'relative',
   },
   label: { fontSize: 13, fontWeight: '800' },
 });
@@ -534,49 +647,129 @@ function StudentFiltersPanel({
   onSubmit: () => void;
   hasActiveFilters: boolean;
 }) {
-  const border = isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB';
-  const chipBg = isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6';
   const chipText = isDark ? 'rgba(255,255,255,0.55)' : '#6B7280';
-  const inputBg = isDark ? 'rgba(255,255,255,0.04)' : '#F9FAFB';
 
   return (
     <View style={filterPanelStyles.wrap}>
-      <Pressable style={[filterPanelStyles.toggleRow, { borderColor: border }]} onPress={onToggle}>
-        <View style={filterPanelStyles.toggleLeft}>
-          <Ionicons name="options-outline" size={16} color={hasActiveFilters ? '#3B82F6' : chipText} />
-          <Text style={[filterPanelStyles.toggleText, { color: hasActiveFilters ? '#3B82F6' : chipText }]}>
+      <Pressable 
+        style={[
+          filterPanelStyles.toggleRow, 
+          { 
+            backgroundColor: isDark ? '#1C1F2A' : '#EEF1F8',
+            borderTopWidth: 1.5,
+            borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
+            borderBottomWidth: 3,
+            borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.15)',
+            shadowColor: isDark ? '#000' : '#6B7A99',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDark ? 0.20 : 0.12,
+            shadowRadius: 8,
+            elevation: 3,
+          }
+        ]} 
+        onPress={onToggle}
+      >
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 16, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </View>
+
+        <View style={[filterPanelStyles.toggleLeft, { zIndex: 2 }]}>
+          <Ionicons name="options-outline" size={16} color={hasActiveFilters ? '#3B82F6' : (isDark ? 'rgba(255,255,255,0.4)' : '#64748B')} />
+          <Text style={[filterPanelStyles.toggleText, { color: hasActiveFilters ? '#3B82F6' : (isDark ? 'rgba(255,255,255,0.7)' : '#334155') }]}>
             Filters{hasActiveFilters ? ' · active' : ''}
           </Text>
         </View>
-        <View style={filterPanelStyles.toggleRight}>
+        <View style={[filterPanelStyles.toggleRight, { zIndex: 2 }]}>
           {hasActiveFilters ? (
             <Pressable onPress={(e) => { e.stopPropagation?.(); onClear(); }} hitSlop={8}>
               <Text style={filterPanelStyles.clearText}>Clear</Text>
             </Pressable>
           ) : null}
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={chipText} />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={isDark ? 'rgba(255,255,255,0.4)' : '#64748B'} />
         </View>
       </Pressable>
 
       {expanded ? (
-        <Animated.View entering={FadeIn.duration(250)} style={[filterPanelStyles.panel, { borderColor: border, backgroundColor: isDark ? '#171923' : '#FAFAFA' }]}>
+        <Animated.View 
+          entering={FadeIn.duration(250)} 
+          style={[
+            filterPanelStyles.panel, 
+            { 
+              backgroundColor: isDark ? '#141824' : '#E2E8F0',
+              borderRadius: 16,
+              marginTop: 10,
+              padding: 16,
+              borderTopWidth: 1.5,
+              borderTopColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.12)',
+            }
+          ]}
+        >
           <Text style={[filterPanelStyles.label, { color: chipText }]}>CLASS</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={filterPanelStyles.chipRow}>
             <Pressable
-              style={[filterPanelStyles.chip, { backgroundColor: !selectedClassId ? '#3B82F6' : chipBg, borderColor: !selectedClassId ? '#3B82F6' : border }]}
+              style={[
+                filterPanelStyles.chip,
+                {
+                  borderRadius: 18,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  backgroundColor: !selectedClassId ? '#3B82F6' : (isDark ? '#1C1F2A' : '#EEF1F8'),
+                  borderTopWidth: 1.5,
+                  borderTopColor: !selectedClassId ? 'rgba(255,255,255,0.45)' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)'),
+                  borderBottomWidth: 3,
+                  borderBottomColor: !selectedClassId ? 'rgba(29,78,216,0.25)' : (isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.1)'),
+                }
+              ]}
               onPress={() => onSelectClass(null)}
             >
-              <Text style={[filterPanelStyles.chipText, { color: !selectedClassId ? '#fff' : chipText }]}>All</Text>
+              <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+                <LinearGradient
+                  colors={!selectedClassId 
+                    ? ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)'] 
+                    : (isDark ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'])}
+                  start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </View>
+              <Text style={[filterPanelStyles.chipText, { color: !selectedClassId ? '#fff' : (isDark ? 'rgba(255,255,255,0.6)' : '#475569'), zIndex: 2 }]}>All</Text>
             </Pressable>
             {classes.map((cls) => {
               const active = selectedClassId === cls.id;
               return (
                 <Pressable
                   key={cls.id}
-                  style={[filterPanelStyles.chip, { backgroundColor: active ? '#3B82F6' : chipBg, borderColor: active ? '#3B82F6' : border }]}
+                  style={[
+                    filterPanelStyles.chip,
+                    {
+                      borderRadius: 18,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      backgroundColor: active ? '#3B82F6' : (isDark ? '#1C1F2A' : '#EEF1F8'),
+                      borderTopWidth: 1.5,
+                      borderTopColor: active ? 'rgba(255,255,255,0.45)' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)'),
+                      borderBottomWidth: 3,
+                      borderBottomColor: active ? 'rgba(29,78,216,0.25)' : (isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.1)'),
+                    }
+                  ]}
                   onPress={() => onSelectClass(active ? null : cls.id)}
                 >
-                  <Text style={[filterPanelStyles.chipText, { color: active ? '#fff' : chipText }]}>{cls.name}</Text>
+                  <View style={[StyleSheet.absoluteFill, { borderRadius: 18, overflow: 'hidden' }]}>
+                    <LinearGradient
+                      colors={active 
+                        ? ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)'] 
+                        : (isDark ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0)'])}
+                      start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                      style={StyleSheet.absoluteFill}
+                      pointerEvents="none"
+                    />
+                  </View>
+                  <Text style={[filterPanelStyles.chipText, { color: active ? '#fff' : (isDark ? 'rgba(255,255,255,0.6)' : '#475569'), zIndex: 2 }]}>{cls.name}</Text>
                 </Pressable>
               );
             })}
@@ -585,45 +778,188 @@ function StudentFiltersPanel({
           <View style={filterPanelStyles.inputRow}>
             <View style={filterPanelStyles.inputCell}>
               <Text style={[filterPanelStyles.label, { color: chipText }]}>ADMISSION NO</Text>
-              <AppTextInput
-                style={[filterPanelStyles.input, { backgroundColor: inputBg, color: isDark ? '#F9FAFB' : '#111827', borderColor: border }]}
-                placeholder="Exact or prefix"
-                placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
-                value={admissionNo}
-                onChangeText={onAdmissionNoChange}
-                returnKeyType="search"
-                onSubmitEditing={onSubmit}
-              />
+              <View style={[
+                filterPanelStyles.inputFrame,
+                {
+                  backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+                  borderTopWidth: 1.5,
+                  borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.85)',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.15)',
+                  shadowColor: isDark ? '#000' : '#6B7A99',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: isDark ? 0.22 : 0.08,
+                  shadowRadius: 5,
+                  elevation: 1,
+                }
+              ]}>
+                <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+                  <LinearGradient
+                    colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+                    start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </View>
+                <AppTextInput
+                  style={[
+                    filterPanelStyles.input, 
+                    { 
+                      backgroundColor: isDark ? '#0A0B12' : '#D5E0ED', 
+                      color: isDark ? '#F9FAFB' : '#111827', 
+                      borderWidth: 0,
+                      borderTopWidth: 1.5,
+                      borderTopColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)',
+                      borderBottomWidth: 1,
+                      borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                      borderRadius: 10,
+                      height: 38,
+                      zIndex: 2,
+                    }
+                  ]}
+                  placeholder="Exact or prefix"
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
+                  value={admissionNo}
+                  onChangeText={onAdmissionNoChange}
+                  returnKeyType="search"
+                  onSubmitEditing={onSubmit}
+                />
+              </View>
             </View>
             <View style={filterPanelStyles.inputCell}>
               <Text style={[filterPanelStyles.label, { color: chipText }]}>FATHER / GUARDIAN</Text>
-              <AppTextInput
-                style={[filterPanelStyles.input, { backgroundColor: inputBg, color: isDark ? '#F9FAFB' : '#111827', borderColor: border }]}
-                placeholder="Parent name"
-                placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
-                value={fatherName}
-                onChangeText={onFatherNameChange}
-                returnKeyType="search"
-                onSubmitEditing={onSubmit}
-              />
+              <View style={[
+                filterPanelStyles.inputFrame,
+                {
+                  backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+                  borderTopWidth: 1.5,
+                  borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.85)',
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.15)',
+                  shadowColor: isDark ? '#000' : '#6B7A99',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: isDark ? 0.22 : 0.08,
+                  shadowRadius: 5,
+                  elevation: 1,
+                }
+              ]}>
+                <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+                  <LinearGradient
+                    colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+                    start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                </View>
+                <AppTextInput
+                  style={[
+                    filterPanelStyles.input, 
+                    { 
+                      backgroundColor: isDark ? '#0A0B12' : '#D5E0ED', 
+                      color: isDark ? '#F9FAFB' : '#111827', 
+                      borderWidth: 0,
+                      borderTopWidth: 1.5,
+                      borderTopColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)',
+                      borderBottomWidth: 1,
+                      borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                      borderRadius: 10,
+                      height: 38,
+                      zIndex: 2,
+                    }
+                  ]}
+                  placeholder="Parent name"
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
+                  value={fatherName}
+                  onChangeText={onFatherNameChange}
+                  returnKeyType="search"
+                  onSubmitEditing={onSubmit}
+                />
+              </View>
             </View>
           </View>
 
           <Text style={[filterPanelStyles.label, { color: chipText }]}>MOBILE</Text>
-          <AppTextInput
-            style={[filterPanelStyles.input, filterPanelStyles.mobileInput, { backgroundColor: inputBg, color: isDark ? '#F9FAFB' : '#111827', borderColor: border }]}
-            placeholder="Parent phone number"
-            placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
-            value={mobile}
-            onChangeText={onMobileChange}
-            keyboardType="phone-pad"
-            returnKeyType="search"
-            onSubmitEditing={onSubmit}
-          />
+          <View style={[
+            filterPanelStyles.inputFrame,
+            {
+              backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+              borderTopWidth: 1.5,
+              borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.85)',
+              borderBottomWidth: 2.5,
+              borderBottomColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(76,90,120,0.15)',
+              shadowColor: isDark ? '#000' : '#6B7A99',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: isDark ? 0.22 : 0.08,
+              shadowRadius: 5,
+              elevation: 1,
+            }
+          ]}>
+            <View style={[StyleSheet.absoluteFill, { borderRadius: 14, overflow: 'hidden' }]}>
+              <LinearGradient
+                colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+            </View>
+            <AppTextInput
+              style={[
+                filterPanelStyles.input, 
+                filterPanelStyles.mobileInput, 
+                { 
+                  backgroundColor: isDark ? '#0A0B12' : '#D5E0ED', 
+                  color: isDark ? '#F9FAFB' : '#111827', 
+                  borderWidth: 0,
+                  borderTopWidth: 1.5,
+                  borderTopColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)',
+                  borderBottomWidth: 1,
+                  borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                  borderRadius: 10,
+                  height: 38,
+                  zIndex: 2,
+                }
+              ]}
+              placeholder="Parent phone number"
+              placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
+              value={mobile}
+              onChangeText={onMobileChange}
+              keyboardType="phone-pad"
+              returnKeyType="search"
+              onSubmitEditing={onSubmit}
+            />
+          </View>
 
-          <Pressable style={filterPanelStyles.searchButton} onPress={onSubmit}>
-            <Ionicons name="search" size={15} color="#fff" />
-            <Text style={filterPanelStyles.searchButtonText}>Search students</Text>
+          <Pressable 
+            style={[
+              filterPanelStyles.searchButton,
+              {
+                backgroundColor: '#3B82F6',
+                borderTopWidth: 1.5,
+                borderTopColor: 'rgba(255,255,255,0.45)',
+                borderBottomWidth: 3.5,
+                borderBottomColor: 'rgba(29,78,216,0.25)',
+                shadowColor: '#3B82F6',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.25,
+                shadowRadius: 10,
+                elevation: 4,
+                borderRadius: 12,
+                height: 44,
+                marginTop: 6,
+              }
+            ]} 
+            onPress={onSubmit}
+          >
+            <View style={[StyleSheet.absoluteFill, { borderRadius: 12, overflow: 'hidden' }]}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
+            </View>
+            <Ionicons name="search" size={15} color="#fff" style={{ zIndex: 2 }} />
+            <Text style={[filterPanelStyles.searchButtonText, { zIndex: 2 }]}>Search students</Text>
           </Pressable>
         </Animated.View>
       ) : null}
@@ -632,26 +968,25 @@ function StudentFiltersPanel({
 }
 
 const filterPanelStyles = StyleSheet.create({
-  wrap: { paddingHorizontal: 16, marginBottom: 4 },
+  wrap: { paddingHorizontal: 16, marginBottom: 12 },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    position: 'relative',
   },
   toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   toggleRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  toggleText: { fontSize: 13, fontWeight: '700' },
+  toggleText: { fontSize: 13, fontWeight: '800' },
   clearText: { fontSize: 12, fontWeight: '800', color: '#3B82F6' },
   panel: {
     marginTop: 8,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
-    gap: 10,
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
   },
   label: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
   chipRow: { gap: 8, paddingVertical: 4 },
@@ -659,7 +994,8 @@ const filterPanelStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 18,
-    borderWidth: 1,
+    borderWidth: 0,
+    position: 'relative',
   },
   chipText: { fontSize: 12, fontWeight: '700' },
   inputRow: { flexDirection: 'row', gap: 10 },
@@ -669,21 +1005,23 @@ const filterPanelStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#3B82F6',
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 2,
+    borderRadius: 12,
+    position: 'relative',
   },
   searchButtonText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  inputFrame: {
+    borderRadius: 14,
+    padding: 4,
+    position: 'relative',
+  },
   input: {
-    borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 40,
+    paddingHorizontal: 12,
+    height: 38,
     fontSize: 14,
     fontWeight: '500',
   },
-  mobileInput: { marginTop: -2 },
+  mobileInput: { marginTop: 0 },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -752,6 +1090,7 @@ export default function AccountsFees() {
       fatherMobile,
       studentGender,
       parentLine: buildParentLine(studentGender, fatherName),
+      photoUrl: d.photo_url || '',
       status: d.status,
       total: d.total_amount,
       paid: d.paid_amount,
@@ -882,7 +1221,7 @@ export default function AccountsFees() {
     setSubmittedAdmissionNo(admissionNoInput.trim());
     const father = fatherNameInput.trim();
     setSubmittedFatherName(father.length >= 2 ? father : '');
-    const digits = mobileInput.trim().replace(/\s+/g, '');
+    const digits = mobileInput.trim().replace(/\D/g, '');
     setSubmittedMobile(digits.length >= 3 ? digits : '');
   }, [admissionNoInput, fatherNameInput, mobileInput, searchQuery]);
 
@@ -1196,34 +1535,45 @@ export default function AccountsFees() {
       {/* Search bar */}
       <Animated.View
         entering={FadeInDown.duration(400)}
-        style={[styles.searchWrap, ds.searchBarWrapper, searchFocused && styles.searchWrapFocused]}
+        style={[styles.searchWrapFrame, searchFocused && styles.searchWrapFrameFocused]}
       >
-        <TouchableOpacity onPress={handleSearchSubmit} hitSlop={8}>
-          <Ionicons
-            name="search"
-            size={18}
-            color={searchFocused ? '#3B82F6' : (isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF')}
+        <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.55)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.9 }}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
           />
-        </TouchableOpacity>
-        <AppTextInput
-          style={[ds.inputInChrome, styles.searchInput]}
-          placeholder={activeView === 'Students'
-            ? 'Search name, ID or class — press Enter'
-            : 'Search by class, fee type or year…'}
-          placeholderTextColor={isDark ? 'rgba(255,255,255,0.2)' : '#94A3B8'}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          returnKeyType="search"
-          onSubmitEditing={handleSearchSubmit}
-          blurOnSubmit={false}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={handleClearSearch}>
-            <Ionicons name="close-circle" size={18} color={isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'} />
+        </View>
+
+        <View style={[styles.searchRecessedWell, searchFocused && styles.searchRecessedWellFocused]}>
+          <TouchableOpacity onPress={handleSearchSubmit} hitSlop={8} style={{ zIndex: 2 }}>
+            <Ionicons
+              name="search"
+              size={18}
+              color={searchFocused ? '#3B82F6' : (isDark ? 'rgba(255,255,255,0.45)' : '#64748B')}
+            />
           </TouchableOpacity>
-        )}
+          <AppTextInput
+            style={[ds.inputInChrome, styles.searchInput, { zIndex: 2 }]}
+            placeholder={activeView === 'Students'
+              ? 'Search name, ID or class — press Enter'
+              : 'Search by class, fee type or year…'}
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#94A3B8'}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            returnKeyType="search"
+            onSubmitEditing={handleSearchSubmit}
+            blurOnSubmit={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={handleClearSearch} style={{ zIndex: 2 }}>
+              <Ionicons name="close-circle" size={18} color={isDark ? 'rgba(255,255,255,0.4)' : '#64748B'} />
+            </TouchableOpacity>
+          )}
+        </View>
       </Animated.View>
 
       {isListLoading ? (
@@ -1291,32 +1641,44 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   },
 
   // Search
-  searchWrap: {
+  searchWrapFrame: {
+    backgroundColor: isDark ? '#2A3142' : '#EEF1F8',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 12,
+    borderRadius: 24,
+    borderTopWidth: 1.5,
+    borderTopColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.9)',
+    borderBottomWidth: 3,
+    borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.18)',
+    shadowColor: isDark ? '#000' : '#6B7A99',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: isDark ? 0.25 : 0.15,
+    shadowRadius: 12,
+    elevation: 3,
+    padding: 4,
+    position: 'relative',
+  },
+  searchWrapFrameFocused: {
+    backgroundColor: isDark ? '#2D3547' : '#EAF2FF',
+  },
+  searchRecessedWell: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: isDark ? '#1C1F2A' : '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    paddingHorizontal: 14,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E5E7EB',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-      },
-      android: { elevation: 2 },
-    }),
+    backgroundColor: isDark ? '#0A0B12' : '#D5E0ED',
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 20,
+    borderWidth: 0,
+    borderTopWidth: 1.5,
+    borderTopColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+    zIndex: 2,
   },
-  searchWrapFocused: {
-    borderColor: '#3B82F6',
-    backgroundColor: isDark ? 'rgba(59,130,246,0.06)' : '#F0F7FF',
+  searchRecessedWellFocused: {
+    backgroundColor: isDark ? '#08090E' : '#FFFFFF',
   },
   searchInput: {
     flex: 1,
@@ -1327,10 +1689,12 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
 
   viewModeRow: {
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 10,
+    padding: 4,
+    marginHorizontal: 16,
+    backgroundColor: isDark ? '#141824' : '#E2E8F0',
+    borderRadius: 20,
+    marginTop: 4,
+    marginBottom: 12,
   },
 
   // Filters
@@ -1376,8 +1740,21 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
   // Empty
   emptyWrap: {
     alignItems: 'center',
-    paddingTop: 60,
-    gap: 8,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    marginTop: 24,
+    backgroundColor: isDark ? '#1C1F2A' : '#EEF1F8',
+    borderTopWidth: 1.5,
+    borderTopColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
+    borderBottomWidth: 3,
+    borderBottomColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(76,90,120,0.15)',
+    shadowColor: isDark ? '#000' : '#6B7A99',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: isDark ? 0.20 : 0.10,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 10,
   },
   emptyIcon: { fontSize: 40 },
   emptyTitle: {
@@ -1389,5 +1766,6 @@ const getStyles = (theme: any, isDark: boolean) => StyleSheet.create({
     fontSize: 13,
     color: isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF',
     fontWeight: '500',
+    textAlign: 'center',
   },
 });

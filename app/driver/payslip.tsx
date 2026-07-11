@@ -8,10 +8,8 @@ import StudentHeader from '../../src/components/StudentHeader';
 import { StaffService } from '../../src/services/staffService';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useStaffPortalConfig } from '../../src/hooks/useStaffPortalConfig';
+import { useTheme } from '../../src/hooks/useTheme';
 import LogoLoader from '../../src/components/LogoLoader';
-
-const DRIVER_PINK = '#EC4899';
-const DRIVER_GRADIENT: [string, string] = ['#EC4899', '#BE185D'];
 
 interface Payslip {
   id: string;
@@ -24,9 +22,13 @@ interface Payslip {
 
 export default function DriverPayslip() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const PRIMARY_GRADIENT: [string, string] = [theme.colors.primary, theme.colors.primaryDark];
   const { payslipsEnabled, loading: configLoading } = useStaffPortalConfig();
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const styles = React.useMemo(() => getStyles(theme), [theme]);
 
   useEffect(() => {
     if (!user || configLoading || !payslipsEnabled) {
@@ -78,7 +80,7 @@ export default function DriverPayslip() {
         {/* ═══════ YTD Earnings Card ═══════ */}
         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.summaryCardWrap}>
           <LinearGradient
-            colors={DRIVER_GRADIENT}
+            colors={PRIMARY_GRADIENT}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.summaryCard}>
@@ -112,7 +114,7 @@ export default function DriverPayslip() {
         <View style={styles.listHeader}>
           <View style={styles.listHeaderLeft}>
             <View style={styles.listIconBox}>
-              <Ionicons name="receipt" size={14} color={DRIVER_PINK} />
+              <Ionicons name="receipt" size={16} color={theme.colors.primary} />
             </View>
             <Text style={styles.listTitle}>Recent Payslips</Text>
           </View>
@@ -120,7 +122,7 @@ export default function DriverPayslip() {
         </View>
         {loading ?
           <View style={styles.centerBox}>
-            <LogoLoader size={30} color={DRIVER_PINK} />
+            <LogoLoader size={30} color={theme.colors.primary} />
             <Text style={styles.centerText}>Loading payslips…</Text>
           </View> :
           payslips.length === 0 ?
@@ -143,7 +145,7 @@ export default function DriverPayslip() {
                   <View style={styles.cardHeader}>
                     <View style={styles.monthRow}>
                       <View style={styles.calIcon}>
-                        <Ionicons name="calendar" size={16} color={DRIVER_PINK} />
+                        <Ionicons name="calendar" size={16} color={theme.colors.primary} />
                       </View>
                       <Text style={styles.monthText}>{item.month}</Text>
                     </View>
@@ -153,7 +155,7 @@ export default function DriverPayslip() {
                     }>
                       <View style={[
                         styles.statusDot,
-                        { backgroundColor: item.status === 'Paid' ? '#10B981' : '#F59E0B' }]
+                        { backgroundColor: item.status === 'Paid' ? theme.colors.success : theme.colors.warning }]
                       } />
                       <Text style={[
                         styles.statusText,
@@ -165,17 +167,17 @@ export default function DriverPayslip() {
                   {/* Breakdown */}
                   <View style={styles.breakdownRow}>
                     <View style={styles.breakdownItem}>
-                      <View style={[styles.breakdownDot, { backgroundColor: '#10B981' }]} />
+                      <View style={[styles.breakdownDot, { backgroundColor: theme.colors.success }]} />
                       <View>
                         <Text style={styles.breakdownLabel}>Earnings</Text>
-                        <Text style={[styles.breakdownValue, { color: '#10B981' }]}>{item.earnings}</Text>
+                        <Text style={[styles.breakdownValue, { color: theme.colors.success }]}>{item.earnings}</Text>
                       </View>
                     </View>
                     <View style={styles.breakdownItem}>
-                      <View style={[styles.breakdownDot, { backgroundColor: '#EF4444' }]} />
+                      <View style={[styles.breakdownDot, { backgroundColor: theme.colors.danger }]} />
                       <View>
                         <Text style={styles.breakdownLabel}>Deductions</Text>
-                        <Text style={[styles.breakdownValue, { color: '#EF4444' }]}>{item.deductions}</Text>
+                        <Text style={[styles.breakdownValue, { color: theme.colors.danger }]}>{item.deductions}</Text>
                       </View>
                     </View>
                     <View style={[styles.breakdownItem, { alignItems: 'flex-end' }]}>
@@ -191,8 +193,8 @@ export default function DriverPayslip() {
                     onPress={() => handleDownload()}
                     activeOpacity={0.7}>
 
-                    <Ionicons name="download-outline" size={16} color={DRIVER_PINK} />
-                    <Text style={styles.downloadText}>Download PDF</Text>
+                    <Ionicons name="download-outline" size={16} color={theme.colors.primary} />
+                    <Text style={[styles.downloadText, { color: theme.colors.primary }]}>Download PDF</Text>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -207,17 +209,19 @@ export default function DriverPayslip() {
 }
 
 /* ════════════════════════════ STYLES ════════════════════════════ */
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent'},
   scrollContent: { padding: 20 },
 
   /* ── Summary Card ── */
   summaryCardWrap: {
-    borderRadius: 22, overflow: 'hidden', marginBottom: 28,
-    shadowColor: DRIVER_PINK, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 16, elevation: 8
+    borderRadius: 28, overflow: 'hidden', marginBottom: 32,
+    backgroundColor: '#FFFFFF',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)'
   },
-  summaryCard: { padding: 24, overflow: 'hidden' },
+  summaryCard: { padding: 26, overflow: 'hidden' },
   decor: {
     position: 'absolute', borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.08)'
@@ -246,20 +250,23 @@ const styles = StyleSheet.create({
   /* ── List Header ── */
   listHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 16
+    marginBottom: 20
   },
-  listHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  listHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   listIconBox: {
-    width: 28, height: 28, borderRadius: 8,
+    width: 32, height: 32, borderRadius: 12,
     backgroundColor: '#FDF2F8',
-    justifyContent: 'center', alignItems: 'center'
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: theme.colors.primary, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 1
   },
-  listTitle: { fontSize: 16, fontWeight: '700', color: '#374151' },
+  listTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', letterSpacing: -0.3 },
   listCount: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
 
   /* ── Empty / Loading ── */
   centerBox: { alignItems: 'center', paddingVertical: 40, gap: 10 },
   centerText: { color: '#94A3B8', fontSize: 13 },
+  emptyBox: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
   emptyCard: {
     alignItems: 'center', paddingVertical: 40, paddingHorizontal: 24,
     backgroundColor: '#FFF', borderRadius: 20,
@@ -275,11 +282,12 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
 
   /* ── Payslip Card ── */
-  listContainer: { gap: 14 },
+  listContainer: { gap: 16 },
   payslipCard: {
-    backgroundColor: '#FFF', borderRadius: 18, padding: 20,
-    shadowColor: '#64748B', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3
+    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24,
+    shadowColor: '#94A3B8', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08, shadowRadius: 20, elevation: 3,
+    borderWidth: 1, borderColor: 'rgba(226, 232, 240, 0.6)'
   },
   cardHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -307,11 +315,11 @@ const styles = StyleSheet.create({
   breakdownItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   breakdownDot: { width: 4, height: 20, borderRadius: 2 },
   breakdownLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '500', marginBottom: 2 },
-  breakdownValue: { fontSize: 14, fontWeight: '600' },
+  breakdownValue: { fontSize: 15, fontWeight: '700' },
   downloadBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    paddingVertical: 11, backgroundColor: '#FDF2F8',
-    borderRadius: 12, gap: 6
+    paddingVertical: 14, backgroundColor: '#FDF2F8',
+    borderRadius: 16, gap: 8, marginTop: 4
   },
-  downloadText: { color: DRIVER_PINK, fontWeight: '600', fontSize: 13 }
+  downloadText: { fontWeight: '700', fontSize: 14 }
 });

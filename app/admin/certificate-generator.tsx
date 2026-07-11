@@ -184,29 +184,63 @@ const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
 
-function numToWords(n: number): string {
+function numToWordsDob(n: number): string {
   if (n === 0) return 'Zero';
   if (n < 20) return ONES[n];
-  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
-  if (n < 1000) return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + numToWords(n % 100) : '');
-  return numToWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + numToWords(n % 1000) : '');
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10].toLowerCase() : '');
+  if (n < 1000) return ONES[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' ' + numToWordsDob(n % 100).toLowerCase() : '');
+  const thousands = Math.floor(n / 1000);
+  const remainder = n % 1000;
+  return numToWordsDob(thousands) + ' thousand' + (remainder ? ' ' + numToWordsDob(remainder).toLowerCase() : '');
 }
 
 function dobToWords(dobStr: string): string {
-  // Accepts dd/MM/yyyy or yyyy-MM-dd
   try {
+    const parts = dobStr.split(/[-/]/);
     let d: Date;
-    if (dobStr.includes('-')) d = new Date(dobStr);
-    else {
-      const [dd, mm, yyyy] = dobStr.split('/');
-      d = new Date(+yyyy, +mm - 1, +dd);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+      } else {
+        d = new Date(+parts[2], +parts[1] - 1, +parts[0]);
+      }
+    } else {
+      d = new Date(dobStr);
     }
+
     if (isNaN(d.getTime())) return 'N/A';
     const day = d.getDate();
     const month = MONTHS_LONG[d.getMonth()];
     const year = d.getFullYear();
-    return `${numToWords(day)} ${month} ${numToWords(year)}`;
+
+    const dayWords = numToWordsDob(day);
+    let yearWords = numToWordsDob(year);
+    yearWords = yearWords.charAt(0).toUpperCase() + yearWords.slice(1);
+
+    return `${dayWords}-${month}-${yearWords}`;
   } catch { return 'N/A'; }
+}
+
+function formatDDMMYYYY(dateStr: string | Date | undefined | null): string {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return typeof dateStr === 'string' ? dateStr : 'N/A';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+function classToRoman(className: string): string {
+  if (!className) return '';
+  return className.replace(/\b(\d+)\b/g, (match) => {
+    const num = parseInt(match, 10);
+    if (num >= 1 && num <= 12) {
+      const romanMap = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+      return romanMap[num - 1];
+    }
+    return match;
+  });
 }
 
 function formatInr(amount: number): string {
@@ -412,7 +446,7 @@ function EditModal({
                 <EditField label="To Class (Bonafide)" value={sd.toClass} onChangeText={v => setSD('toClass', v)} isDark={isDark} />
                 <EditField label="To Year (Bonafide)" value={sd.toYear} onChangeText={v => setSD('toYear', v)} isDark={isDark} />
                 <EditField
-                  label="Date of Birth (dd/MM/yyyy)"
+                  label="Date of Birth (dd-MM-yyyy)"
                   value={sd.dob}
                   onChangeText={v => setSD('dob', v)}
                   isDark={isDark}
@@ -553,6 +587,7 @@ function BonafideDocument({
 
         <View style={bfStyles.metaRow}>
           <Text style={bfStyles.metaText}>Admission No. <Text style={bfStyles.metaVal}>{line(studentData.admissionNo)}</Text></Text>
+          <Text style={bfStyles.metaText}>Academic Year <Text style={bfStyles.metaVal}>{line(studentData.academicYear)}</Text></Text>
           <Text style={bfStyles.metaText}>Date <Text style={bfStyles.metaVal}>{line(issueDate)}</Text></Text>
         </View>
 
@@ -848,7 +883,7 @@ const CertificatePreview = React.forwardRef<View, {
     ? (tcLayout === 'A4_HALF' ? 'A4 Half' : 'Legal')
     : 'Half A4';
   const title = isTC ? 'TRANSFER CERTIFICATE' : 'BONAFIDE & CONDUCT CERTIFICATE';
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const today = formatDDMMYYYY(new Date());
   const logoSource = resolveSchoolLogoSource(school);
   const affiliationLine = school.affiliation?.trim() || '';
   const recognitionLine = formatRecognitionLine(school.recognition, school.medium) || SCHOOL_RECOGNITION_LINE;
@@ -1043,7 +1078,7 @@ function buildCertificateHTML(
   const cfg = CERT_CONFIG[type];
   const isTC = type === 'TC';
   const isHalfTc = isTC && tcLayout === 'A4_HALF';
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const today = formatDDMMYYYY(new Date());
   const title = isTC ? 'TRANSFER CERTIFICATE' : 'BONAFIDE & CONDUCT CERTIFICATE';
   const logoImg = logoDataUri
     ? `<img src="${logoDataUri}" alt="School logo" class="header-logo-img" />`
@@ -1125,6 +1160,7 @@ function buildCertificateHTML(
       <div class="bf-title-box">${title}</div>
       <div class="bf-meta">
         <span>Admission No. <u>${line(studentData.admissionNo)}</u></span>
+        <span>Academic Year <u>${line(studentData.academicYear)}</u></span>
         <span>Date <u>${line(today)}</u></span>
       </div>
       <div class="bf-body">
@@ -1371,8 +1407,7 @@ function admissionYearFallback(admissionDate?: string): string {
   const d = new Date(admissionDate);
   if (Number.isNaN(d.getTime())) return '';
   const year = d.getFullYear();
-  const next = String(year + 1).slice(-2);
-  return `${year}-${next}`;
+  return `${year}-${year + 1}`;
 }
 
 function resolveBonafideStudyPeriod(
@@ -1395,9 +1430,9 @@ function resolveBonafideStudyPeriod(
   const admissionYear = admissionYearFallback(admissionDate);
 
   return {
-    fromClass: classNameFromEnrollment(firstEnroll) || currentClass || 'N/A',
-    fromYear: firstEnroll?.academic_year || currentEnrollment?.academic_year || admissionYear || 'N/A',
-    toClass: classNameFromEnrollment(lastEnroll) || currentClass || 'N/A',
+    fromClass: classToRoman(classNameFromEnrollment(firstEnroll) || currentClass || 'N/A'),
+    fromYear: admissionDate ? admissionYearFallback(admissionDate) : (firstEnroll?.academic_year || currentEnrollment?.academic_year || 'N/A'),
+    toClass: classToRoman(classNameFromEnrollment(lastEnroll) || currentClass || 'N/A'),
     toYear: lastEnroll?.academic_year || currentEnrollment?.academic_year || admissionYear || 'N/A',
   };
 }
@@ -1415,7 +1450,7 @@ function buildStudentDataFromRecord(
   const motherObj = parents?.find((p: any) => /mother/i.test(p.relationship || p.relation || ''));
   const mother = motherObj ? parentDisplayName(motherObj) : 'N/A';
   const rawDob = student.dob || student.person?.dob || '';
-  const dobFormatted = rawDob ? new Date(rawDob).toLocaleDateString('en-IN') : 'N/A';
+  const dobFormatted = rawDob ? formatDDMMYYYY(rawDob) : 'N/A';
   const studyPeriod = resolveBonafideStudyPeriod(enrollments, enrollment, student.admission_date);
 
   return {
@@ -1426,11 +1461,11 @@ function buildStudentDataFromRecord(
     parentName: father !== 'Guardian' ? father : mother !== 'N/A' ? mother : 'Guardian',
     genderId: student.gender_id ?? student.person?.gender_id ?? 0,
     genderLabel: genderHonorific(student.gender_id ?? student.person?.gender_id),
-    class: sec ? `${cls} – ${sec}` : cls,
+    class: classToRoman(sec ? `${cls} – ${sec}` : cls),
     dob: dobFormatted,
     dobWords: rawDob ? dobToWords(rawDob) : 'N/A',
     admissionNo: student.admission_no,
-    academicYear: enrollment?.academic_year || studyPeriod.toYear || '2025–2026',
+    academicYear: enrollment?.academic_year || studyPeriod.toYear || '2025-2026',
     fromClass: studyPeriod.fromClass,
     fromYear: studyPeriod.fromYear,
     toClass: studyPeriod.toClass,
@@ -1439,7 +1474,7 @@ function buildStudentDataFromRecord(
     address: 'Hyderabad',
     nationality: 'Indian',
     category: student.category?.name || 'General',
-    admissionDate: student.admission_date ? new Date(student.admission_date).toLocaleDateString('en-IN') : 'N/A',
+    admissionDate: student.admission_date ? formatDDMMYYYY(student.admission_date) : 'N/A',
   };
 }
 
@@ -1628,15 +1663,23 @@ export default function CertificateGenerator() {
           width: paper.widthPt,
           height: paper.heightPt,
         });
+        
+        const FileSystem: any = await import('expo-file-system/legacy');
+        const newUri = `${FileSystem.cacheDirectory}${fileName}`;
+        await FileSystem.moveAsync({
+          from: uri,
+          to: newUri,
+        });
+
         const Sharing = await import('expo-sharing');
         if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri, {
+          await Sharing.shareAsync(newUri, {
             mimeType: 'application/pdf',
             dialogTitle: fileName,
             UTI: 'com.adobe.pdf',
           });
         } else {
-          alertCompat('PDF Saved', `Certificate saved to:\n${uri}`);
+          alertCompat('PDF Saved', `Certificate saved to:\n${newUri}`);
         }
       }
 

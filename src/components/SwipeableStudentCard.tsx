@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { HapticFeedback } from '../utils/animations';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -28,6 +29,7 @@ interface Student {
     name: string;
     rollNo: string;
     status: 'present' | 'absent' | 'unmarked';
+    photoUrl?: string | null;
 }
 
 interface Props {
@@ -139,9 +141,19 @@ const SwipeableStudentCard: React.FC<Props> = ({ student, onStatusChange, isDark
                             IS_WEB && ({ cursor: 'pointer' } as object),
                         ]}
                     >
-                        <LinearGradient colors={avatarColors} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                            <Text style={styles.avatarText}>{student.name.charAt(0).toUpperCase()}</Text>
-                        </LinearGradient>
+                        {student.photoUrl ? (
+                            <Image
+                                source={{ uri: student.photoUrl }}
+                                style={styles.avatar}
+                                contentFit="cover"
+                                transition={200}
+                                cachePolicy="memory-disk"
+                            />
+                        ) : (
+                            <LinearGradient colors={avatarColors} style={styles.avatar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                                <Text style={styles.avatarText}>{student.name.charAt(0).toUpperCase()}</Text>
+                            </LinearGradient>
+                        )}
 
                         <View style={styles.info}>
                             <Text style={styles.name} numberOfLines={1}>{student.name}</Text>
