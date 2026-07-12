@@ -31,8 +31,8 @@
         "buildType": "app-bundle"
       }
     },
-    "school-18-production-apk": {
-      "extends": "school-18",
+    "school-17-production-apk": {
+      "extends": "school-17",
       "distribution": "internal",
       "autoIncrement": true,
       "channel": "production",
@@ -40,21 +40,21 @@
         "buildType": "apk"
       }
     },
-    "school-18": {
+    "school-17": {
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SCHOOL_ID": "18",
-        "EXPO_PUBLIC_SCHOOL_CODE": "BVS",
-        "EXPO_PUBLIC_SCHOOL_NAME": "Bhashyam Vidyanikethan School Mohammadabad",
+        "EXPO_PUBLIC_SCHOOL_ID": "17",
+        "EXPO_PUBLIC_SCHOOL_CODE": "46117",
+        "EXPO_PUBLIC_SCHOOL_NAME": "Geetanjali High School E/M Maddur",
         "EXPO_PUBLIC_API_URL": "https://simsapi.nexsyrus.com/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://jztckbupiepiqfrxhszt.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6dGNrYnVwaWVwaXFmcnhoc3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzgyMTYsImV4cCI6MjA4ODcxNDIxNn0.TC6mwwLezkwMmPxkIzRnR7NPyworRVzQ_vXCkRmnz4o"
       }
     },
-    "school-18-production": {
-      "extends": "school-18",
+    "school-17-production": {
+      "extends": "school-17",
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
@@ -64,9 +64,9 @@
     }
   },
   "submit": {
-    "school-18-production": {
+    "school-17-production": {
       "android": {
-        "serviceAccountKeyPath": "./secrets/play-service-account-school-18.json",
+        "serviceAccountKeyPath": "./secrets/play-service-account-school-17.json",
         "track": "internal",
         "releaseStatus": "draft",
         "changesNotSentForReview": false

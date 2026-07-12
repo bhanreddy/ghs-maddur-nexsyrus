@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Bhashyam Vidyanikethan School Mohammadabad",
-    "slug": "bvsmahammadabad",
+    "name": "Geetanjali High School Maddur",
+    "slug": "geetanjalihighschoolmaddur",
     "version": "1.5.1",
     "platforms": [
       "android",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.bvsmahammadabad",
+      "bundleIdentifier": "com.nexsyrussims.geetanjalihighschool",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -31,9 +31,9 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.bvsmahammadabad",
+      "package": "com.nexsyrussims.geetanjalihighschool",
       "jsEngine": "hermes",
-      "versionCode": 1,
+      "versionCode": 5,
       "googleServicesFile": "./google-services.json",
       "enableShrinkResources": true,
       "adaptiveIcon": {
@@ -52,11 +52,10 @@
       ]
     },
     "web": {
-      "bundler": "metro",
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon-v2.png"
     },
     "notification": {
-      "icon": "./assets/images/icon.png",
+      "icon": "./assets/images/icon-v2.png",
       "color": "#FFFFFF"
     },
     "plugins": [
@@ -93,8 +92,7 @@
             "./assets/sounds/notification_default.wav",
             "./assets/sounds/emergency.wav",
             "./assets/sounds/fee_reminder.wav",
-            "./assets/sounds/voice_alert.wav",
-            "./assets/sounds/bus_present.wav"
+            "./assets/sounds/voice_alert.wav"
           ]
         }
       ],
@@ -118,7 +116,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "544e23c3-151f-4d52-b282-656076476b25"
+        "projectId": "5e99bce0-6c29-4767-9f70-10ea0ea9582f"
       }
     },
     "owner": "nexsyrus"

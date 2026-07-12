@@ -51,55 +51,54 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
     ...defaultLightTheme,
     colors: {
       ...defaultLightTheme.colors,
-      // Extracted from assets/images/icon.png
-      // Primary – dark blue outer ring
-      primary: '#283090',
-      primaryLight: '#0A6FBF',   // Cerulean (center figure & book)
-      primaryDark: '#1E2468',    // Deep ring shadow
-      // Secondary – vibrant orange (side figures)
-      secondary: '#F05820',
-      // Accent – bright yellow (ring text "BHASHYAM VIDYANIKETHAN")
-      accent: '#F8F000',
-      // Backgrounds – cool blue-tinted neutrals
-      background: '#F8FAFC',
+      // Primary brand color – Rich purple (logo outer ring)
+      primary: '#6B2FA0',
+      primaryLight: '#9B59B6',
+      primaryDark: '#4A1A75',
+      // Secondary color – Orange/Amber (logo sun motif)
+      secondary: '#F5921B',
+      // Accent color – Golden amber (logo sun rays)
+      accent: '#F9A825',
+      // Backgrounds – pure white canvas
+      background: '#FFFFFF',
       surface: '#FFFFFF',
       card: '#FFFFFF',
-      // Text – logo dark blue
-      textPrimary: '#283090',
-      textStrong: '#1E2468',
-      textSecondary: '#475569',
-      textMuted: '#64748B',
-      text: '#283090',
-      textTertiary: '#64748B',
-      // Borders – blue-tinted
-      border: '#E2E8F0',
-      borderLight: '#F1F5F9',
+      // Text colors – neutral on white
+      textPrimary: '#171717',
+      textStrong: '#000000',
+      textSecondary: '#525252',
+      textMuted: '#737373',
+      text: '#171717',
+      textTertiary: '#737373',
+      // Borders – neutral gray
+      border: '#E5E7EB',
+      borderLight: '#F3F4F6',
       // Semantic colors
       danger: '#D32F2F',
       success: '#10B981',
       warning: '#F59E0B',
-      info: '#0A6FBF',           // Cerulean (logo book)
-      notification: '#F05820',
-      // Navigation – logo-blue pill tints
-      navPill: '#E0E4FF',
-      navIconActive: '#283090',
-      navIconInactive: '#64748B',
+      info: '#6B2FA0',
+      notification: '#F5921B',
+      // Navigation – neutral pills
+      navPill: '#F5F5F5',
+      navIconActive: '#6B2FA0',
+      navIconInactive: '#737373',
       // Header/Footer backgrounds (with transparency for glass effect)
-      headerBg: 'rgba(248,250,252, 0.88)',
+      headerBg: 'rgba(255,255,255, 0.88)',
       footerBg: 'rgba(255,255,255, 0.92)',
       // Alert colors
-      alertBg: '#EEF0FA',        // Light logo-blue wash
-      alertBorder: '#C5C9F0',
-      alertIcon: '#283090',
-      alertText: '#1E2468',
+      alertBg: '#F3E5F5',
+      alertBorder: '#CE93D8',
+      alertIcon: '#6B2FA0',
+      alertText: '#4A1A75',
       alertBgDanger: '#FEF2F2',
       alertBorderDanger: '#FECACA',
       alertIconDanger: '#D32F2F',
       alertTextDanger: '#991B1B',
-      alertBgInfo: '#E6F4FE',    // Cerulean wash
-      alertBorderInfo: '#B3DDFB',
-      alertIconInfo: '#0A6FBF',
-      alertTextInfo: '#1E2468',
+      alertBgInfo: '#F3E5F5',
+      alertBorderInfo: '#CE93D8',
+      alertIconInfo: '#6B2FA0',
+      alertTextInfo: '#4A1A75',
     },
     typography: {
       fontFamily: 'System',
@@ -163,54 +162,54 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
     ...defaultDarkTheme,
     colors: {
       ...defaultDarkTheme.colors,
-      // Primary – lightened logo blue for dark-mode legibility
-      primary: '#8B93E8',
-      primaryLight: '#7EC4F0',   // Light cerulean
-      primaryDark: '#283090',   // Logo ring (full strength)
+      // Primary – lighter purple for dark mode legibility
+      primary: '#B57EDC',
+      primaryLight: '#CE93D8',
+      primaryDark: '#9B59B6',
       // Secondary – light orange for dark mode
-      secondary: '#FF8A55',
-      // Accent – logo yellow
-      accent: '#F8F000',
-      // Dark backgrounds – deep slate/blue tones
-      background: '#0E1228',
-      surface: '#1A1E3A',
-      card: '#1A1E3A',
-      // Light text for dark backgrounds
-      textPrimary: '#F1F5F9',
+      secondary: '#FFB74D',
+      // Accent – golden amber for dark backgrounds
+      accent: '#FFD54F',
+      // Dark backgrounds – pure black canvas
+      background: '#000000',
+      surface: '#000000',
+      card: '#000000',
+      // Light neutral text on black
+      textPrimary: '#FFFFFF',
       textStrong: '#FFFFFF',
-      textSecondary: '#94A3B8',
-      textMuted: '#64748B',
-      text: '#F1F5F9',
-      textTertiary: '#64748B',
-      // Darker borders – blue-tinted slate
-      border: '#2A2E52',
-      borderLight: '#3A3E68',
+      textSecondary: '#A3A3A3',
+      textMuted: '#737373',
+      text: '#FFFFFF',
+      textTertiary: '#737373',
+      // Neutral dark borders
+      border: '#262626',
+      borderLight: '#1A1A1A',
       // Lighter semantic colors for dark mode
       danger: '#F87171',
       success: '#34D399',
       warning: '#FBBF24',
-      info: '#5CC4F0',
-      notification: '#FF8A55',
-      // Navigation
-      navPill: 'rgba(40, 48, 144, 0.25)',
-      navIconActive: '#A8B0F0',
-      navIconInactive: '#94A3B8',
-      // Header/Footer glass
-      headerBg: 'rgba(14, 18, 40, 0.88)',
-      footerBg: 'rgba(26, 30, 58, 0.92)',
+      info: '#B57EDC',
+      notification: '#FFB74D',
+      // Navigation – neutral dark pills
+      navPill: 'rgba(255,255,255, 0.08)',
+      navIconActive: '#CE93D8',
+      navIconInactive: '#737373',
+      // Header/Footer with dark glass effect
+      headerBg: 'rgba(0,0,0, 0.88)',
+      footerBg: 'rgba(0,0,0, 0.92)',
       // Alert colors (dark mode)
-      alertBg: 'rgba(40, 48, 144, 0.15)',
-      alertBorder: 'rgba(40, 48, 144, 0.3)',
-      alertIcon: '#A8B0F0',
-      alertText: '#A8B0F0',
+      alertBg: 'rgba(107,47,160, 0.12)',
+      alertBorder: 'rgba(107,47,160, 0.25)',
+      alertIcon: '#CE93D8',
+      alertText: '#E1BEE7',
       alertBgDanger: 'rgba(248,113,113, 0.1)',
       alertBorderDanger: 'rgba(248,113,113, 0.2)',
       alertIconDanger: '#F87171',
       alertTextDanger: '#FECACA',
-      alertBgInfo: 'rgba(10, 111, 191, 0.15)',
-      alertBorderInfo: 'rgba(10, 111, 191, 0.3)',
-      alertIconInfo: '#5CC4F0',
-      alertTextInfo: '#B3DDFB',
+      alertBgInfo: 'rgba(107,47,160, 0.15)',
+      alertBorderInfo: 'rgba(107,47,160, 0.3)',
+      alertIconInfo: '#B57EDC',
+      alertTextInfo: '#E1BEE7',
     },
     typography: {
       fontFamily: 'System',
@@ -274,47 +273,47 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
 
 export const SCHOOL_CONFIG = {
   // The official name of the school displayed in headers and reports
-  name: "Bhashyam Vidyanikethan Mohammadabad",
+  name: "Geetanjali High School Maddur",
 
   // Short line under the school name on the header ribbon (gold text)
-  tagline: "Education with Moral Values",
+  tagline: "Build Your Own Identity",
 
   // Motto / core values shown in the first info column of the ribbon (letterhead)
-  motto: "Care and Achieve through Quality Education and Discipline",
+  motto: "Thought , Action , Progress",
 
   // The school logo used in headers and reports
   // Ensure the image exists in assets/images/
   logo: require('../../assets/images/icon.png'),
 
   // Optional: School Address for reports
-  address: "Bhashyam Vidyanikethan School,VenkatReddypally Road, Mohammadabad,Mahabubnagar District, Telangana-509337",
+  address: "Geetanjali High School Maddur, Narayanapet Road, Maddur, Narayanapet District, Telangana - 509411",
 
   // Optional: Contact info for reports
-  contact: "9966868389",
+  contact: "9573276939",
 
   // Optional: School email for letterhead / reports
-  email: "bhashyamvidyanikethan@gmail.com",
+  email: "geetanjalihighschool.vvm@gmail.com",
 
   // Website or Email
-  website: "www.nexsyrus.com",
+  website: "www.ghsmaddur.in",
 
   // CBSE Affiliation No (if applicable)
   cbseAffiliationNo: "NA",
 
   // School Code (if applicable)
-  schoolCode: "BVS",
+  schoolCode: "46117",
 
   /**
    * Colour theme for ribbon / letterhead chrome (SchoolRibbon, etc.).
-   * Extracted from logo: dark blue ring → cerulean book, yellow ring text.
+   * Extracted from the logo: rich purple ring with golden-orange accents.
    */
   theme: {
-    /** Bright yellow dividers & trim (logo ring text) */
-    accent: '#F8F000',
-    /** Tagline + info-column labels – logo yellow */
-    ribbonTagline: '#F8F000',
-    /** Four-stop vertical ribbon – deep ring blue → cerulean */
-    ribbonGradient: ['#1E2468', '#283090', '#1A5AA0', '#0A6FBF'] as const,
+    /** Golden-orange stripes, dividers, and trim (logo sun rays) */
+    accent: '#F9A825',
+    /** Tagline text – warm gold */
+    ribbonTagline: '#FFE082',
+    /** Four-stop diagonal ribbon – deep purple to medium purple (logo outer ring) */
+    ribbonGradient: ['#3D1266', '#6B2FA0', '#7B2FB5', '#9B59B6'] as const,
     /** Optional stops for expo-linear-gradient (length must match ribbonGradient) */
     ribbonGradientLocations: [0, 0.30, 0.65, 1] as const,
     /** Main title on the ribbon */
@@ -331,3 +330,5 @@ export const SCHOOL_CONFIG = {
     statusBarOnRibbon: 'light' as 'light' | 'dark',
   },
 };
+
+export const SCHOOL_RECOGNITION_LINE = '';

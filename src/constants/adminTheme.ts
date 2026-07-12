@@ -2,12 +2,12 @@ import { ViewStyle } from "react-native";
 
 export const ADMIN_THEME = {
     colors: {
-        primary: '#3535A8', // Royal Indigo (logo outer ring)
-        secondary: '#F26522', // Vibrant Orange (logo figures)
+        primary: '#665990', // Indigo/Violet
+        secondary: '#F57964',
         success: '#10B981', // Emerald
         warning: '#F59E0B', // Amber
         danger: '#EF4444', // Rose
-        info: '#0082C8', // Cerulean Blue (logo book/center figure)
+        info: '#3B82F6', // Sky
         background: {
             app: '#F3F4F6', // Cool Gray 100
             surface: '#FFFFFF',
@@ -53,7 +53,7 @@ export const ADMIN_THEME = {
             elevation: 4,
         } as ViewStyle,
         lg: {
-            shadowColor: "#3535A8", // Colored shadow for emphasis (logo primary)
+            shadowColor: "#6366F1", // Colored shadow for emphasis
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.15,
             shadowRadius: 20,
