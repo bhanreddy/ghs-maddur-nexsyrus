@@ -1322,6 +1322,19 @@ function parentDisplayName(p: any): string {
   return `${p?.first_name || ''} ${p?.last_name || ''}`.trim();
 }
 
+/**
+ * The Bonafide's "S/o. D/o. Shri/Smt." line renders `parentName`. It prefers the
+ * father, falling back to the mother, then a generic guardian. Kept as a shared
+ * helper so an edit of the father/mother name re-derives it (see handleEditSave).
+ */
+function computeParentName(fatherName?: string, motherName?: string): string {
+  const father = fatherName?.trim();
+  if (father && father !== 'Guardian') return father;
+  const mother = motherName?.trim();
+  if (mother && mother !== 'N/A') return mother;
+  return 'Guardian';
+}
+
 function studentRecordName(student: Student): string {
   return student.display_name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
 }
@@ -1478,7 +1491,7 @@ function buildStudentDataFromRecord(
     name: student.display_name || `${student.first_name || ''} ${student.last_name || ''}`.trim(),
     fatherName: father,
     motherName: mother,
-    parentName: father !== 'Guardian' ? father : mother !== 'N/A' ? mother : 'Guardian',
+    parentName: computeParentName(father, mother),
     genderId: student.gender_id ?? student.person?.gender_id ?? 0,
     genderLabel: genderHonorific(student.gender_id ?? student.person?.gender_id),
     class: classToRoman(sec ? `${cls} – ${sec}` : cls),
@@ -1632,7 +1645,9 @@ export default function CertificateGenerator() {
 
   // ── Save edits ─────────────────────────────────────────────────────────────
   const handleEditSave = useCallback((sd: StudentData, tc: TCEditableFields) => {
-    setStudentData(sd);
+    // Re-derive parentName so edits to the father/mother name flow through to the
+    // Bonafide's "S/o. D/o." line, which renders parentName (not fatherName).
+    setStudentData({ ...sd, parentName: computeParentName(sd.fatherName, sd.motherName) });
     setTcFields(tc);
     setShowEdit(false);
   }, []);

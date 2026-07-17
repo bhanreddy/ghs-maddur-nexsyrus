@@ -455,23 +455,32 @@ export default function AddStudentScreen() {
       }
     }
 
+    // A parent is saved when it has a first name (last name optional). If other
+    // fields are filled but the first name is blank, warn instead of silently dropping.
+    const partialParent = ([['Father', father], ['Mother', mother], ['Guardian', guardian]] as const)
+      .find(([, p]) => !p.first_name?.trim() && (p.last_name?.trim() || p.phone?.trim() || p.occupation?.trim()));
+    if (partialParent) {
+      alertCompat('Incomplete Parent', `Enter a first name for the ${partialParent[0].toLowerCase()}, or clear the other ${partialParent[0].toLowerCase()} fields.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const parents: NonNullable<CreateStudentRequest['parents']> = [];
-      if (father.first_name && father.last_name) {
+      if (father.first_name?.trim()) {
         parents.push({
           ...father,
           relation: 'Father' as const,
           is_primary: true
         });
       }
-      if (mother.first_name && mother.last_name) {
+      if (mother.first_name?.trim()) {
         parents.push({
           ...mother,
           relation: 'Mother' as const
         });
       }
-      if (guardian.first_name && guardian.last_name) {
+      if (guardian.first_name?.trim()) {
         parents.push({
           ...guardian,
           relation: 'Guardian' as const,

@@ -253,17 +253,11 @@ export default function StaffSettings() {
                     <SettingRow
                         icon="moon" iconColor="#6366F1" iconBg="#EEF2FF"
                         label="Dark Mode" sublabel={isDark ? 'Currently on' : 'Currently off'}
+                        isLast
                         rightElement={
                             <Switch trackColor={{ false: theme.colors.border, true: '#818CF8' }}
                                 thumbColor="#fff" onValueChange={toggleTheme} value={isDark} />
                         }
-                    />
-
-                    <SettingRow
-                        icon="language" iconColor="#10B981" iconBg="#ECFDF5"
-                        label="Language" sublabel="App display language"
-                        isLast onPress={() => soon('Language')}
-                        rightElement={<><Text style={styles.valueText}>English</Text>{chevron}</>}
                     />
                 </Group>
 

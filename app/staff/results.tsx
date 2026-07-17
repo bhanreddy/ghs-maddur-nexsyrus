@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import StaffHeader from '../../src/components/StaffHeader';
+import { staffTabBarReserve } from '../../src/components/StaffFooter';
 import ViewAsBanner from '../../src/components/ViewAsBanner';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
 import { StudentService } from '../../src/services/studentService';
@@ -889,7 +890,8 @@ const getStyles = (theme: Theme, isDark: boolean) => {
     // ── Dashboard ────────────────────────────────────────────────────────────
     dashboardContent: {
       padding: 20,
-      paddingBottom: 40,
+      // Clear the floating bottom tab bar so the last category card isn't covered.
+      paddingBottom: staffTabBarReserve(theme.spacing),
     },
     headerSection: {
       marginBottom: 22,

@@ -49,8 +49,13 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
     // If the current route is not in the visible footer (e.g. profile), we might want to hide the indicator 
     // or just not render it. For now, we'll clamp it or handle it cleanly.
     // If activeIndex is -1, it means we are on a screen that isn't in the footer.
+    // IMPORTANT: do NOT early-return here. StaffFooter is a single shared component
+    // that the tab navigator re-renders on every route change. Returning before the
+    // hooks below would run a different number of hooks between renders (Rules of
+    // Hooks violation) and crash into the ErrorBoundary, producing a blank screen
+    // when navigating to a non-footer route like settings/profile. Compute the flag
+    // now and return only after all hooks have run (see below).
     const isFooterVisible = activeIndex !== -1;
-    if (!isFooterVisible) return null;
 
     // Calculate tab width
     const totalTabs = visibleRoutes.length;
@@ -138,6 +143,9 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
             marginTop: 2,
         },
     }), [theme]);
+
+    // Safe to bail out now that every hook above has run unconditionally.
+    if (!isFooterVisible) return null;
 
     return (
         <View style={styles.container}>

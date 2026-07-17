@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Platform, Pressable } from 'react-n
 import {
   TimetableService,
   TimetableSlot,
+  Period,
   DayOfWeek,
   TIMETABLE_DAYS,
   TIMETABLE_DAY_LABELS,
@@ -231,6 +232,10 @@ const timeToMinutes = (timeStr: string): number => {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 };
+
+// A period counts as a break if it's flagged is_break or named like one.
+const isBreakPeriod = (p: Period): boolean =>
+  p.is_break === true || /break|lunch|recess|interval/i.test(p.name || '');
 
 const getPeriodStatus = (startStr: string, endStr: string, now: Date): 'upcoming' | 'active' | 'completed' => {
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -517,6 +522,49 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots
 
 };
 
+// ─── Break / Lunch Row ─────────────────────────────────────────────
+const BreakRow = ({ period, index, isDark }: {period: Period;index: number;isDark: boolean;}) => {
+  const mins = Math.max(0, timeToMinutes(period.end_time) - timeToMinutes(period.start_time));
+  const isLunch = mins >= 30 || /lunch/i.test(period.name || '');
+  const label = isLunch ? 'LUNCH' : 'BREAK';
+  const accent = isDark ? '#F0A85C' : '#D97706';
+  const tint = isDark ? 'rgba(217,119,6,0.14)' : 'rgba(217,119,6,0.10)';
+  const lineColor = isDark ? '#2A2113' : '#F1E4CE';
+
+  return (
+    <Animated.View
+      entering={FadeIn.delay(index * 60).duration(320)}
+      style={styles.breakRow}>
+
+      {/* ── Left: Time Column ── */}
+      <View style={styles.timeColumn}>
+        <Text style={[styles.breakStartTime, { color: isDark ? '#6E6250' : '#B08A55' }]}>
+          {period.start_time.substring(0, 5)}
+        </Text>
+      </View>
+
+      {/* ── Center: Timeline node ── */}
+      <View style={styles.timelineCenter}>
+        <View style={[styles.breakLineSegment, { backgroundColor: lineColor }]} />
+        <View style={[styles.breakDot, { backgroundColor: tint, borderColor: accent + '55' }]}>
+          <Ionicons name="cafe" size={9} color={accent} />
+        </View>
+        <View style={[styles.breakLineSegment, { flex: 1, backgroundColor: lineColor }]} />
+      </View>
+
+      {/* ── Right: Break pill ── */}
+      <View style={styles.breakPillWrapper}>
+        <View style={[styles.breakPill, { backgroundColor: tint, borderColor: accent + '2E' }]}>
+          <Ionicons name="cafe-outline" size={13} color={accent} />
+          <Text style={[styles.breakPillLabel, { color: accent, fontFamily: FONT_FAMILY }]}>
+            {label} · {mins}m
+          </Text>
+        </View>
+      </View>
+    </Animated.View>);
+
+};
+
 // ─── Premium Stats Capsule ─────────────────────────────────────────
 const StatsCapsule = ({ completed, total, isDark }: {completed: number;total: number;isDark: boolean;}) => {
   const progress = total > 0 ? completed / total : 0;
@@ -726,6 +774,7 @@ const TimeTableScreen = () => {
   const { staffId, isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
+  const [periods, setPeriods] = useState<Period[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(() => {
     const idx = new Date().getDay(); // 0=Sun..6=Sat
@@ -739,9 +788,39 @@ const TimeTableScreen = () => {
   }, [slots]);
 
   const visibleSlots = useMemo(() => {
-    if (!isPerDay) return slots;
-    return slots.filter((s) => (s.day_of_week || 'monday') === selectedDay);
+    const base = !isPerDay ? slots : slots.filter((s) => (s.day_of_week || 'monday') === selectedDay);
+    return [...base].sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
   }, [slots, isPerDay, selectedDay]);
+
+  // School bell-schedule breaks (lunch / recess), ordered by start time.
+  const breakPeriods = useMemo(
+    () =>
+      periods
+        .filter(isBreakPeriod)
+        .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time)),
+    [periods]
+  );
+
+  // Interleave break rows into the teaching slots wherever a break falls inside
+  // the gap between two consecutive periods the teacher has.
+  type TimelineItem =
+    | { kind: 'slot'; slot: TimetableSlot; slotIndex: number }
+    | { kind: 'break'; period: Period };
+  const timelineItems = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = [];
+    visibleSlots.forEach((slot, i) => {
+      items.push({ kind: 'slot', slot, slotIndex: i });
+      const next = visibleSlots[i + 1];
+      if (!next) return;
+      const gapStart = timeToMinutes(slot.end_time);
+      const gapEnd = timeToMinutes(next.start_time);
+      breakPeriods.forEach((bp) => {
+        const bs = timeToMinutes(bp.start_time);
+        if (bs >= gapStart && bs < gapEnd) items.push({ kind: 'break', period: bp });
+      });
+    });
+    return items;
+  }, [visibleSlots, breakPeriods]);
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
@@ -757,8 +836,12 @@ const TimeTableScreen = () => {
 
   const loadTimetable = async () => {
     try {
-      const data = await TimetableService.getTeacherTimetable(undefined, staffId);
+      const [data, periodDefs] = await Promise.all([
+        TimetableService.getTeacherTimetable(undefined, staffId),
+        TimetableService.getPeriods().catch(() => [] as Period[]),
+      ]);
       setSlots(data.sort((a, b) => a.period_number - b.period_number));
+      setPeriods(periodDefs);
     } catch (error) {
 
     } finally {
@@ -884,11 +967,18 @@ const TimeTableScreen = () => {
           </View> :
         visibleSlots.length > 0 ?
         <View style={styles.timelineWrapper}>
-            {visibleSlots.map((slot, index) =>
-          <SlotItem
-            key={slot.id || `slot-${index}`}
-            item={slot}
+            {timelineItems.map((row, index) =>
+          row.kind === 'break' ?
+          <BreakRow
+            key={`break-${row.period.id || index}`}
+            period={row.period}
             index={index}
+            isDark={isDark} /> :
+
+          <SlotItem
+            key={row.slot.id || `slot-${index}`}
+            item={row.slot}
+            index={row.slotIndex}
             currentTime={currentTime}
             isDark={isDark}
             totalSlots={visibleSlots.length} />
@@ -1097,6 +1187,56 @@ const styles = StyleSheet.create({
     height: 1.5,
     marginLeft: -1,
     borderRadius: 1
+  },
+
+  // ── Break / Lunch Row ────────────────────────────────────────────
+  breakRow: {
+    flexDirection: 'row',
+    minHeight: 52
+  },
+  breakStartTime: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    paddingTop: 20
+  },
+  breakLineSegment: {
+    width: 2,
+    height: 18,
+    borderRadius: 1
+  },
+  breakDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 1,
+    zIndex: 2
+  },
+  breakPillWrapper: {
+    flex: 1,
+    paddingLeft: 10,
+    paddingBottom: 10,
+    justifyContent: 'center'
+  },
+  breakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 14
+  },
+  breakPillLabel: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8
   },
 
   // ── Cards ────────────────────────────────────────────────────────

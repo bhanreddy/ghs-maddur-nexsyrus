@@ -107,7 +107,8 @@
             "./assets/sounds/notification_default.wav",
             "./assets/sounds/emergency.wav",
             "./assets/sounds/fee_reminder.wav",
-            "./assets/sounds/voice_alert.wav"
+            "./assets/sounds/voice_alert.wav",
+            "./assets/sounds/bus_present.wav"
           ]
         }
       ],

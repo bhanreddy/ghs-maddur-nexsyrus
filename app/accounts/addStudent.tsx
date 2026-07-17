@@ -529,6 +529,28 @@ export default function AddStudentScreen() {
           section_id: data.current_enrollment?.section_id || '',
           roll_number: data.current_enrollment?.roll_number,
         } as any);
+
+        const findParent = (relation: string) =>
+          (data.parents || []).find((p: any) => {
+            const label = p.relation || p.relationship || '';
+            return label.toLowerCase() === relation.toLowerCase();
+          });
+        const fatherData = findParent('Father');
+        const motherData = findParent('Mother');
+        const guardianData = findParent('Guardian');
+        setFather({
+          first_name: fatherData?.first_name || '', last_name: fatherData?.last_name || '',
+          phone: fatherData?.phone || '', occupation: fatherData?.occupation || '',
+        });
+        setMother({
+          first_name: motherData?.first_name || '', last_name: motherData?.last_name || '',
+          phone: motherData?.phone || '', occupation: motherData?.occupation || '',
+        });
+        setGuardian({
+          first_name: guardianData?.first_name || '', last_name: guardianData?.last_name || '',
+          phone: guardianData?.phone || '', relation: 'Guardian',
+          occupation: guardianData?.occupation || '',
+        });
       }
     } catch { alertCompat('Error', 'Failed to load student details'); }
   };
@@ -559,12 +581,21 @@ export default function AddStudentScreen() {
       }
     }
 
+    // A parent is saved when it has a first name (last name optional). If other
+    // fields are filled but the first name is blank, warn instead of silently dropping.
+    const partialParent = ([['Father', father], ['Mother', mother], ['Guardian', guardian]] as const)
+      .find(([, p]) => !p.first_name?.trim() && (p.last_name?.trim() || p.phone?.trim() || p.occupation?.trim()));
+    if (partialParent) {
+      alertCompat('Incomplete Parent', `Enter a first name for the ${partialParent[0].toLowerCase()}, or clear the other ${partialParent[0].toLowerCase()} fields.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const parents: NonNullable<CreateStudentRequest['parents']> = [];
-      if (father.first_name && father.last_name) parents.push({ ...father, relation: 'Father' as const, is_primary: true });
-      if (mother.first_name && mother.last_name) parents.push({ ...mother, relation: 'Mother' as const });
-      if (guardian.first_name && guardian.last_name) parents.push({ ...guardian, relation: 'Guardian' as const, is_guardian: true });
+      if (father.first_name?.trim()) parents.push({ ...father, relation: 'Father' as const, is_primary: true });
+      if (mother.first_name?.trim()) parents.push({ ...mother, relation: 'Mother' as const });
+      if (guardian.first_name?.trim()) parents.push({ ...guardian, relation: 'Guardian' as const, is_guardian: true });
 
       const payload = { ...formData, parents };
       if (isEditMode) {
