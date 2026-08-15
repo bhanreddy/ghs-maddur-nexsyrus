@@ -31,46 +31,42 @@
         "buildType": "app-bundle"
       }
     },
-    "production-apk": {
-      "extends": "production",
+    "school-15-production-apk": {
+      "extends": "school-15",
+      "distribution": "internal",
+      "autoIncrement": true,
+      "channel": "production",
       "android": {
         "buildType": "apk"
       }
     },
-    "school-14": {
-      "extends": "base",
+    "school-15": {
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_SCHOOL_ID": "14",
-        "EXPO_PUBLIC_SCHOOL_CODE": "TGSRAVULPALLY",
-        "EXPO_PUBLIC_SCHOOL_NAME": "The Global School Ravulpally",
+        "EXPO_PUBLIC_SCHOOL_ID": "15",
+        "EXPO_PUBLIC_SCHOOL_CODE": "CVS",
+        "EXPO_PUBLIC_SCHOOL_NAME": "Chaitanya Vidyaniketan School Nancharla",
         "EXPO_PUBLIC_API_URL": "https://simsapi.nexsyrus.com/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://jztckbupiepiqfrxhszt.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6dGNrYnVwaWVwaXFmcnhoc3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMzgyMTYsImV4cCI6MjA4ODcxNDIxNn0.TC6mwwLezkwMmPxkIzRnR7NPyworRVzQ_vXCkRmnz4o"
       }
     },
-    "school-14-production": {
-      "extends": "school-14",
+    "school-15-production": {
+      "extends": "school-15",
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
       "android": {
         "buildType": "app-bundle"
       }
-    },
-    "school-14-production-apk": {
-      "extends": "school-14-production",
-      "android": {
-        "buildType": "apk"
-      }
     }
   },
   "submit": {
-    "school-14-production": {
+    "school-15-production": {
       "android": {
-        "serviceAccountKeyPath": "./secrets/play-service-account-school-14.json",
+        "serviceAccountKeyPath": "./secrets/play-service-account-school-15.json",
         "track": "internal",
         "releaseStatus": "draft",
         "changesNotSentForReview": false
