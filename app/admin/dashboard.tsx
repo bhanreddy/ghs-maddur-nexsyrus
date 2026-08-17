@@ -40,6 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PaymentDueBanner from '../../src/components/PaymentDueBanner';
 import AdminHeaderCard from '../../src/components/AdminHeaderCard';
 import DashboardHero from '../../src/components/DashboardHero';
+import { rankQuickActionsByUsage } from '../../src/utils/quickActionRanking';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -521,8 +522,12 @@ const DashboardCard = React.memo(
 /* ─────────────────────────────────────────────────────────────────────────── */
 /* QUICK ACTION CARD - [UNCHANGED AS REQUESTED]                               */
 /* ─────────────────────────────────────────────────────────────────────────── */
-const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; index: number; cardWidth: number }) => {
-  const router = useRouter();
+const GridItem = React.memo(({ item, index, cardWidth, onPress }: {
+  item: ActionItem;
+  index: number;
+  cardWidth: number;
+  onPress: (route: string) => void;
+}) => {
   const { theme, isDark } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < 768;
@@ -644,7 +649,7 @@ const GridItem = React.memo(({ item, index, cardWidth }: { item: ActionItem; ind
         }}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        onPress={() => router.push(item.route as any)}
+        onPress={() => onPress(item.route)}
       >
         <Animated.View style={[cardAnimStyle, styles.gridItem, clayStyle]}>
           {/* Abstract Claymorphic Background Graphics */}
@@ -1166,6 +1171,17 @@ export default function AdminDashboard() {
   const loading = dashboardLoading && !dashboardData;
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [quickActionUsageCounts, setQuickActionUsageCounts] = useState<Record<string, number>>({});
+
+  const refreshQuickActionUsage = useCallback(async () => {
+    try {
+      const usage = await AdminService.getQuickActionUsage();
+      setQuickActionUsageCounts(usage.counts ?? {});
+    } catch {
+      // Usage ranking is an enhancement; retain the last known/canonical order
+      // if the metrics endpoint is temporarily unavailable.
+    }
+  }, []);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [webSidebarCollapsed, setWebSidebarCollapsed] = useState(false);
@@ -1212,13 +1228,13 @@ export default function AdminDashboard() {
   const onRefresh = useCallback(async () => {
     setManualRefreshing(true);
     try {
-      await Promise.all([refetchDashboard(), refreshData()]);
+      await Promise.all([refetchDashboard(), refreshData(), refreshQuickActionUsage()]);
     } catch {
       // errors are surfaced by each hook's own error state
     } finally {
       setManualRefreshing(false);
     }
-  }, [refetchDashboard, refreshData]);
+  }, [refetchDashboard, refreshData, refreshQuickActionUsage]);
 
   useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date()), 60000); return () => clearInterval(timer); }, []);
 
@@ -1235,6 +1251,11 @@ export default function AdminDashboard() {
     const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => subscription.remove();
   }, []));
+  useFocusEffect(React.useCallback(() => {
+    void refreshQuickActionUsage();
+    const timer = setInterval(() => { void refreshQuickActionUsage(); }, 30_000);
+    return () => clearInterval(timer);
+  }, [refreshQuickActionUsage]));
   useEffect(() => { return () => { supabase.removeChannel(supabase.channel('access_req_badge')); }; }, []);
 
   const { theme, isDark } = useTheme();
@@ -1298,10 +1319,33 @@ export default function AdminDashboard() {
     [t, dashboardData?.diaryEntriesToday, pendingRequestsCount],
   );
 
-  const visibleQuickActions = useMemo(
+  const permittedQuickActions = useMemo(
     () => quickActions.filter((item) => !item.permission || hasPermission(item.permission)),
     [quickActions, hasPermission],
   );
+
+  const visibleQuickActions = useMemo(
+    () => rankQuickActionsByUsage(permittedQuickActions, quickActionUsageCounts),
+    [permittedQuickActions, quickActionUsageCounts],
+  );
+
+  const handleQuickActionPress = useCallback((route: string) => {
+    // Update locally at once, then replace the optimistic total with the
+    // authoritative atomic count returned by the server.
+    setQuickActionUsageCounts((current) => ({
+      ...current,
+      [route]: (current[route] ?? 0) + 1,
+    }));
+    void AdminService.recordQuickActionClick(route)
+      .then((usage) => {
+        setQuickActionUsageCounts((current) => ({
+          ...current,
+          [usage.actionKey]: Math.max(current[usage.actionKey] ?? 0, usage.clickCount),
+        }));
+      })
+      .catch(() => { void refreshQuickActionUsage(); });
+    router.push(route as any);
+  }, [refreshQuickActionUsage, router]);
 
   const sidebarItems = useMemo<WebSidebarActionItem[]>(
     () => [
@@ -1333,7 +1377,7 @@ export default function AdminDashboard() {
         gradient: ['#F59E0B', '#B45309'],
         category: 'Overview',
       },
-      ...visibleQuickActions.map((item) => ({
+      ...permittedQuickActions.map((item) => ({
         title: item.title,
         icon: item.icon,
         route: item.route,
@@ -1342,7 +1386,7 @@ export default function AdminDashboard() {
         category: item.category,
       })),
     ],
-    [t, visibleQuickActions],
+    [t, permittedQuickActions],
   );
 
   /** ⚡PERF: chunk quick actions into rows so Android only mounts ~2 rows at a time */
@@ -1384,6 +1428,7 @@ export default function AdminDashboard() {
             item={item}
             index={rowIndex * GRID_COLS + colIndex}
             cardWidth={actionCardWidth}
+            onPress={handleQuickActionPress}
           />
         ))}
         {row.length < GRID_COLS &&
@@ -1392,7 +1437,7 @@ export default function AdminDashboard() {
           ))}
       </View>
     ),
-    [actionCardWidth, actionRows.length],
+    [actionCardWidth, actionRows.length, handleQuickActionPress],
   );
 
   const scrollY = useSharedValue(0);
@@ -1533,7 +1578,7 @@ export default function AdminDashboard() {
       {actionsHeaderBlock}
       <View style={styles.grid}>
         {visibleQuickActions.map((item, index) => (
-          <GridItem key={index} item={item} index={index} cardWidth={actionCardWidth} />
+          <GridItem key={item.route} item={item} index={index} cardWidth={actionCardWidth} onPress={handleQuickActionPress} />
         ))}
       </View>
     </>
@@ -1831,7 +1876,7 @@ export default function AdminDashboard() {
         key: 'actions', node: (
           <View style={styles.grid}>
             {visibleQuickActions.map((item, index) => (
-              <GridItem key={index} item={item} index={index} cardWidth={actionCardWidth} />
+              <GridItem key={item.route} item={item} index={index} cardWidth={actionCardWidth} onPress={handleQuickActionPress} />
             ))}
           </View>
         )
@@ -1845,7 +1890,7 @@ export default function AdminDashboard() {
     { key: 'acadChart', node: acadChartBlock },
     { key: 'staff', node: staffMetricsBlock },
     ...(alertsBlock ? [{ key: 'alerts', node: alertsBlock }] : []),
-  ], [greetingBlock, overviewBlock, actionsHeaderBlock, isAndroid, actionRows, renderActionRow, styles.grid, visibleQuickActions, actionCardWidth, statusBlock, finMetricsBlock, revenueChartBlock, attMetricsBlock, attChartBlock, acadMetricsBlock, acadChartBlock, staffMetricsBlock, alertsBlock]);
+  ], [greetingBlock, overviewBlock, actionsHeaderBlock, isAndroid, actionRows, renderActionRow, styles.grid, visibleQuickActions, actionCardWidth, handleQuickActionPress, statusBlock, finMetricsBlock, revenueChartBlock, attMetricsBlock, attChartBlock, acadMetricsBlock, acadChartBlock, staffMetricsBlock, alertsBlock]);
 
   return (
     <View style={styles.container}>

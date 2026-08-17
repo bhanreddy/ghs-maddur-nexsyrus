@@ -1,12 +1,14 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { usePaymentBanner } from '../hooks/usePaymentBanner';
 
-const DEFAULT_REASON = 'Payment is due. Please contact the SuperAdmin team.';
+const DEFAULT_REASON = 'When convenient, please review your subscription details. Thank you for being with NexSyrus.';
 
 export default function PaymentDueBanner() {
   const { enabled, reason } = usePaymentBanner();
+  const router = useRouter();
 
   if (!enabled) return null;
 
@@ -16,8 +18,12 @@ export default function PaymentDueBanner() {
         <Ionicons name="warning-outline" size={18} color="#B45309" />
       </View>
       <View style={styles.textBlock}>
-        <Text style={styles.title}>Payment Notice</Text>
+        <Text style={styles.title}>A gentle subscription reminder</Text>
         <Text style={styles.message}>{reason?.trim() || DEFAULT_REASON}</Text>
+        <TouchableOpacity style={styles.action} onPress={() => router.push('/admin/subscription' as any)}>
+          <Text style={styles.actionText}>View details</Text>
+          <Ionicons name="arrow-forward" size={13} color="#92400E" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -60,4 +66,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '600',
   },
+  action: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#FEF3C7',
+  },
+  actionText: { color: '#92400E', fontSize: 11, fontWeight: '800' },
 });

@@ -147,6 +147,14 @@ function canRecoverAuthForEndpoint(endpoint: string): boolean {
 
 const MAX_TRANSIENT_READ_RETRIES = 4;
 
+// These 503s mean a feature is not wired up yet. Retrying them only spams the
+// backend; the response will not change until env/config is updated.
+const NON_TRANSIENT_UNAVAILABLE_CODES = new Set([
+  'BILLING_NOT_CONFIGURED',
+  'CLUSTER_NOT_CONFIGURED',
+  'PHONEPE_NOT_CONFIGURED',
+]);
+
 function transientRetryDelay(attempt: number): number {
   return Math.min(500 * Math.pow(2, attempt), 5000);
 }
@@ -414,7 +422,8 @@ async function apiRequestInner<T>(
       // and safe to retry, so they get the same silent retry-then-fail path
       // instead of surfacing as a hard error popup.
       if (response.status === 503 || response.status === 502 || response.status === 504) {
-        if (method === 'GET' && _retryCount < MAX_TRANSIENT_READ_RETRIES) {
+        const isConfigUnavailable = NON_TRANSIENT_UNAVAILABLE_CODES.has(errorData.code);
+        if (!isConfigUnavailable && method === 'GET' && _retryCount < MAX_TRANSIENT_READ_RETRIES) {
           await new Promise((r) => setTimeout(
             r,
             transientRetryDelay(_retryCount)
@@ -425,7 +434,7 @@ async function apiRequestInner<T>(
           });
         }
         const message = errorData.error || 'Server temporarily unavailable. Please try again.';
-        throw new APIError(message, response.status, undefined, requestId);
+        throw new APIError(message, response.status, undefined, requestId, errorData.code);
       }
 
       // Handle validation errors (422) and B1-style 400 (school_id required)
@@ -606,7 +615,11 @@ export async function downloadFile(endpoint: string, filename: string): Promise<
   await Sharing.shareAsync(uri, {
     mimeType: response.headers.get('content-type') || 'application/octet-stream',
     dialogTitle: `Save ${filename}`,
-    UTI: 'org.openxmlformats.spreadsheetml.sheet',
+    UTI: filename.toLowerCase().endsWith('.xlsx')
+      ? 'org.openxmlformats.spreadsheetml.sheet'
+      : filename.toLowerCase().endsWith('.html')
+        ? 'public.html'
+        : 'public.data',
   });
 }
 

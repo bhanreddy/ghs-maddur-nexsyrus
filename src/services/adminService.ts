@@ -34,6 +34,16 @@ export interface AdminDashboardStats {
     // Add other relevant stats
 }
 
+export interface AdminQuickActionUsage {
+    usageDate: string | null;
+    counts: Record<string, number>;
+}
+
+export interface AdminQuickActionClickResult {
+    actionKey: string;
+    clickCount: number;
+    usageDate: string;
+}
 export type AppAdoptionStatus = 'all' | 'detected' | 'not_detected';
 
 export interface AppAdoptionUser {
@@ -242,6 +252,23 @@ export const AdminService = {
         return api.get<AdminDashboardStats>('/admin/dashboard-stats', undefined, options);
     },
 
+    /** Today's click totals shared by every admin in this school. */
+    getQuickActionUsage: async (): Promise<AdminQuickActionUsage> => {
+        return api.get<AdminQuickActionUsage>(
+            '/admin/quick-action-usage',
+            undefined,
+            { silent: true }
+        );
+    },
+
+    /** Atomically count one quick-action open for the school's current day. */
+    recordQuickActionClick: async (actionKey: string): Promise<AdminQuickActionClickResult> => {
+        return api.post<AdminQuickActionClickResult>(
+            '/admin/quick-action-usage',
+            { action_key: actionKey },
+            { silent: true }
+        );
+    },
     getAppAdoption: async (params?: {
         page?: number;
         limit?: number;
