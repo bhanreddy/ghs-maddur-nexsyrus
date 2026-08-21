@@ -7,6 +7,8 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Switch,
+  TextInput,
   useWindowDimensions,
   Platform,
 } from 'react-native';
@@ -72,6 +74,24 @@ interface ClassTarget {
 interface ClassTargetsResponse {
   classes: ClassTarget[];
   all_school_recipient_count: number;
+  notification_enabled?: boolean;
+}
+
+interface NotificationSetting {
+  id: string;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  enabled: boolean;
+}
+
+interface NotificationSettingsResponse {
+  settings: NotificationSetting[];
+}
+
+interface FeePaidRange {
+  min: number;
+  max: number;
 }
 
 interface BroadcastResult {
@@ -167,6 +187,25 @@ const TRIGGERS: TriggerCard[] = [
     accent: '#DB2777',
     tint: 'rgba(219,39,76,0.08)',
   },
+];
+
+const TRIGGER_SETTING_CATEGORY: Record<TriggerType, string> = {
+  FEE_REMINDER: 'fees',
+  DIARY_UPDATED: 'diary',
+  RESULT_RELEASED: 'results',
+  NOTICE_ADMIN_STUDENT: 'notices',
+  ATTENDANCE_ABSENT: 'attendance',
+  ATTENDANCE_PRESENT: 'attendance',
+  TIMETABLE_UPDATED: 'timetable',
+};
+
+const FEE_RANGE_PRESETS: { label: string; range: FeePaidRange }[] = [
+  { label: 'Not paid', range: { min: 0, max: 0 } },
+  { label: 'Up to 25%', range: { min: 0, max: 25 } },
+  { label: '25–50%', range: { min: 25, max: 50 } },
+  { label: '50–75%', range: { min: 50, max: 75 } },
+  { label: '75–99%', range: { min: 75, max: 99.99 } },
+  { label: 'Any unpaid', range: { min: 0, max: 100 } },
 ];
 
 const POLL_INTERVAL_MS = 2500;
@@ -487,6 +526,7 @@ function ConfirmBroadcastSheet({
   isAllSchool,
   selectedClassNames,
   estimate,
+  feePaidRange,
   onCancel,
   onConfirm,
   styles,
@@ -496,6 +536,7 @@ function ConfirmBroadcastSheet({
   isAllSchool: boolean;
   selectedClassNames: string[];
   estimate: number;
+  feePaidRange?: FeePaidRange;
   onCancel: () => void;
   onConfirm: () => void;
   styles: ReturnType<typeof getStyles>;
@@ -548,6 +589,17 @@ function ConfirmBroadcastSheet({
                 </View>
               )}
               <View style={styles.sheetDivider} />
+              {channel.id === 'FEE_REMINDER' && feePaidRange && (
+                <>
+                  <View style={styles.sheetTargetRow}>
+                    <Text style={styles.sheetTargetLabel}>Already paid</Text>
+                    <Text style={styles.sheetTargetValue}>
+                      {feePaidRange.min}%–{feePaidRange.max}%
+                    </Text>
+                  </View>
+                  <View style={styles.sheetDivider} />
+                </>
+              )}
               <View style={styles.sheetTargetRow}>
                 <Text style={styles.sheetTargetLabel}>Estimated reach</Text>
                 <Text style={[styles.sheetReach, { color: accent }]}>
@@ -836,6 +888,12 @@ export default function NotificationsTriggerPage() {
   const [allSchoolCountByChannel, setAllSchoolCountByChannel] = useState<Record<string, number>>({});
   const [targetsLoadingByChannel, setTargetsLoadingByChannel] = useState<Record<string, boolean>>({});
   const [selectedClassesByChannel, setSelectedClassesByChannel] = useState<Record<string, string[]>>({});
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [updatingSettingId, setUpdatingSettingId] = useState<string | null>(null);
+  const [feePaidRange, setFeePaidRange] = useState<FeePaidRange>({ min: 0, max: 100 });
+  const [feeMinInput, setFeeMinInput] = useState('0');
+  const [feeMaxInput, setFeeMaxInput] = useState('100');
 
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [activeStatus, setActiveStatus] = useState<BroadcastStatus | null>(null);
@@ -867,11 +925,17 @@ export default function NotificationsTriggerPage() {
 
   useEffect(() => () => clearPollTimer(), [clearPollTimer]);
 
-  const fetchClassTargets = useCallback(async (channel: TriggerType) => {
+  const fetchClassTargets = useCallback(async (
+    channel: TriggerType,
+    paidRange: FeePaidRange = { min: 0, max: 100 }
+  ) => {
     setTargetsLoadingByChannel((prev) => ({ ...prev, [channel]: true }));
     try {
+      const rangeQuery = channel === 'FEE_REMINDER'
+        ? `&fee_paid_min_percent=${paidRange.min}&fee_paid_max_percent=${paidRange.max}`
+        : '';
       const res = await api.get<ClassTargetsResponse>(
-        `/admin/notifications/classes/targets?type=${encodeURIComponent(channel)}`
+        `/admin/notifications/classes/targets?type=${encodeURIComponent(channel)}${rangeQuery}`
       );
       setClassTargetsByChannel((prev) => ({ ...prev, [channel]: res.classes || [] }));
       setAllSchoolCountByChannel((prev) => ({
@@ -887,10 +951,86 @@ export default function NotificationsTriggerPage() {
   }, []);
 
   useEffect(() => {
-    if (!classTargetsByChannel[selectedType] && !targetsLoadingByChannel[selectedType]) {
-      fetchClassTargets(selectedType);
+    if (
+      selectedType !== 'FEE_REMINDER' &&
+      !classTargetsByChannel[selectedType] &&
+      !targetsLoadingByChannel[selectedType]
+    ) {
+      fetchClassTargets(selectedType, feePaidRange);
     }
-  }, [selectedType, classTargetsByChannel, targetsLoadingByChannel, fetchClassTargets]);
+  }, [selectedType, classTargetsByChannel, targetsLoadingByChannel, fetchClassTargets, feePaidRange]);
+
+  useEffect(() => {
+    if (selectedType === 'FEE_REMINDER') fetchClassTargets(selectedType, feePaidRange);
+  }, [selectedType, feePaidRange, fetchClassTargets]);
+
+  const fetchNotificationSettings = useCallback(async () => {
+    setSettingsLoading(true);
+    try {
+      const response = await api.get<NotificationSettingsResponse>('/admin/notifications/settings');
+      setNotificationSettings(response.settings || []);
+    } catch (error: any) {
+      alertCompat('Could not load controls', error.message || 'Notification controls are unavailable.');
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotificationSettings();
+  }, [fetchNotificationSettings]);
+
+  const handleToggleNotificationSetting = useCallback(async (
+    setting: NotificationSetting,
+    enabled: boolean
+  ) => {
+    if (updatingSettingId) return;
+    setUpdatingSettingId(setting.id);
+    setNotificationSettings((current) => current.map((item) => (
+      item.id === setting.id ? { ...item, enabled } : item
+    )));
+    try {
+      const response = await api.put<NotificationSettingsResponse>(
+        `/admin/notifications/settings/${encodeURIComponent(setting.id)}`,
+        { enabled }
+      );
+      setNotificationSettings(response.settings || []);
+      const affectedTypes = TRIGGERS
+        .filter((trigger) => TRIGGER_SETTING_CATEGORY[trigger.id] === setting.id)
+        .map((trigger) => trigger.id);
+      setClassTargetsByChannel((current) => {
+        const next = { ...current };
+        affectedTypes.forEach((type) => delete next[type]);
+        return next;
+      });
+      if (selectedType === 'FEE_REMINDER' && affectedTypes.includes(selectedType)) {
+        fetchClassTargets(selectedType, feePaidRange);
+      }
+    } catch (error: any) {
+      setNotificationSettings((current) => current.map((item) => (
+        item.id === setting.id ? { ...item, enabled: setting.enabled } : item
+      )));
+      alertCompat('Update failed', error.message || 'Could not update this notification control.');
+    } finally {
+      setUpdatingSettingId(null);
+    }
+  }, [updatingSettingId, selectedType, fetchClassTargets, feePaidRange]);
+
+  const applyFeePaidRange = useCallback(() => {
+    const min = Number(feeMinInput);
+    const max = Number(feeMaxInput);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max > 100 || min > max) {
+      alertCompat('Invalid range', 'Enter percentages from 0 to 100. Minimum cannot exceed maximum.');
+      return;
+    }
+    setFeePaidRange({ min, max });
+  }, [feeMinInput, feeMaxInput]);
+
+  const selectFeeRangePreset = useCallback((range: FeePaidRange) => {
+    setFeeMinInput(String(range.min));
+    setFeeMaxInput(String(range.max));
+    setFeePaidRange(range);
+  }, []);
 
   const pollBroadcastStatus = useCallback(
     (batchId: string) => {
@@ -960,11 +1100,21 @@ export default function NotificationsTriggerPage() {
       Haptics.selectionAsync();
       setLoadingType(type);
       try {
-        const payload: { type: TriggerType; class_ids?: string[]; idempotency_key: string } = {
+        const payload: {
+          type: TriggerType;
+          class_ids?: string[];
+          idempotency_key: string;
+          fee_paid_min_percent?: number;
+          fee_paid_max_percent?: number;
+        } = {
           type,
           idempotency_key: makeIdempotencyKey(),
         };
         if (classIds.length > 0) payload.class_ids = classIds;
+        if (type === 'FEE_REMINDER') {
+          payload.fee_paid_min_percent = feePaidRange.min;
+          payload.fee_paid_max_percent = feePaidRange.max;
+        }
 
         const result = await api.post<BroadcastResult>('/admin/notifications/broadcast', payload);
         const channel = TRIGGERS.find((t) => t.id === type)!;
@@ -986,7 +1136,7 @@ export default function NotificationsTriggerPage() {
         );
       }
     },
-    [openStatusModal, pollBroadcastStatus]
+    [openStatusModal, pollBroadcastStatus, feePaidRange]
   );
 
   const handleFireTrigger = useCallback(
@@ -1083,6 +1233,9 @@ export default function NotificationsTriggerPage() {
     : 0;
 
   const selectedTrigger = TRIGGERS.find((trigger) => trigger.id === selectedType)!;
+  const selectedNotificationEnabled = notificationSettings.find(
+    (setting) => setting.id === TRIGGER_SETTING_CATEGORY[selectedType]
+  )?.enabled !== false;
   const selectedClassIds = selectedClassesByChannel[selectedType] || [];
   const selectedTargets = classTargetsByChannel[selectedType] || [];
   const isWholeSchool = selectedClassIds.length === 0;
@@ -1165,6 +1318,9 @@ export default function NotificationsTriggerPage() {
               <View style={styles.typeList}>
                 {TRIGGERS.map((item) => {
                   const selected = item.id === selectedType;
+                  const typeEnabled = notificationSettings.find(
+                    (setting) => setting.id === TRIGGER_SETTING_CATEGORY[item.id]
+                  )?.enabled !== false;
                   return (
                     <Pressable
                       key={item.id}
@@ -1184,7 +1340,10 @@ export default function NotificationsTriggerPage() {
                         <Ionicons name={item.icon} size={19} color="#FFF" />
                       </LinearGradient>
                       <View style={styles.typeCopy}>
-                        <Text style={styles.typeTitle}>{item.title}</Text>
+                        <View style={styles.typeTitleRow}>
+                          <Text style={styles.typeTitle}>{item.title}</Text>
+                          {!typeEnabled && <Text style={styles.offBadge}>OFF</Text>}
+                        </View>
                         <Text numberOfLines={isWideScreen ? 1 : 2} style={styles.typeDescription}>{item.description}</Text>
                       </View>
                       <View style={[styles.radio, selected && { borderColor: item.accent }]}>
@@ -1209,6 +1368,67 @@ export default function NotificationsTriggerPage() {
                   </Pressable>
                 )}
               </View>
+
+              {selectedType === 'FEE_REMINDER' && (
+                <View style={styles.feeRangeCard}>
+                  <View style={styles.feeRangeHeading}>
+                    <View style={[styles.reviewIcon, { backgroundColor: selectedTrigger.tint }]}>
+                      <Ionicons name="options-outline" size={20} color={selectedTrigger.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.feeRangeTitle}>Filter by percentage already paid</Text>
+                      <Text style={styles.panelHint}>Only students in this range who still have a balance will receive a reminder.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.feePresetRow}>
+                    {FEE_RANGE_PRESETS.map((preset) => {
+                      const active = preset.range.min === feePaidRange.min && preset.range.max === feePaidRange.max;
+                      return (
+                        <Pressable
+                          key={preset.label}
+                          onPress={() => selectFeeRangePreset(preset.range)}
+                          style={[
+                            styles.feePreset,
+                            active && { borderColor: selectedTrigger.accent, backgroundColor: selectedTrigger.tint },
+                          ]}
+                        >
+                          <Text style={[styles.feePresetText, active && { color: selectedTrigger.accent }]}>{preset.label}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <View style={styles.customRangeRow}>
+                    <View style={styles.percentInputWrap}>
+                      <TextInput
+                        value={feeMinInput}
+                        onChangeText={setFeeMinInput}
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        maxLength={6}
+                        style={styles.percentInput}
+                        accessibilityLabel="Minimum fee percentage already paid"
+                      />
+                      <Text style={styles.percentSuffix}>%</Text>
+                    </View>
+                    <Text style={styles.rangeDash}>to</Text>
+                    <View style={styles.percentInputWrap}>
+                      <TextInput
+                        value={feeMaxInput}
+                        onChangeText={setFeeMaxInput}
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        maxLength={6}
+                        style={styles.percentInput}
+                        accessibilityLabel="Maximum fee percentage already paid"
+                      />
+                      <Text style={styles.percentSuffix}>%</Text>
+                    </View>
+                    <TouchableOpacity style={[styles.applyRangeBtn, { backgroundColor: selectedTrigger.accent }]} onPress={applyFeePaidRange}>
+                      <Text style={styles.applyRangeText}>Apply</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               {targetsLoadingByChannel[selectedType] ? (
                 <View style={styles.audienceLoading}><LogoLoader color={selectedTrigger.accent} size={26} /></View>
@@ -1243,11 +1463,53 @@ export default function NotificationsTriggerPage() {
                   <View style={[styles.reviewIcon, { backgroundColor: selectedTrigger.tint }]}><Ionicons name="notifications-outline" size={20} color={selectedTrigger.accent} /></View>
                   <View><Text style={styles.reviewLabel}>ESTIMATED REACH</Text><Text style={styles.reviewCount}>{selectedEstimate.toLocaleString()} parent{selectedEstimate === 1 ? '' : 's'}</Text></View>
                 </View>
-                <TouchableOpacity disabled={loadingType !== null || selectedEstimate === 0} onPress={() => handleFireTrigger(selectedTrigger)} style={[styles.primarySend, { backgroundColor: selectedTrigger.accent }, (loadingType !== null || selectedEstimate === 0) && styles.primarySendDisabled]}>
+                <TouchableOpacity disabled={loadingType !== null || selectedEstimate === 0 || !selectedNotificationEnabled} onPress={() => handleFireTrigger(selectedTrigger)} style={[styles.primarySend, { backgroundColor: selectedTrigger.accent }, (loadingType !== null || selectedEstimate === 0 || !selectedNotificationEnabled) && styles.primarySendDisabled]}>
                   {loadingType === selectedType ? <LogoLoader color="#FFF" size={18} /> : <><Text style={styles.primarySendText}>Review & send</Text><Ionicons name="arrow-forward" size={17} color="#FFF" /></>}
                 </TouchableOpacity>
               </View>
+              {!selectedNotificationEnabled && (
+                <Text style={styles.disabledNotice}>This notification is off. Enable it in Notification controls below before sending.</Text>
+              )}
             </View>
+          </View>
+        </ResponsiveCard>
+
+        <ResponsiveCard maxWidth={contentWidth} fullWidth>
+          <View style={styles.controlsCard}>
+            <View style={styles.controlsHeader}>
+              <View style={styles.controlsHeaderIcon}>
+                <Ionicons name="notifications-circle-outline" size={26} color="#4F46E5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.controlsTitle}>Notification controls</Text>
+                <Text style={styles.controlsSubtitle}>Turn a category off to stop every automatic and manual notification of that type for this school.</Text>
+              </View>
+            </View>
+            {settingsLoading ? (
+              <View style={styles.settingsLoader}><LogoLoader color="#4F46E5" size={24} /></View>
+            ) : (
+              <View style={styles.settingsGrid}>
+                {notificationSettings.map((setting) => (
+                  <View key={setting.id} style={styles.settingRow}>
+                    <View style={styles.settingIcon}>
+                      <Ionicons name={setting.icon} size={19} color={setting.enabled ? '#4F46E5' : THEME_COLORS.textFaint} />
+                    </View>
+                    <View style={styles.settingCopy}>
+                      <Text style={styles.settingTitle}>{setting.label}</Text>
+                      <Text style={styles.settingDescription}>{setting.description}</Text>
+                    </View>
+                    <Switch
+                      value={setting.enabled}
+                      onValueChange={(enabled) => handleToggleNotificationSetting(setting, enabled)}
+                      disabled={updatingSettingId !== null}
+                      trackColor={{ false: THEME_COLORS.borderStrong, true: '#A5B4FC' }}
+                      thumbColor={setting.enabled ? '#4F46E5' : '#94A3B8'}
+                      accessibilityLabel={`${setting.label} notifications`}
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </ResponsiveCard>
 
@@ -1261,6 +1523,7 @@ export default function NotificationsTriggerPage() {
         isAllSchool={confirmIsAllSchool}
         selectedClassNames={confirmClassNames}
         estimate={confirmEstimate}
+        feePaidRange={feePaidRange}
         onCancel={() => setConfirmVisible(false)}
         onConfirm={handleConfirmSend}
         styles={styles}
@@ -1411,13 +1674,28 @@ const getStyles = (
     typeOption: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 66, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surface, overflow: 'hidden', shadowColor: isDark ? '#000' : '#9AA7BF', shadowOffset: { width: 0, height: 5 }, shadowOpacity: isDark ? 0.25 : 0.16, shadowRadius: 10, elevation: Platform.OS === 'android' ? 3 : 0 },
     typeIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', elevation: Platform.OS === 'android' ? 4 : 0 },
     typeCopy: { flex: 1, minWidth: 0 },
+    typeTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     typeTitle: { fontSize: 14.5, fontWeight: '800', color: THEME_COLORS.text, marginBottom: 3 },
+    offBadge: { fontSize: 9, fontWeight: '900', letterSpacing: 0.7, color: '#DC2626', backgroundColor: 'rgba(220,38,38,0.1)', borderRadius: 7, paddingHorizontal: 6, paddingVertical: 2, overflow: 'hidden' },
     typeDescription: { fontSize: 11.5, lineHeight: 16.5, color: THEME_COLORS.textMuted },
     radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: THEME_COLORS.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: THEME_COLORS.surface },
     radioDot: { width: 10, height: 10, borderRadius: 5 },
     claySelected: { elevation: Platform.OS === 'android' ? 7 : 0, shadowOpacity: isDark ? 0.4 : 0.24, shadowRadius: 14, transform: [{ translateY: -1 }] },
     clayPressed: { opacity: 0.88, transform: [{ scale: 0.985 }] },
     audienceHeadingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    feeRangeCard: { marginTop: 18, borderRadius: 20, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surfaceHighlight, padding: 15 },
+    feeRangeHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    feeRangeTitle: { fontSize: 14.5, fontWeight: '800', color: THEME_COLORS.text },
+    feePresetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+    feePreset: { borderRadius: 14, borderWidth: 1, borderColor: THEME_COLORS.borderStrong, backgroundColor: THEME_COLORS.surface, paddingHorizontal: 11, paddingVertical: 8 },
+    feePresetText: { fontSize: 11.5, fontWeight: '700', color: THEME_COLORS.textMuted },
+    customRangeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+    percentInputWrap: { height: 44, minWidth: 86, flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: THEME_COLORS.borderStrong, borderRadius: 14, backgroundColor: THEME_COLORS.surface, paddingHorizontal: 11 },
+    percentInput: { minWidth: 44, flex: 1, color: THEME_COLORS.text, fontSize: 14, fontWeight: '700', paddingVertical: 0 },
+    percentSuffix: { color: THEME_COLORS.textMuted, fontSize: 13, fontWeight: '700' },
+    rangeDash: { color: THEME_COLORS.textMuted, fontSize: 12, fontWeight: '700' },
+    applyRangeBtn: { height: 44, borderRadius: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
+    applyRangeText: { color: '#FFF', fontSize: 12.5, fontWeight: '800' },
     resetAudience: { paddingVertical: 6, paddingHorizontal: 8 },
     resetAudienceText: { fontSize: 12.5, fontWeight: '700' },
     audienceLoading: { minHeight: 220, alignItems: 'center', justifyContent: 'center' },
@@ -1433,6 +1711,19 @@ const getStyles = (
     primarySend: { minHeight: 54, minWidth: 180, borderRadius: 18, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.32)', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.24, shadowRadius: 13, elevation: Platform.OS === 'android' ? 8 : 5 },
     primarySendDisabled: { opacity: 0.45 },
     primarySendText: { fontSize: 14, fontWeight: '800', color: '#FFF' },
+    disabledNotice: { color: '#DC2626', fontSize: 12, fontWeight: '700', marginTop: 10, lineHeight: 18 },
+    controlsCard: { marginTop: 24, marginBottom: 4, padding: isWide ? 28 : 18, borderRadius: isWide ? 28 : 24, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surface, shadowColor: isDark ? '#000' : '#9AA7BF', shadowOffset: { width: 0, height: 8 }, shadowOpacity: isDark ? 0.3 : 0.14, shadowRadius: 18, elevation: Platform.OS === 'android' ? 5 : 0 },
+    controlsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 13, marginBottom: 20 },
+    controlsHeaderIcon: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? 'rgba(79,70,229,0.18)' : '#EEF2FF' },
+    controlsTitle: { fontSize: 20, fontWeight: '900', color: THEME_COLORS.text, letterSpacing: -0.3 },
+    controlsSubtitle: { fontSize: 12.5, lineHeight: 18.5, color: THEME_COLORS.textMuted, marginTop: 4, maxWidth: 720 },
+    settingsLoader: { minHeight: 120, alignItems: 'center', justifyContent: 'center' },
+    settingsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    settingRow: { width: isWide ? '48%' : '100%', flexGrow: 1, minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 18, borderWidth: 1, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surfaceHighlight },
+    settingIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: THEME_COLORS.surface, alignItems: 'center', justifyContent: 'center' },
+    settingCopy: { flex: 1, minWidth: 0 },
+    settingTitle: { fontSize: 13.5, fontWeight: '800', color: THEME_COLORS.text },
+    settingDescription: { fontSize: 10.5, lineHeight: 15, color: THEME_COLORS.textMuted, marginTop: 2 },
     grid: {
       gap: isWide ? 24 : 20,
       width: '100%',

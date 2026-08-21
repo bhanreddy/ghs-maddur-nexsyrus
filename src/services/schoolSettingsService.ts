@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { api } from './apiClient';
+import type { ResultRankingMethod } from '../utils/assessmentGrading';
 
 export interface SchoolSettings {
     school_name: string;
@@ -18,6 +19,8 @@ export interface SchoolSettings {
     school_medium?: string;
     /** Optional — e.g. "State" / "CBSE" */
     school_board?: string;
+    /** Admin-selected policy applied to class result ranks. */
+    result_ranking_method?: ResultRankingMethod;
 }
 
 export const SchoolSettingsService = {
@@ -26,6 +29,11 @@ export const SchoolSettingsService = {
      */
     getSettings: async (): Promise<SchoolSettings> => {
         return api.get<SchoolSettings>('/school-settings');
+    },
+
+    updateSettings: async (updates: Partial<SchoolSettings>): Promise<SchoolSettings> => {
+        const response = await api.put<{ settings: SchoolSettings }>('/school-settings', updates);
+        return response.settings;
     },
 
     uploadPrincipalSignature: async (uri: string, mimeType?: string | null): Promise<string> => {

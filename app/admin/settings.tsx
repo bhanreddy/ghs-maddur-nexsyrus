@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    StatusBar, Switch, Linking
+    StatusBar, Switch, Linking, ActivityIndicator
 } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -24,6 +24,38 @@ import {
     SettingRow,
     SettingsGroup as Group,
 } from '../../src/components/SettingsSection';
+import { SchoolSettingsService } from '../../src/services/schoolSettingsService';
+import type { ResultRankingMethod } from '../../src/utils/assessmentGrading';
+
+const RANKING_OPTIONS: {
+    value: ResultRankingMethod;
+    title: string;
+    description: string;
+    example: string;
+    icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+    {
+        value: 'competition',
+        title: 'Standard competition',
+        description: 'Equal scores share a rank; occupied positions are skipped.',
+        example: '1, 1, 1, 4',
+        icon: 'podium-outline',
+    },
+    {
+        value: 'attendance_tiebreak',
+        title: 'Attendance tie-break',
+        description: 'Equal scores are ordered by attendance percentage; exact ties still share a rank.',
+        example: 'Marks → Attendance',
+        icon: 'calendar-outline',
+    },
+    {
+        value: 'dense',
+        title: 'Consecutive ranks',
+        description: 'Equal scores share a rank and the next distinct score gets the next rank.',
+        example: '1, 1, 1, 2',
+        icon: 'list-outline',
+    },
+];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +67,41 @@ export default function AdminSettings() {
     const { user, signOut } = useAuth();
     const fingerprint = useFingerprintAuth();
     const { switcherOpen, openSwitcher, closeSwitcher } = useSettingsAccountSwitcher();
+    const [rankingMethod, setRankingMethod] = React.useState<ResultRankingMethod>('competition');
+    const [rankingLoading, setRankingLoading] = React.useState(true);
+    const [rankingSaving, setRankingSaving] = React.useState<ResultRankingMethod | null>(null);
+
+    React.useEffect(() => {
+        let active = true;
+        SchoolSettingsService.getSettings()
+            .then((settings) => {
+                if (!active) return;
+                const saved = settings.result_ranking_method;
+                setRankingMethod(saved === 'attendance_tiebreak' || saved === 'dense' ? saved : 'competition');
+            })
+            .catch(() => {
+                // The safe server default is standard competition ranking.
+            })
+            .finally(() => {
+                if (active) setRankingLoading(false);
+            });
+        return () => { active = false; };
+    }, []);
+
+    const handleRankingMethodChange = async (next: ResultRankingMethod) => {
+        if (rankingSaving || next === rankingMethod) return;
+        const previous = rankingMethod;
+        setRankingMethod(next);
+        setRankingSaving(next);
+        try {
+            await SchoolSettingsService.updateSettings({ result_ranking_method: next });
+        } catch {
+            setRankingMethod(previous);
+            alertCompat('Could not save ranking policy', 'Only an authorised administrator can change result ranking.');
+        } finally {
+            setRankingSaving(null);
+        }
+    };
 
     const handlePress = (item: string) =>
         alertCompat(item, 'This feature will be available in the next update.');
@@ -148,6 +215,74 @@ export default function AdminSettings() {
                             />
                         }
                     />
+                </Group>
+
+                {/* ── Result ranking policy ── */}
+                <Group
+                    title="Result Ranking"
+                    subtitle="Admin-controlled policy used for class and report-card ranks"
+                    delay={210}
+                    theme={theme}
+                >
+                    <View style={styles.rankingOptions}>
+                        {rankingLoading ? (
+                            <View style={styles.rankingLoading}>
+                                <ActivityIndicator color={theme.colors.primary} />
+                                <Text style={styles.rankingLoadingText}>Loading ranking policy…</Text>
+                            </View>
+                        ) : RANKING_OPTIONS.map((option) => {
+                            const selected = rankingMethod === option.value;
+                            const saving = rankingSaving === option.value;
+                            return (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    accessibilityRole="radio"
+                                    accessibilityState={{ selected, disabled: Boolean(rankingSaving) }}
+                                    activeOpacity={0.72}
+                                    disabled={Boolean(rankingSaving)}
+                                    onPress={() => handleRankingMethodChange(option.value)}
+                                    style={[
+                                        styles.rankingOption,
+                                        selected && styles.rankingOptionSelected,
+                                    ]}
+                                >
+                                    <View style={[
+                                        styles.rankingIcon,
+                                        selected && styles.rankingIconSelected,
+                                    ]}>
+                                        <Ionicons
+                                            name={option.icon}
+                                            size={19}
+                                            color={selected ? '#FFFFFF' : '#7C3AED'}
+                                        />
+                                    </View>
+                                    <View style={styles.rankingCopy}>
+                                        <View style={styles.rankingTitleRow}>
+                                            <Text style={[
+                                                styles.rankingTitle,
+                                                selected && styles.rankingTitleSelected,
+                                            ]}>
+                                                {option.title}
+                                            </Text>
+                                            <View style={styles.rankingExampleBadge}>
+                                                <Text style={styles.rankingExampleText}>{option.example}</Text>
+                                            </View>
+                                        </View>
+                                        <Text style={styles.rankingDescription}>{option.description}</Text>
+                                    </View>
+                                    {saving ? (
+                                        <ActivityIndicator size="small" color="#7C3AED" />
+                                    ) : (
+                                        <Ionicons
+                                            name={selected ? 'radio-button-on' : 'radio-button-off'}
+                                            size={22}
+                                            color={selected ? '#7C3AED' : '#CBD5E1'}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
                 </Group>
 
                 {/* ── Security ── */}
@@ -351,6 +486,40 @@ const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
         borderRadius: 999, borderWidth: 1, borderColor: '#DDD6FE', marginLeft: 8,
     },
     editChipText: { fontSize: 12, fontWeight: '700', color: '#7C3AED' },
+
+    rankingOptions: { padding: 10, gap: 8 },
+    rankingLoading: {
+        minHeight: 96, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    },
+    rankingLoadingText: { color: theme.colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    rankingOption: {
+        minHeight: 84, borderRadius: 17, borderWidth: 1.5,
+        borderColor: theme.colors.border, padding: 12,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : '#F8FAFC',
+    },
+    rankingOptionSelected: {
+        borderColor: '#8B5CF6',
+        backgroundColor: isDark ? 'rgba(124,58,237,0.14)' : '#F5F3FF',
+    },
+    rankingIcon: {
+        width: 40, height: 40, borderRadius: 13,
+        backgroundColor: isDark ? 'rgba(124,58,237,0.18)' : '#EDE9FE',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    rankingIconSelected: { backgroundColor: '#7C3AED' },
+    rankingCopy: { flex: 1, minWidth: 0 },
+    rankingTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },
+    rankingTitle: { color: theme.colors.textStrong, fontSize: 14, fontWeight: '800' },
+    rankingTitleSelected: { color: isDark ? '#DDD6FE' : '#5B21B6' },
+    rankingExampleBadge: {
+        borderRadius: 8, backgroundColor: isDark ? 'rgba(139,92,246,0.18)' : '#EDE9FE',
+        paddingHorizontal: 7, paddingVertical: 3,
+    },
+    rankingExampleText: { color: '#7C3AED', fontSize: 10, fontWeight: '900' },
+    rankingDescription: {
+        color: theme.colors.textSecondary, fontSize: 11.5, lineHeight: 16, marginTop: 5,
+    },
 
     // Logout
     logoutBtn: {

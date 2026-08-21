@@ -71,6 +71,7 @@ export default function StaffLayout() {
             <MaterialTopTabs.Screen name="settings" options={hiddenScreenOptions} />
             <MaterialTopTabs.Screen name="student-details" options={hiddenScreenOptions} />
             <MaterialTopTabs.Screen name="student-portfolio" options={hiddenScreenOptions} />
+            <MaterialTopTabs.Screen name="progress-card-assistant" options={{ ...hiddenScreenOptions, title: 'Progress Cards' } as any} />
         </MaterialTopTabs>
     );
 }

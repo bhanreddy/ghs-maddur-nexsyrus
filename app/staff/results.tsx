@@ -14,12 +14,28 @@ import ViewAsBanner from '../../src/components/ViewAsBanner';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
 import { StudentService } from '../../src/services/studentService';
 import { ResultService, TeacherService, TeacherClassAssignment } from '@/src/services/commonServices';
-import { useAuth } from '@/src/hooks/useAuth';
 import { StudentWithDetails } from '@/src/types/schema';
 import { useTheme } from '../../src/hooks/useTheme';
-import { Theme } from '../../src/theme/themes';
+import { Spacing, Theme } from '../../src/theme/themes';
 import LogoLoader from '../../src/components/LogoLoader';
 import StudentPhoto from '../../src/components/StudentPhoto';
+import {
+  AssessmentSchema,
+  ComponentAssessmentInput,
+  ComponentField,
+  ResultRankingMethod,
+  COMPONENT_MAXIMUMS,
+  COMPONENT_TOTAL_MAX,
+  DEFAULT_CONSOLIDATED_MAX,
+  EMPTY_COMPONENT_MARKS,
+  calculateComponentAssessment,
+  calculateConsolidatedAssessment,
+  hasAnyComponentMark,
+  isComponentAssessmentComplete,
+  isValidAssessmentInput,
+  rankAssessmentScores,
+} from '../../src/utils/assessmentGrading';
+import { SchoolSettingsService } from '../../src/services/schoolSettingsService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -28,6 +44,31 @@ import StudentPhoto from '../../src/components/StudentPhoto';
 import { ExamCategory, EXAM_CATEGORIES } from '@/src/constants/examCategories';
 
 const EXTRA_SUB_EXAMS_KEY = 'staffExtraSubExams';
+const ASSESSMENT_DRAFTS_KEY = 'staffAssessmentDraftsV1';
+
+interface AssessmentDraft {
+  consolidatedMaxMarks: string;
+  consolidatedByStudent: Record<string, string>;
+  componentByStudent: Record<string, ComponentAssessmentInput>;
+}
+
+interface PersistedAssessmentState {
+  schemas: Record<string, AssessmentSchema>;
+  drafts: Record<string, AssessmentDraft>;
+}
+
+const emptyAssessmentDraft = (consolidatedMaximum = DEFAULT_CONSOLIDATED_MAX): AssessmentDraft => ({
+  consolidatedMaxMarks: String(consolidatedMaximum),
+  consolidatedByStudent: {},
+  componentByStudent: {},
+});
+
+const COMPONENT_FIELDS: { field: ComponentField; label: string; shortLabel: string }[] = [
+  { field: 'participation', label: "Children's Participation Responses", shortLabel: 'Participation' },
+  { field: 'writtenWork', label: 'Written Work', shortLabel: 'Written' },
+  { field: 'projectWork', label: 'Project Work', shortLabel: 'Project' },
+  { field: 'slipTest', label: 'Slip Test', shortLabel: 'Slip Test' },
+];
 
 // ponytail: local clay helpers — extract if a 3rd staff screen needs them
 function clay(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md'): any {
@@ -193,9 +234,13 @@ export default function UploadMarks() {
   // ── view state ──────────────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<ExamCategory | null>(null);
   const [selectedSubExam, setSelectedSubExam] = useState('');
-  const [maxMarks, setMaxMarks] = useState('100');
   const [extraSubExams, setExtraSubExams] = useState<Record<string, string[]>>({});
   const [dbSubExams, setDbSubExams] = useState<string[]>([]);
+  const [assessmentSchemas, setAssessmentSchemas] = useState<Record<string, AssessmentSchema>>({});
+  const [assessmentDrafts, setAssessmentDrafts] = useState<Record<string, AssessmentDraft>>({});
+  const [assessmentStorageReady, setAssessmentStorageReady] = useState(false);
+  const [rankingMethod, setRankingMethod] = useState<ResultRankingMethod>('competition');
+  const [attendanceByStudent, setAttendanceByStudent] = useState<Record<string, number | null>>({});
 
   // ── assignment / filter state ────────────────────────────────────────────────
   const [assignments, setAssignments] = useState<TeacherClassAssignment[]>([]);
@@ -236,11 +281,8 @@ export default function UploadMarks() {
   );
 
   // ── data state ───────────────────────────────────────────────────────────────
-  const [marks, setMarks] = useState<{ [key: string]: string; }>({});
   const [students, setStudents] = useState<StudentWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const { user } = useAuth();
 
   const activeSubExams = useMemo(() => {
     if (!selectedCategory) return [];
@@ -251,10 +293,58 @@ export default function UploadMarks() {
     );
   }, [selectedCategory, extraSubExams, dbSubExams]);
 
-  const filledCount = useMemo(
-    () => Object.values(marks).filter((v) => v !== '' && v != null).length,
-    [marks],
-  );
+  const schemaInstanceKey = useMemo(() => {
+    if (!selectedCategory || !selectedClassSectionId || !selectedSubExam) return '';
+    return `${selectedClassSectionId}:${selectedCategory.key}:${selectedSubExam}`;
+  }, [selectedCategory, selectedClassSectionId, selectedSubExam]);
+
+  const draftKey = useMemo(() => {
+    if (!schemaInstanceKey || !selectedSubjectId) return '';
+    return `${schemaInstanceKey}:${selectedSubjectId}`;
+  }, [schemaInstanceKey, selectedSubjectId]);
+
+  const assessmentSchema = assessmentSchemas[schemaInstanceKey] ?? 'consolidated';
+  const defaultConsolidatedMaximum = selectedCategory?.key === 'sa_results'
+    ? 80
+    : DEFAULT_CONSOLIDATED_MAX;
+  const currentDraft = assessmentDrafts[draftKey] ?? emptyAssessmentDraft(defaultConsolidatedMaximum);
+
+  const filledCount = useMemo(() => {
+    if (assessmentSchema === 'component') {
+      return Object.values(currentDraft.componentByStudent).filter(isComponentAssessmentComplete).length;
+    }
+    return Object.values(currentDraft.consolidatedByStudent).filter((value) => value !== '').length;
+  }, [assessmentSchema, currentDraft]);
+
+  const studentResults = useMemo(() => {
+    return students.reduce<Record<string, ReturnType<typeof calculateConsolidatedAssessment> & { rank: number }>>(
+      (acc, student) => {
+        const result = assessmentSchema === 'component'
+          ? calculateComponentAssessment(currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS)
+          : calculateConsolidatedAssessment(
+              currentDraft.consolidatedByStudent[student.id] ?? '',
+              currentDraft.consolidatedMaxMarks,
+            );
+        acc[student.id] = { ...result, rank: 0 };
+        return acc;
+      },
+      {},
+    );
+  }, [assessmentSchema, currentDraft, students]);
+
+  const studentRanks = useMemo(() => {
+    const entered = students.flatMap((student) => {
+      const isEntered = assessmentSchema === 'component'
+        ? isComponentAssessmentComplete(currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS)
+        : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
+      return isEntered ? [{
+        id: student.id,
+        score: studentResults[student.id].percentage,
+        attendancePercentage: attendanceByStudent[student.id],
+      }] : [];
+    });
+    return rankAssessmentScores(entered, rankingMethod);
+  }, [assessmentSchema, attendanceByStudent, currentDraft, rankingMethod, studentResults, students]);
 
   const accentColor = selectedCategory?.color ?? '#7C6FFF';
 
@@ -277,6 +367,42 @@ export default function UploadMarks() {
   }, []);
 
   useEffect(() => {
+    SchoolSettingsService.getSettings()
+      .then((settings) => {
+        const saved = settings.result_ranking_method;
+        setRankingMethod(saved === 'attendance_tiebreak' || saved === 'dense' ? saved : 'competition');
+      })
+      .catch(() => {
+        // Backend and client both default safely to competition ranking.
+      });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ASSESSMENT_DRAFTS_KEY)
+      .then((raw) => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as PersistedAssessmentState;
+        setAssessmentSchemas(parsed.schemas ?? {});
+        setAssessmentDrafts(parsed.drafts ?? {});
+      })
+      .catch(() => {
+        // A corrupt local draft must never block marks entry.
+      })
+      .finally(() => setAssessmentStorageReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (!assessmentStorageReady) return;
+    const snapshot: PersistedAssessmentState = {
+      schemas: assessmentSchemas,
+      drafts: assessmentDrafts,
+    };
+    AsyncStorage.setItem(ASSESSMENT_DRAFTS_KEY, JSON.stringify(snapshot)).catch(() => {
+      // Server persistence remains available even if local storage is full.
+    });
+  }, [assessmentDrafts, assessmentSchemas, assessmentStorageReady]);
+
+  useEffect(() => {
     if (!selectedCategory) {
       setDbSubExams([]);
       return;
@@ -297,7 +423,7 @@ export default function UploadMarks() {
     return () => {
       cancelled = true;
     };
-  }, [selectedCategory?.key]);
+  }, [selectedCategory]);
 
   useEffect(() => {
     if (!selectedCategory || activeSubExams.length === 0) return;
@@ -316,7 +442,7 @@ export default function UploadMarks() {
     if (classSections.length > 0 && !selectedClassSectionId) {
       setSelectedClassSectionId(classSections[0].class_section_id);
     }
-  }, [classSections]);
+  }, [classSections, selectedClassSectionId]);
 
   // 3. Auto-select first subject when class-section changes
   useEffect(() => {
@@ -327,35 +453,18 @@ export default function UploadMarks() {
     }
   }, [selectedClassSectionId, availableSubjects]);
 
-  // 4. Fetch students when resolved assignment changes
-  useEffect(() => {
-    if (selectedCategory && selectedAssignment) {
-      fetchStudents();
-    } else {
-      setStudents([]);
-    }
-  }, [selectedCategory, selectedAssignment]);
-
-  // 5. Fetch existing marks when sub-exam or assignment changes
-  useEffect(() => {
-    if (selectedCategory && selectedAssignment && selectedSubExam) {
-      fetchExistingMarks();
-    }
-  }, [selectedCategory, selectedAssignment, selectedSubExam]);
-
   // ── data fetchers ─────────────────────────────────────────────────────────────
 
   const fetchAssignments = async () => {
     try {
       const data = await TeacherService.getMyClasses();
       setAssignments(data);
-    } catch (error) {
-
+    } catch {
       alertCompat('Error', 'Could not load your assigned classes.');
     }
   };
 
-  const fetchExistingMarks = async () => {
+  const fetchExistingMarks = useCallback(async () => {
     if (!selectedAssignment || !selectedCategory || !selectedSubExam) return;
     try {
       setLoading(true);
@@ -365,22 +474,60 @@ export default function UploadMarks() {
         sub_exam: selectedSubExam,
         subject_id: selectedAssignment.subject_id
       });
-      setMaxMarks(data.max_marks ? data.max_marks.toString() : '100');
-      const newMarks: { [key: string]: string; } = {};
-      if (data.marks?.length > 0) {
-        data.marks.forEach((m: any) => {
-          newMarks[m.student_id] = m.marks_obtained.toString();
-        });
-      }
-      setMarks(newMarks);
-    } catch (error) {
+      const serverSchema = data.assessment_schema ?? 'consolidated';
+      setAttendanceByStudent(Object.fromEntries(
+        (data.attendance ?? []).map((row) => [
+          row.student_id,
+          row.attendance_percentage == null ? null : Number(row.attendance_percentage),
+        ]),
+      ));
+      setAssessmentSchemas((previous) => ({
+        ...previous,
+        [schemaInstanceKey]: previous[schemaInstanceKey] ?? serverSchema,
+      }));
+      setAssessmentDrafts((previous) => {
+        const existing = previous[draftKey] ?? emptyAssessmentDraft(defaultConsolidatedMaximum);
+        const consolidatedByStudent = { ...existing.consolidatedByStudent };
+        const componentByStudent = { ...existing.componentByStudent };
 
+        data.marks?.forEach((mark) => {
+          if (mark.consolidated_marks_obtained != null) {
+            consolidatedByStudent[mark.student_id] = String(mark.consolidated_marks_obtained);
+          } else if (serverSchema === 'consolidated' && mark.marks_obtained != null) {
+            consolidatedByStudent[mark.student_id] = String(mark.marks_obtained);
+          }
+
+          if (
+            mark.participation_marks != null ||
+            mark.written_work_marks != null ||
+            mark.project_work_marks != null ||
+            mark.slip_test_marks != null
+          ) {
+            componentByStudent[mark.student_id] = {
+              participation: mark.participation_marks == null ? '' : String(mark.participation_marks),
+              writtenWork: mark.written_work_marks == null ? '' : String(mark.written_work_marks),
+              projectWork: mark.project_work_marks == null ? '' : String(mark.project_work_marks),
+              slipTest: mark.slip_test_marks == null ? '' : String(mark.slip_test_marks),
+            };
+          }
+        });
+
+        return {
+          ...previous,
+          [draftKey]: {
+            consolidatedMaxMarks: String(data.consolidated_max_marks ?? DEFAULT_CONSOLIDATED_MAX),
+            consolidatedByStudent,
+            componentByStudent,
+          },
+        };
+      });
+    } catch {
     } finally {
       setLoading(false);
     }
-  };
+  }, [defaultConsolidatedMaximum, draftKey, schemaInstanceKey, selectedAssignment, selectedCategory, selectedSubExam]);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     if (!selectedAssignment) return;
     try {
       setLoading(true);
@@ -392,29 +539,76 @@ export default function UploadMarks() {
         sort_order: 'asc',
       });
       setStudents(response.data);
-    } catch (error) {
-
+    } catch {
       alertCompat('Error', 'Failed to fetch students');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedAssignment]);
+
+  // 4. Fetch students when resolved assignment changes
+  useEffect(() => {
+    if (selectedCategory && selectedAssignment) {
+      fetchStudents();
+    } else {
+      setStudents([]);
+    }
+  }, [fetchStudents, selectedAssignment, selectedCategory]);
+
+  // 5. Fetch existing marks when sub-exam or assignment changes
+  useEffect(() => {
+    if (assessmentStorageReady && selectedCategory && selectedAssignment && selectedSubExam) {
+      fetchExistingMarks();
+    }
+  }, [assessmentStorageReady, fetchExistingMarks, selectedAssignment, selectedCategory, selectedSubExam]);
 
   // ── handlers ──────────────────────────────────────────────────────────────────
 
   const handleBackToDashboard = () => {
     setSelectedCategory(null);
-    setMarks({});
+  };
+
+  const updateCurrentDraft = (updater: (draft: AssessmentDraft) => AssessmentDraft) => {
+    if (!draftKey) return;
+    setAssessmentDrafts((previous) => ({
+      ...previous,
+      [draftKey]: updater(previous[draftKey] ?? emptyAssessmentDraft(defaultConsolidatedMaximum)),
+    }));
+  };
+
+  const handleSchemaChange = (schema: AssessmentSchema) => {
+    if (!schemaInstanceKey) return;
+    setAssessmentSchemas((previous) => ({ ...previous, [schemaInstanceKey]: schema }));
   };
 
   const handleMaxMarksChange = (text: string) => {
-    if (/^\d*$/.test(text)) setMaxMarks(text);
+    if (!/^\d{0,3}$/.test(text)) return;
+    const maximum = Number(text);
+    if (text !== '' && (maximum < 1 || maximum > 999)) return;
+    updateCurrentDraft((draft) => ({ ...draft, consolidatedMaxMarks: text }));
   };
 
-  const handleMarkChange = (studentId: string, text: string) => {
-    if (/^\d*$/.test(text) && (text === '' || Number(text) <= Number(maxMarks))) {
-      setMarks((prev) => ({ ...prev, [studentId]: text }));
-    }
+  const handleConsolidatedMarkChange = (studentId: string, text: string) => {
+    const maximum = Number(currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX);
+    if (!isValidAssessmentInput(text, maximum)) return;
+    updateCurrentDraft((draft) => ({
+      ...draft,
+      consolidatedByStudent: { ...draft.consolidatedByStudent, [studentId]: text },
+    }));
+  };
+
+  const handleComponentMarkChange = (studentId: string, field: ComponentField, text: string) => {
+    if (!isValidAssessmentInput(text, COMPONENT_MAXIMUMS[field])) return;
+    updateCurrentDraft((draft) => ({
+      ...draft,
+      componentByStudent: {
+        ...draft.componentByStudent,
+        [studentId]: {
+          ...(draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS),
+          [field]: text,
+        },
+      },
+    }));
   };
 
   const handleAddSubExam = async () => {
@@ -427,7 +621,6 @@ export default function UploadMarks() {
     };
     setExtraSubExams(updatedExtras);
     setSelectedSubExam(nextExam);
-    setMarks({});
     try {
       await AsyncStorage.setItem(EXTRA_SUB_EXAMS_KEY, JSON.stringify(updatedExtras));
     } catch {
@@ -437,10 +630,30 @@ export default function UploadMarks() {
 
   const handleSubmit = async () => {
     if (!selectedCategory || !selectedAssignment) return;
-    const filledMarks = Object.keys(marks).map((studentId) => ({
-      student_id: studentId,
-      marks: Number(marks[studentId])
-    }));
+    const partialComponentEntry = assessmentSchema === 'component' && Object.values(currentDraft.componentByStudent)
+      .some((entry) => hasAnyComponentMark(entry) && !isComponentAssessmentComplete(entry));
+    if (partialComponentEntry) {
+      alertCompat('Incomplete components', 'Complete all four component fields for each student you started.');
+      return;
+    }
+
+    const filledMarks = students.flatMap((student) => {
+      if (assessmentSchema === 'component') {
+        const components = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
+        if (!isComponentAssessmentComplete(components)) return [];
+        const result = calculateComponentAssessment(components);
+        return [{
+          student_id: student.id,
+          marks: result.obtained,
+          participation_marks: Number(components.participation),
+          written_work_marks: Number(components.writtenWork),
+          project_work_marks: Number(components.projectWork),
+          slip_test_marks: Number(components.slipTest),
+        }];
+      }
+      const marks = currentDraft.consolidatedByStudent[student.id] ?? '';
+      return marks === '' ? [] : [{ student_id: student.id, marks: Number(marks) }];
+    });
     if (filledMarks.length === 0) {
       alertCompat('Warning', 'No marks entered.');
       return;
@@ -460,14 +673,14 @@ export default function UploadMarks() {
                 exam_category: selectedCategory.key,
                 sub_exam: selectedSubExam,
                 subject_id: selectedAssignment.subject_id,
-                max_marks: Number(maxMarks),
+                assessment_schema: assessmentSchema,
+                max_marks: assessmentSchema === 'component'
+                  ? COMPONENT_TOTAL_MAX
+                  : Number(currentDraft.consolidatedMaxMarks),
                 results: filledMarks
               });
               alertCompat('Success', 'Marks uploaded successfully!');
-              setSelectedCategory(null);
-              setMarks({});
-            } catch (e) {
-
+            } catch {
               alertCompat('Error', 'Failed to upload marks');
             } finally {
               setLoading(false);
@@ -615,27 +828,202 @@ export default function UploadMarks() {
 
         <View style={styles.workspaceDivider} />
 
-        <View style={styles.maxMarksRow}>
-          <View style={styles.maxMarksLeft}>
-            <View style={[styles.maxMarksIcon, clayGlow(accentColor, 'sm')]}>
-              <Ionicons name="trophy" size={16} color={accentColor} />
-            </View>
-            <View>
-              <Text style={styles.maxMarksLabel}>Total Marks</Text>
-              <Text style={styles.maxMarksHint}>Out of score for this exam</Text>
-            </View>
+        <View style={styles.schemaSection}>
+          <FilterLabelPill icon="options-outline" label="Assessment schema" color={accentColor} />
+          <View style={styles.schemaToggle} accessibilityRole="tablist">
+            {([
+              { key: 'component', label: 'Component-Based', icon: 'grid-outline' },
+              { key: 'consolidated', label: 'Consolidated', icon: 'document-text-outline' },
+            ] as const).map((option) => {
+              const active = assessmentSchema === option.key;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  activeOpacity={0.8}
+                  onPress={() => handleSchemaChange(option.key)}
+                  style={[styles.schemaOption, active && { backgroundColor: accentColor }]}
+                >
+                  <Ionicons name={option.icon} size={16} color={active ? '#FFFFFF' : theme.colors.textSecondary} />
+                  <Text style={[styles.schemaOptionText, active && styles.schemaOptionTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          <AppTextInput
-            style={styles.maxMarksInput}
-            value={maxMarks}
-            onChangeText={handleMaxMarksChange}
-            keyboardType="numeric"
-            maxLength={3}
-          />
+          <Text style={styles.schemaHint}>
+            {assessmentSchema === 'component'
+              ? 'Participation 10 + Written 10 + Project 10 + Slip Test 20 = 50 marks'
+              : 'Enter the final subject score directly. Grade, GPA and rank update automatically.'}
+          </Text>
         </View>
+
+        {assessmentSchema === 'consolidated' && (
+          <View style={styles.maxMarksRow}>
+            <View style={styles.maxMarksLeft}>
+              <View style={[styles.maxMarksIcon, clayGlow(accentColor, 'sm')]}>
+                <Ionicons name="trophy" size={16} color={accentColor} />
+              </View>
+              <View>
+                <Text style={styles.maxMarksLabel}>Max Marks</Text>
+                <Text style={styles.maxMarksHint}>Default 25 for this subject</Text>
+              </View>
+            </View>
+            <AppTextInput
+              style={styles.maxMarksInput}
+              value={currentDraft.consolidatedMaxMarks}
+              onChangeText={handleMaxMarksChange}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+          </View>
+        )}
       </View>
     );
 
+  };
+
+  const renderStudentAssessmentCard = (student: StudentWithDetails, index: number) => {
+    const displayName = student.person.display_name ??
+      `${student.person.first_name} ${student.person.last_name}`;
+    const result = studentResults[student.id];
+    const componentMarks = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
+    const entered = assessmentSchema === 'component'
+      ? isComponentAssessmentComplete(componentMarks)
+      : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
+    const componentResult = calculateComponentAssessment(componentMarks);
+
+    return (
+      <Animated.View
+        key={student.id}
+        entering={FadeInDown.delay(index * 40).duration(350)}
+        style={styles.assessmentStudentCard}
+      >
+        <View style={styles.assessmentStudentHeader}>
+          <View style={[styles.studentAvatar, clayGlow('#8B5CF6', 'sm')]}>
+            <StudentPhoto
+              photoUrl={student.person.photo_url}
+              displayName={displayName}
+              size={44}
+              borderRadius={14}
+              fallbackTextStyle={styles.studentAvatarText}
+            />
+          </View>
+          <View style={styles.studentInfo}>
+            <Text style={styles.studentName} numberOfLines={1}>{displayName}</Text>
+            <Text style={styles.studentRoll}>#{student.admission_no}</Text>
+          </View>
+          {entered && (
+            <View style={[styles.gradeBadge, { backgroundColor: `${accentColor}18` }]}>
+              <Text style={[styles.gradeBadgeText, { color: accentColor }]}>{result.grade}</Text>
+            </View>
+          )}
+        </View>
+
+        {assessmentSchema === 'component' ? (
+          <View style={styles.componentGrid}>
+            {COMPONENT_FIELDS.map(({ field, label, shortLabel }) => (
+              <View key={field} style={styles.componentField}>
+                <View style={styles.componentLabelRow}>
+                  <Text style={styles.componentLabel} numberOfLines={1}>{shortLabel}</Text>
+                  <Text style={styles.componentMaximum}>/{COMPONENT_MAXIMUMS[field]}</Text>
+                </View>
+                <AppTextInput
+                  accessibilityLabel={`${label}, maximum ${COMPONENT_MAXIMUMS[field]}`}
+                  style={[
+                    styles.componentInput,
+                    componentMarks[field] !== '' && styles.markInputFilled,
+                  ]}
+                  placeholder="0"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="decimal-pad"
+                  maxLength={5}
+                  value={componentMarks[field]}
+                  onChangeText={(text) => handleComponentMarkChange(student.id, field, text)}
+                />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.consolidatedEntryRow}>
+            <View style={styles.consolidatedCopy}>
+              <Text style={styles.consolidatedLabel}>Marks Obtained</Text>
+              <Text style={styles.consolidatedHint}>
+                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX}
+              </Text>
+            </View>
+            <AppTextInput
+              accessibilityLabel={`Marks obtained by ${displayName}`}
+              style={[
+                styles.consolidatedInput,
+                currentDraft.consolidatedByStudent[student.id] && styles.markInputFilled,
+              ]}
+              placeholder="—"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="decimal-pad"
+              maxLength={6}
+              value={currentDraft.consolidatedByStudent[student.id] ?? ''}
+              onChangeText={(text) => handleConsolidatedMarkChange(student.id, text)}
+            />
+          </View>
+        )}
+
+        <View style={styles.metricsRow}>
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>
+              {assessmentSchema === 'component' ? 'Grand total' : 'Total obtained'}
+            </Text>
+            <Text style={styles.metricValue}>
+              {entered
+                ? assessmentSchema === 'component'
+                  ? `${result.obtained}/${result.maximum}`
+                  : result.obtained
+                : '—'}
+            </Text>
+          </View>
+          {assessmentSchema === 'component' && (
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Weightage</Text>
+              <Text style={styles.metricValue}>{entered ? `${componentResult.weightage.toFixed(1)}/20` : '—'}</Text>
+            </View>
+          )}
+          {assessmentSchema === 'consolidated' && (
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Cumulative max</Text>
+              <Text style={styles.metricValue}>{entered ? result.maximum : '—'}</Text>
+            </View>
+          )}
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>Overall %</Text>
+            <Text style={styles.metricValue}>{entered ? `${result.percentage.toFixed(1)}%` : '—'}</Text>
+          </View>
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>
+              {assessmentSchema === 'component' ? 'GPA' : 'Average grade'}
+            </Text>
+            <Text style={styles.metricValue}>
+              {entered ? assessmentSchema === 'component' ? result.gpa.toFixed(1) : result.grade : '—'}
+            </Text>
+          </View>
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>Rank</Text>
+            <Text style={styles.metricValue}>{entered ? `#${studentRanks[student.id]}` : '—'}</Text>
+          </View>
+          {rankingMethod === 'attendance_tiebreak' && (
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>Attendance</Text>
+              <Text style={styles.metricValue}>
+                {attendanceByStudent[student.id] == null
+                  ? '—'
+                  : `${Number(attendanceByStudent[student.id]).toFixed(1)}%`}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    );
   };
 
   const renderUploadForm = () =>
@@ -674,7 +1062,9 @@ export default function UploadMarks() {
               </Text>
             </View>
             <View style={[styles.marksCapPill, clayGlow(accentColor, 'sm')]}>
-              <Text style={[styles.marksCapText, { color: accentColor }]}>/{maxMarks}</Text>
+              <Text style={[styles.marksCapText, { color: accentColor }]}>
+                /{assessmentSchema === 'component' ? COMPONENT_TOTAL_MAX : currentDraft.consolidatedMaxMarks}
+              </Text>
             </View>
           </View>
 
@@ -684,41 +1074,7 @@ export default function UploadMarks() {
               <Text style={styles.loadingText}>Loading students…</Text>
             </View>
           ) : students.length > 0 ? (
-            students.map((student, index) => (
-              <Animated.View
-                key={student.id}
-                entering={FadeInDown.delay(index * 40).duration(350)}
-                style={[styles.studentRow, index === students.length - 1 && styles.studentRowLast]}>
-                <View style={[styles.studentAvatar, clayGlow('#8B5CF6', 'sm')]}>
-                  <StudentPhoto
-                    photoUrl={student.person.photo_url}
-                    displayName={
-                      student.person.display_name ??
-                      `${student.person.first_name} ${student.person.last_name}`
-                    }
-                    size={44}
-                    borderRadius={14}
-                    fallbackTextStyle={styles.studentAvatarText}
-                  />
-                </View>
-                <View style={styles.studentInfo}>
-                  <Text style={styles.studentName} numberOfLines={1}>
-                    {student.person.display_name ??
-                      `${student.person.first_name} ${student.person.last_name}`}
-                  </Text>
-                  <Text style={styles.studentRoll}>#{student.admission_no}</Text>
-                </View>
-                <AppTextInput
-                  style={[styles.markInput, marks[student.id] ? styles.markInputFilled : null]}
-                  placeholder="—"
-                  placeholderTextColor="#9CA3AF"
-                  keyboardType="numeric"
-                  maxLength={3}
-                  value={marks[student.id] || ''}
-                  onChangeText={(text) => handleMarkChange(student.id, text)}
-                />
-              </Animated.View>
-            ))
+            students.map(renderStudentAssessmentCard)
           ) : (
             <View style={styles.emptyStudents}>
               <View style={[styles.emptyIcon, clayGlow(accentColor, 'sm')]}>
@@ -846,7 +1202,7 @@ const getStyles = (theme: Theme, isDark: boolean) => {
     dashboardContent: {
       padding: 20,
       // Clear the floating bottom tab bar so the last category card isn't covered.
-      paddingBottom: staffTabBarReserve(theme.spacing),
+      paddingBottom: staffTabBarReserve(Spacing),
     },
     headerSection: {
       marginBottom: 22,
@@ -1095,6 +1451,44 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       fontStyle: 'italic',
       paddingLeft: 4,
     },
+    schemaSection: {
+      paddingHorizontal: 16,
+    },
+    schemaToggle: {
+      flexDirection: 'row',
+      padding: 5,
+      gap: 5,
+      borderRadius: 18,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#E2E8F0',
+      ...clayInset(isDark),
+    },
+    schemaOption: {
+      flex: 1,
+      minHeight: 46,
+      paddingHorizontal: 8,
+      paddingVertical: 10,
+      borderRadius: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 7,
+    },
+    schemaOptionText: {
+      color: theme.colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '800',
+      textAlign: 'center',
+    },
+    schemaOptionTextActive: {
+      color: '#FFFFFF',
+    },
+    schemaHint: {
+      color: theme.colors.textTertiary,
+      fontSize: 12,
+      lineHeight: 18,
+      marginTop: 10,
+      paddingHorizontal: 4,
+    },
     maxMarksRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1257,6 +1651,138 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       borderColor: 'rgba(139,92,246,0.5)',
       backgroundColor: isDark ? 'rgba(139,92,246,0.14)' : '#F5F3FF',
       color: '#7C3AED',
+    },
+    assessmentStudentCard: {
+      padding: 16,
+      marginHorizontal: 12,
+      marginTop: 12,
+      borderRadius: 22,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(148,163,184,0.18)',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.42)',
+    },
+    assessmentStudentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    gradeBadge: {
+      minWidth: 46,
+      height: 36,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    gradeBadgeText: {
+      fontSize: 15,
+      fontWeight: '900',
+    },
+    componentGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    componentField: {
+      flexGrow: 1,
+      flexBasis: '46%',
+      minWidth: 125,
+    },
+    componentLabelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+      paddingHorizontal: 3,
+    },
+    componentLabel: {
+      flex: 1,
+      color: theme.colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    componentMaximum: {
+      color: theme.colors.textTertiary,
+      fontSize: 11,
+      fontWeight: '800',
+      marginLeft: 4,
+    },
+    componentInput: {
+      height: 48,
+      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(148,163,184,0.25)',
+      borderRadius: 14,
+      textAlign: 'center',
+      fontSize: 17,
+      fontWeight: '800',
+      color: theme.colors.text,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#EFF2F9',
+      ...clayInset(isDark),
+    },
+    consolidatedEntryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 16,
+      paddingHorizontal: 4,
+    },
+    consolidatedCopy: {
+      flex: 1,
+    },
+    consolidatedLabel: {
+      color: theme.colors.text,
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    consolidatedHint: {
+      color: theme.colors.textTertiary,
+      fontSize: 12,
+      marginTop: 3,
+    },
+    consolidatedInput: {
+      width: 92,
+      height: 54,
+      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(148,163,184,0.25)',
+      borderRadius: 16,
+      textAlign: 'center',
+      fontSize: 20,
+      fontWeight: '900',
+      color: theme.colors.text,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#EFF2F9',
+      ...clayInset(isDark),
+    },
+    metricsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 16,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.14)',
+    },
+    metricItem: {
+      flexGrow: 1,
+      minWidth: 64,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.035)' : 'rgba(241,245,249,0.9)',
+      alignItems: 'center',
+    },
+    metricLabel: {
+      color: theme.colors.textTertiary,
+      fontSize: 9,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    metricValue: {
+      color: theme.colors.text,
+      fontSize: 13,
+      fontWeight: '900',
+      marginTop: 4,
     },
     emptyStudents: {
       alignItems: 'center',

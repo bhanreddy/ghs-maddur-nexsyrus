@@ -33,15 +33,12 @@ const studentData = {
 
 const tcFields = {
   cbseAffiliationNo: '3630128',
-  schoolCode: '46117',
   examResult: 'Pursuing',
   qualifiedPromotion: 'Yes',
   promotionClass: 'XI',
   totalWorkingDays: '216',
   workingDaysPresent: '205',
   generalConduct: 'Good',
-  applicationDate: '03-08-2026',
-  leavingReason: 'Parent transfer to another district',
 };
 
 const school = {

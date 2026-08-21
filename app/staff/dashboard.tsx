@@ -1310,6 +1310,7 @@ export default function StaffDashboard() {
     { title: 'My Attendance', subtitle: 'History & reports', configKey: 'attendance', route: '/staff/attendance' },
     { title: 'Leaves', subtitle: 'Review approvals', configKey: 'leaves', route: '/staff/leaves', badge: data?.pendingLeaves ? `${data.pendingLeaves}` : undefined },
     { title: 'Results', subtitle: 'Enter & view marks', configKey: 'results', route: '/staff/results' },
+    { title: 'Progress Cards', subtitle: 'Class-teacher card assistant', configKey: 'results', route: '/staff/progress-card-assistant' },
     { title: 'Complaints', subtitle: 'Student issues', configKey: 'complaints', route: '/staff/complaints' },
     { title: 'LMS', subtitle: 'Upload resources', configKey: 'lms', route: '/staff/lms-upload' },
     ...(payslipsEnabled ? [{ title: 'Payslips', subtitle: 'Salary & docs', configKey: 'payslips', route: '/staff/payslip' }] : []),

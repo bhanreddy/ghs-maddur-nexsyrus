@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons'; // Assuming Expo
 import ScreenLayout from '../../src/components/ScreenLayout';
@@ -18,6 +18,7 @@ interface ClassItem {
 }
 interface PreviewStats {
   total_students: number;
+  total_outstanding?: number;
   sample_message: string;
   batch_id?: string;
 }
@@ -39,6 +40,9 @@ const FeeRemindersAdmin = () => {
   const [previewStats, setPreviewStats] = useState<PreviewStats | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [batchId, setBatchId] = useState<string | null>(null);
+  const [paidRange, setPaidRange] = useState({ min: 0, max: 100 });
+  const [minPaidInput, setMinPaidInput] = useState('0');
+  const [maxPaidInput, setMaxPaidInput] = useState('100');
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   useEffect(() => {
     fetchClasses();
@@ -47,7 +51,17 @@ const FeeRemindersAdmin = () => {
     if (selectedMonth) {
       fetchPreview();
     }
-  }, [selectedMonth, selectedClass]);
+  }, [selectedMonth, selectedClass, paidRange]);
+
+  const applyPaidRange = () => {
+    const min = Number(minPaidInput);
+    const max = Number(maxPaidInput);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max > 100 || min > max) {
+      alertCompat('Invalid range', 'Enter percentages from 0 to 100. Minimum cannot exceed maximum.');
+      return;
+    }
+    setPaidRange({ min, max });
+  };
   const fetchClasses = async () => {
     try {
       // Fetch classes from your existing API
@@ -64,9 +78,11 @@ const FeeRemindersAdmin = () => {
     try {
       const payload = {
         month: selectedMonth,
-        filters: selectedClass ? {
-          class_id: selectedClass
-        } : {},
+        filters: {
+          ...(selectedClass ? { class_id: selectedClass } : {}),
+          fee_paid_min_percent: paidRange.min,
+          fee_paid_max_percent: paidRange.max,
+        },
         dryRun: true
       };
       const response = await api.post('/admin/notifications/fees/send-all', payload);
@@ -86,9 +102,11 @@ const FeeRemindersAdmin = () => {
     try {
       const payload = {
         month: selectedMonth,
-        filters: selectedClass ? {
-          class_id: selectedClass
-        } : {},
+        filters: {
+          ...(selectedClass ? { class_id: selectedClass } : {}),
+          fee_paid_min_percent: paidRange.min,
+          fee_paid_max_percent: paidRange.max,
+        },
         dryRun: false
       };
       const response = await api.post('/admin/notifications/fees/send-all', payload);
@@ -132,6 +150,26 @@ const FeeRemindersAdmin = () => {
           })}
         </ScrollView>
       </View>
+      {/* Paid percentage filter */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Percentage Already Paid</Text>
+        <Text style={styles.helperText}>Only students in this range who still have unpaid fees will receive a reminder.</Text>
+        <View style={styles.rangeRow}>
+          <View style={styles.rangeInputWrap}>
+            <TextInput value={minPaidInput} onChangeText={setMinPaidInput} keyboardType="decimal-pad" inputMode="decimal" style={styles.rangeInput} accessibilityLabel="Minimum percentage paid" />
+            <Text style={styles.percentText}>%</Text>
+          </View>
+          <Text style={styles.rangeTo}>to</Text>
+          <View style={styles.rangeInputWrap}>
+            <TextInput value={maxPaidInput} onChangeText={setMaxPaidInput} keyboardType="decimal-pad" inputMode="decimal" style={styles.rangeInput} accessibilityLabel="Maximum percentage paid" />
+            <Text style={styles.percentText}>%</Text>
+          </View>
+          <TouchableOpacity style={styles.applyButton} onPress={applyPaidRange}>
+            <Text style={styles.applyButtonText}>Apply</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.activeRange}>Applied range: {paidRange.min}%–{paidRange.max}% paid</Text>
+      </View>
       {/* Preview Stats */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Preview</Text>
@@ -139,6 +177,10 @@ const FeeRemindersAdmin = () => {
           <View style={styles.statRow}>
             <Text>Target Students:</Text>
             <Text style={styles.statValue}>{previewStats?.total_students || 0}</Text>
+          </View>
+          <View style={styles.statRow}>
+            <Text style={{ color: theme.colors.text }}>Outstanding Balance:</Text>
+            <Text style={styles.balanceValue}>₹{Number(previewStats?.total_outstanding || 0).toLocaleString('en-IN')}</Text>
           </View>
           <View style={styles.divider} />
           <Text style={styles.sampleLabel}>Sample Message:</Text>
@@ -162,6 +204,7 @@ const FeeRemindersAdmin = () => {
                 fontWeight: 'bold'
               }}>{selectedMonth}</Text>.
             </Text>
+            <Text style={styles.modalSubText}>Students have paid {paidRange.min}%–{paidRange.max}% and still have an outstanding balance.</Text>
             <Text style={styles.modalSubText}>This action cannot be undone.</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
@@ -190,6 +233,61 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: theme.colors.text
+  },
+  helperText: {
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 10
+  },
+  rangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  rangeInputWrap: {
+    minWidth: 90,
+    height: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: 12
+  },
+  rangeInput: {
+    flex: 1,
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: '700'
+  },
+  percentText: {
+    color: theme.colors.textSecondary,
+    fontWeight: '700'
+  },
+  rangeTo: {
+    color: theme.colors.textSecondary,
+    fontWeight: '600'
+  },
+  applyButton: {
+    height: 46,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary || '#007bff',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontWeight: '800'
+  },
+  activeRange: {
+    color: COLORS.primary || '#007bff',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 9
   },
   monthSelector: {
     flexDirection: 'row'
@@ -256,6 +354,12 @@ const getStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#007bff'
+  },
+  balanceValue: {
+    color: '#D97706',
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: 8
   },
   divider: {
     height: 1,

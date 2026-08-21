@@ -1729,7 +1729,10 @@ export default function ProgressReportGenerator() {
     return (
       <Animated.View
         entering={FadeIn.duration(220)}
-        style={styles.classFilterCard}
+        style={[
+          styles.classFilterCard,
+          openSelector ? styles.classFilterCardRaised : null,
+        ]}
       >
         <View style={styles.classFilterHeader}>
           <View style={styles.stepBadge}>
@@ -3263,6 +3266,11 @@ const getStyles = (
       borderColor: sc.border,
       marginBottom: 20,
       ...ADMIN_THEME.shadows.sm,
+      overflow: 'visible',
+      zIndex: 4,
+    },
+    classFilterCardRaised: {
+      zIndex: 40,
     },
     classFilterHeader: {
       flexDirection: 'row',
@@ -3289,9 +3297,16 @@ const getStyles = (
       flexWrap: 'wrap',
       alignItems: 'flex-end',
       gap: 10,
+      overflow: 'visible',
       zIndex: 20,
     },
-    selectionField: { flexGrow: 1, flexBasis: 190, minWidth: 165, zIndex: 21 },
+    selectionField: {
+      flexGrow: 1,
+      flexBasis: 190,
+      minWidth: 165,
+      position: 'relative',
+      zIndex: 21,
+    },
     selectionFieldOpen: { zIndex: 120 },
     selectionLabel: {
       fontSize: 9,
@@ -3335,8 +3350,9 @@ const getStyles = (
       borderWidth: 1,
       borderColor: sc.border,
       backgroundColor: isDark ? sc.card : '#FFF',
-      zIndex: 100,
       ...ADMIN_THEME.shadows.md,
+      zIndex: 1000,
+      elevation: 24,
     },
     selectionOption: {
       flexDirection: 'row',
@@ -3397,7 +3413,7 @@ const getStyles = (
       color: sc.textMuted,
       marginTop: 6,
     },
-    workspace: { width: '100%', gap: 20 },
+    workspace: { width: '100%', gap: 20, zIndex: 1, elevation: 1 },
     workspaceWide: { flexDirection: 'row', alignItems: 'flex-start' },
     setupColumn: { width: '100%', gap: 14 },
     setupColumnWide: { width: 410, flexShrink: 0 },

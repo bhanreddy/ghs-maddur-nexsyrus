@@ -336,6 +336,10 @@ export interface ResultEntry {
     student_id: string;
     marks: number;
     max_marks?: number;
+    participation_marks?: number;
+    written_work_marks?: number;
+    project_work_marks?: number;
+    slip_test_marks?: number;
 }
 
 export interface ExamResultUpload {
@@ -344,7 +348,28 @@ export interface ExamResultUpload {
     sub_exam: string;
     subject_id?: string;
     max_marks?: number;
+    assessment_schema?: 'component' | 'consolidated';
     results: ResultEntry[];
+}
+
+export interface StoredAssessmentMark {
+    student_id: string;
+    marks_obtained: number | null;
+    consolidated_marks_obtained: number | null;
+    participation_marks: number | null;
+    written_work_marks: number | null;
+    project_work_marks: number | null;
+    slip_test_marks: number | null;
+    is_absent: boolean;
+    remarks?: string | null;
+}
+
+export interface AssessmentMarksResponse {
+    marks: StoredAssessmentMark[];
+    attendance: { student_id: string; attendance_percentage: number | null }[];
+    max_marks: number;
+    consolidated_max_marks: number;
+    assessment_schema: 'component' | 'consolidated';
 }
 
 export const ResultService = {
@@ -377,8 +402,8 @@ export const ResultService = {
         return api.post<{ success: boolean }>('/results/upload', data);
     },
 
-    getMarks: async (params: { class_section_id: string; exam_category: string; sub_exam: string; subject_id: string }): Promise<{ marks: { student_id: string; marks_obtained: number; is_absent: boolean }[], max_marks: number }> => {
-        return api.get<{ marks: { student_id: string; marks_obtained: number; is_absent: boolean }[], max_marks: number }>('/results/marks', params);
+    getMarks: async (params: { class_section_id: string; exam_category: string; sub_exam: string; subject_id: string }): Promise<AssessmentMarksResponse> => {
+        return api.get<AssessmentMarksResponse>('/results/marks', params);
     }
 };
 
