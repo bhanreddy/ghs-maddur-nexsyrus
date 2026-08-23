@@ -57,6 +57,7 @@ export const COMPONENT_TOTAL_MAX = 50;
 export const COMPONENT_WEIGHTAGE = 20 / COMPONENT_TOTAL_MAX;
 export const DEFAULT_CONSOLIDATED_MAX = 25;
 export const COMPONENT_WEIGHTAGE_SCALE = 20;
+export const ABSENT_MARK = 'A';
 
 export const EMPTY_COMPONENT_MARKS: ComponentAssessmentInput = {
   participation: '',
@@ -218,14 +219,23 @@ export function rankAssessmentScores(
 
 export function isValidAssessmentInput(value: string, maximum: number): boolean {
   if (value === '') return true;
+  if (isAbsentAssessmentInput(value)) return true;
   if (!/^\d*(?:\.\d{0,2})?$/.test(value)) return false;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 && parsed <= maximum;
 }
 
-/** Normalize decimal separators produced by locale-aware mobile keyboards. */
+/** Normalize decimal separators and the absence marker entered from mobile keyboards. */
 export function normalizeAssessmentInput(value: string): string {
-  return value.replace(/[,\u066B]/g, '.');
+  return value.trim().replace(/[,\u066B]/g, '.').toUpperCase();
+}
+
+export function isAbsentAssessmentInput(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().toUpperCase() === ABSENT_MARK;
+}
+
+export function isComponentAssessmentAbsent(input: ComponentAssessmentInput): boolean {
+  return COMPONENT_FIELDS.every((field) => isAbsentAssessmentInput(input[field]));
 }
 
 export function isComponentAssessmentComplete(input: ComponentAssessmentInput): boolean {

@@ -1422,7 +1422,7 @@ export default function StaffDashboard() {
         <View style={styles.menuGrid}>
           {menuItems.map((item, index) => (
             <MenuCard
-              key={item.configKey}
+              key={item.route}
               title={item.title}
               subtitle={item.subtitle}
               configKey={item.configKey}

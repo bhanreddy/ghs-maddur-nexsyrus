@@ -334,7 +334,8 @@ export interface Exam {
 
 export interface ResultEntry {
     student_id: string;
-    marks: number;
+    marks: number | null;
+    is_absent?: boolean;
     max_marks?: number;
     participation_marks?: number;
     written_work_marks?: number;

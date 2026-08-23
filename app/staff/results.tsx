@@ -57,6 +57,8 @@ import {
   calculateConsolidatedAssessment,
   componentTotalMax,
   hasAnyComponentMark,
+  isAbsentAssessmentInput,
+  isComponentAssessmentAbsent,
   isComponentAssessmentComplete,
   isValidAssessmentInput,
   normalizeAssessmentInput,
@@ -1136,18 +1138,26 @@ export default function UploadMarks() {
         const componentByStudent = { ...existing.componentByStudent };
 
         data.marks?.forEach((mark) => {
-          if (mark.consolidated_marks_obtained != null) {
+          if (mark.is_absent) {
+            consolidatedByStudent[mark.student_id] = 'A';
+            componentByStudent[mark.student_id] = {
+              participation: 'A',
+              writtenWork: 'A',
+              projectWork: 'A',
+              slipTest: 'A',
+            };
+          } else if (mark.consolidated_marks_obtained != null) {
             consolidatedByStudent[mark.student_id] = String(mark.consolidated_marks_obtained);
           } else if (serverSchema === 'consolidated' && mark.marks_obtained != null) {
             consolidatedByStudent[mark.student_id] = String(mark.marks_obtained);
           }
 
-          if (
+          if (!mark.is_absent && (
             mark.participation_marks != null ||
             mark.written_work_marks != null ||
             mark.project_work_marks != null ||
             mark.slip_test_marks != null
-          ) {
+          )) {
             componentByStudent[mark.student_id] = {
               participation: mark.participation_marks == null ? '' : String(mark.participation_marks),
               writtenWork: mark.written_work_marks == null ? '' : String(mark.written_work_marks),
@@ -1289,10 +1299,19 @@ export default function UploadMarks() {
       ...draft,
       componentByStudent: {
         ...draft.componentByStudent,
-        [studentId]: {
-          ...(draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS),
-          [field]: normalizedText,
-        },
+        [studentId]: isAbsentAssessmentInput(normalizedText)
+          ? {
+              participation: 'A',
+              writtenWork: 'A',
+              projectWork: 'A',
+              slipTest: 'A',
+            }
+          : {
+              ...(isComponentAssessmentAbsent(draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS)
+                ? EMPTY_COMPONENT_MARKS
+                : draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS),
+              [field]: normalizedText,
+            },
       },
     }));
   };
@@ -1328,10 +1347,14 @@ export default function UploadMarks() {
       if (assessmentSchema === 'component') {
         const components = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
         if (!isComponentAssessmentComplete(components)) return [];
+        if (isComponentAssessmentAbsent(components)) {
+          return [{ student_id: student.id, marks: null, is_absent: true }];
+        }
         const result = calculateComponentAssessment(components, componentMaximums);
         return [{
           student_id: student.id,
           marks: result.obtained,
+          is_absent: false,
           participation_marks: Number(components.participation),
           written_work_marks: Number(components.writtenWork),
           project_work_marks: Number(components.projectWork),
@@ -1339,7 +1362,11 @@ export default function UploadMarks() {
         }];
       }
       const marks = currentDraft.consolidatedByStudent[student.id] ?? '';
-      return marks === '' ? [] : [{ student_id: student.id, marks: Number(marks) }];
+      return marks === '' ? [] : [{
+        student_id: student.id,
+        marks: isAbsentAssessmentInput(marks) ? null : Number(marks),
+        is_absent: isAbsentAssessmentInput(marks),
+      }];
     });
     if (filledMarks.length === 0) {
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -1616,12 +1643,12 @@ export default function UploadMarks() {
               ))}
             </View>
             <Text style={styles.schemaHint}>
-              These maximums apply to every student. Grade, GPA and rank update automatically.
+              Enter A in any mark field to mark a student absent. Grade, GPA and rank update automatically.
             </Text>
           </View>
         ) : (
           <Text style={styles.schemaHint}>
-            Enter the final score. Grade, GPA and rank update automatically.
+            Enter the final score, or A if absent. Grade, GPA and rank update automatically.
           </Text>
         )}
       </View>
@@ -1633,6 +1660,9 @@ export default function UploadMarks() {
       `${student.person.first_name} ${student.person.last_name}`;
     const result = studentResults[student.id];
     const componentMarks = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
+    const isAbsent = assessmentSchema === 'component'
+      ? isComponentAssessmentAbsent(componentMarks)
+      : isAbsentAssessmentInput(currentDraft.consolidatedByStudent[student.id]);
     const entered = assessmentSchema === 'component'
       ? isComponentAssessmentComplete(componentMarks)
       : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
@@ -1656,7 +1686,7 @@ export default function UploadMarks() {
           </View>
           {entered && (
             <View style={[styles.gradeBadge, { backgroundColor: `${accentColor}18` }]}>
-              <Text style={[styles.gradeBadgeText, { color: accentColor }]}>{result.grade}</Text>
+              <Text style={[styles.gradeBadgeText, { color: accentColor }]}>{isAbsent ? 'A' : result.grade}</Text>
             </View>
           )}
         </View>
@@ -1675,14 +1705,15 @@ export default function UploadMarks() {
                     styles.componentInput,
                     componentMarks[field] !== '' && styles.markInputFilled,
                   ]}
-                  placeholder="0.00"
+                  placeholder="0.00 or A"
                   placeholderTextColor="#9CA3AF"
-                  keyboardType="decimal-pad"
-                  inputMode="decimal"
+                  keyboardType="default"
+                  inputMode="text"
+                  autoCapitalize="characters"
                   maxLength={5}
                   value={componentMarks[field]}
                   selectTextOnFocus
-                  accessibilityHint="Enter a whole number or a decimal with up to two places"
+                  accessibilityHint="Enter a whole number, a decimal with up to two places, or A for absent"
                   onChangeText={(text) => handleComponentMarkChange(student.id, field, text)}
                 />
               </View>
@@ -1693,7 +1724,7 @@ export default function UploadMarks() {
             <View style={styles.consolidatedCopy}>
               <Text style={styles.consolidatedLabel}>Marks Obtained</Text>
               <Text style={styles.consolidatedHint}>
-                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX} · decimals allowed
+                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX} · decimals or A
               </Text>
             </View>
             <AppTextInput
@@ -1702,14 +1733,15 @@ export default function UploadMarks() {
                 styles.consolidatedInput,
                 currentDraft.consolidatedByStudent[student.id] && styles.markInputFilled,
               ]}
-              placeholder="0.00"
+              placeholder="0.00 or A"
               placeholderTextColor="#9CA3AF"
-              keyboardType="decimal-pad"
-              inputMode="decimal"
+              keyboardType="default"
+              inputMode="text"
+              autoCapitalize="characters"
               maxLength={6}
               value={currentDraft.consolidatedByStudent[student.id] ?? ''}
               selectTextOnFocus
-              accessibilityHint="Enter a whole number or a decimal with up to two places"
+              accessibilityHint="Enter a whole number, a decimal with up to two places, or A for absent"
               onChangeText={(text) => handleConsolidatedMarkChange(student.id, text)}
             />
           </View>
@@ -1722,7 +1754,9 @@ export default function UploadMarks() {
             </Text>
             <Text style={styles.metricValue}>
               {entered
-                ? assessmentSchema === 'component'
+                ? isAbsent
+                  ? 'A'
+                  : assessmentSchema === 'component'
                   ? `${result.obtained}/${result.maximum}`
                   : result.obtained
                 : '—'}
@@ -1749,7 +1783,7 @@ export default function UploadMarks() {
               {assessmentSchema === 'component' ? 'GPA' : 'Average grade'}
             </Text>
             <Text style={styles.metricValue}>
-              {entered ? assessmentSchema === 'component' ? result.gpa.toFixed(1) : result.grade : '—'}
+              {entered ? isAbsent ? 'A' : assessmentSchema === 'component' ? result.gpa.toFixed(1) : result.grade : '—'}
             </Text>
           </View>
           <View style={styles.metricItem}>
@@ -2089,7 +2123,6 @@ const getStyles = (
     },
     card: {
       minHeight: isPhone ? 118 : 218,
-      height: '100%',
       padding: isPhone ? 14 : 18,
       backgroundColor: isDark ? '#151D2D' : '#FFFFFF',
       borderRadius: isPhone ? 18 : 20,
@@ -2197,7 +2230,6 @@ const getStyles = (
       fontWeight: '800',
     },
     mobileCardRow: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,

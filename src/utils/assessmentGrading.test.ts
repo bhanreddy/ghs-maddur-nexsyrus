@@ -3,6 +3,8 @@ import {
   calculateConsolidatedAssessment,
   calculateAssessmentSummary,
   gradeForPercentage,
+  isAbsentAssessmentInput,
+  isComponentAssessmentAbsent,
   isValidAssessmentInput,
   normalizeAssessmentInput,
   rankAssessmentScores,
@@ -117,5 +119,24 @@ describe('assessment grading', () => {
     expect(isValidAssessmentInput('7.25', 10)).toBe(true);
     expect(normalizeAssessmentInput('7,25')).toBe('7.25');
     expect(normalizeAssessmentInput('7٫25')).toBe('7.25');
+  });
+
+  it('accepts A as an absent mark, displays it uppercase, and calculates it as zero', () => {
+    expect(normalizeAssessmentInput('a')).toBe('A');
+    expect(isValidAssessmentInput('A', 10)).toBe(true);
+    expect(isAbsentAssessmentInput('a')).toBe(true);
+    expect(calculateConsolidatedAssessment('A', 25).obtained).toBe(0);
+    expect(calculateComponentAssessment({
+      participation: 'A',
+      writtenWork: 'A',
+      projectWork: 'A',
+      slipTest: 'A',
+    }).obtained).toBe(0);
+    expect(isComponentAssessmentAbsent({
+      participation: 'A',
+      writtenWork: 'A',
+      projectWork: 'A',
+      slipTest: 'A',
+    })).toBe(true);
   });
 });
