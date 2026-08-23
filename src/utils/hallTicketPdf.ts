@@ -25,6 +25,8 @@ export interface HallTicketPdfOptions {
   principalSignatureDataUri?: string | null;
   /** Printable hall-ticket model. Defaults to the compact four-up A4 layout. */
   ticketsPerPage?: HallTicketsPerPage;
+  /** Print each student's saved roll number. Defaults to false. */
+  showRollNumbers?: boolean;
 }
 
 export type HallTicketsPerPage = 2 | 3 | 4;
@@ -276,10 +278,10 @@ function ticketHtml(
           <span>Class / Section</span>
           <strong>${escapeHtml(options.className)} / ${escapeHtml(options.sectionName)}</strong>
         </div>
-        <div>
+        ${options.showRollNumbers ? `<div>
           <span>Roll No.</span>
-          <strong class="roll-number-box">&nbsp;</strong>
-        </div>
+          <strong class="roll-number-box">${escapeHtml(student.roll_number ?? '-')}</strong>
+        </div>` : ''}
       </div>
 
       <div class="schedule-wrap">${scheduleMarkup(options.papers, ticketsPerPage)}</div>

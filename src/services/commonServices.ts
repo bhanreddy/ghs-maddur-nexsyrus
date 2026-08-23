@@ -349,6 +349,12 @@ export interface ExamResultUpload {
     subject_id?: string;
     max_marks?: number;
     assessment_schema?: 'component' | 'consolidated';
+    component_maximums?: {
+        participation: number;
+        written_work: number;
+        project_work: number;
+        slip_test: number;
+    };
     results: ResultEntry[];
 }
 
@@ -370,6 +376,12 @@ export interface AssessmentMarksResponse {
     max_marks: number;
     consolidated_max_marks: number;
     assessment_schema: 'component' | 'consolidated';
+    component_maximums?: {
+        participation: number;
+        written_work: number;
+        project_work: number;
+        slip_test: number;
+    };
 }
 
 export const ResultService = {

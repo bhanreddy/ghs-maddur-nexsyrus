@@ -6,6 +6,8 @@ export type ComponentField =
   | 'projectWork'
   | 'slipTest';
 
+export type ComponentMaximums = Record<ComponentField, number>;
+
 export interface ComponentAssessmentInput {
   participation: string;
   writtenWork: string;
@@ -35,17 +37,26 @@ export interface RankableAssessmentScore {
   attendancePercentage?: number | null;
 }
 
-export const COMPONENT_MAXIMUMS: Record<ComponentField, number> = {
+export const COMPONENT_FIELDS: ComponentField[] = [
+  'participation',
+  'writtenWork',
+  'projectWork',
+  'slipTest',
+];
+
+export const DEFAULT_COMPONENT_MAXIMUMS: ComponentMaximums = {
   participation: 10,
   writtenWork: 10,
   projectWork: 10,
   slipTest: 20,
 };
 
+export const COMPONENT_MAXIMUMS = DEFAULT_COMPONENT_MAXIMUMS;
+
 export const COMPONENT_TOTAL_MAX = 50;
-// A score out of 50 normalized into a 20-mark contribution: score / 50 * 20.
 export const COMPONENT_WEIGHTAGE = 20 / COMPONENT_TOTAL_MAX;
 export const DEFAULT_CONSOLIDATED_MAX = 25;
+export const COMPONENT_WEIGHTAGE_SCALE = 20;
 
 export const EMPTY_COMPONENT_MARKS: ComponentAssessmentInput = {
   participation: '',
@@ -69,6 +80,36 @@ export function parseAssessmentNumber(value: string | number | null | undefined)
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function componentTotalMax(maximums: ComponentMaximums = DEFAULT_COMPONENT_MAXIMUMS): number {
+  return COMPONENT_FIELDS.reduce((total, field) => total + maximums[field], 0);
+}
+
+export function stringifyComponentMaximums(
+  maximums: ComponentMaximums = DEFAULT_COMPONENT_MAXIMUMS,
+): Record<ComponentField, string> {
+  return {
+    participation: String(maximums.participation),
+    writtenWork: String(maximums.writtenWork),
+    projectWork: String(maximums.projectWork),
+    slipTest: String(maximums.slipTest),
+  };
+}
+
+export function parseComponentMaximums(
+  input?: Partial<Record<ComponentField, string | number>> | null,
+): ComponentMaximums {
+  const next = { ...DEFAULT_COMPONENT_MAXIMUMS };
+  COMPONENT_FIELDS.forEach((field) => {
+    const raw = input?.[field];
+    if (raw == null || raw === '') return;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 999) {
+      next[field] = parsed;
+    }
+  });
+  return next;
+}
+
 export function gradeForPercentage(percentage: number): AssessmentGrade {
   const normalized = Math.max(0, Math.min(100, percentage));
   return GRADE_BANDS.find((band) => normalized >= band.minimum)?.grade ?? 'D2';
@@ -79,19 +120,24 @@ export function gpaForPercentage(percentage: number): number {
   return GRADE_BANDS.find((band) => normalized >= band.minimum)?.gpa ?? 4;
 }
 
-export function calculateComponentAssessment(input: ComponentAssessmentInput): AssessmentResult & {
+export function calculateComponentAssessment(
+  input: ComponentAssessmentInput,
+  maximums: ComponentMaximums = DEFAULT_COMPONENT_MAXIMUMS,
+): AssessmentResult & {
   weightage: number;
 } {
-  const obtained = (Object.keys(COMPONENT_MAXIMUMS) as ComponentField[]).reduce(
+  const obtained = COMPONENT_FIELDS.reduce(
     (total, field) => total + parseAssessmentNumber(input[field]),
     0,
   );
-  const percentage = (obtained / COMPONENT_TOTAL_MAX) * 100;
+  const maximum = componentTotalMax(maximums);
+  const percentage = maximum > 0 ? (obtained / maximum) * 100 : 0;
+  const weightageScale = maximum > 0 ? COMPONENT_WEIGHTAGE_SCALE / maximum : 0;
 
   return {
     obtained,
-    maximum: COMPONENT_TOTAL_MAX,
-    weightage: obtained * COMPONENT_WEIGHTAGE,
+    maximum,
+    weightage: obtained * weightageScale,
     percentage,
     grade: gradeForPercentage(percentage),
     gpa: gpaForPercentage(percentage),
@@ -177,14 +223,15 @@ export function isValidAssessmentInput(value: string, maximum: number): boolean 
   return Number.isFinite(parsed) && parsed >= 0 && parsed <= maximum;
 }
 
+/** Normalize decimal separators produced by locale-aware mobile keyboards. */
+export function normalizeAssessmentInput(value: string): string {
+  return value.replace(/[,\u066B]/g, '.');
+}
+
 export function isComponentAssessmentComplete(input: ComponentAssessmentInput): boolean {
-  return (Object.keys(COMPONENT_MAXIMUMS) as ComponentField[]).every(
-    (field) => input[field] !== '',
-  );
+  return COMPONENT_FIELDS.every((field) => input[field] !== '');
 }
 
 export function hasAnyComponentMark(input: ComponentAssessmentInput): boolean {
-  return (Object.keys(COMPONENT_MAXIMUMS) as ComponentField[]).some(
-    (field) => input[field] !== '',
-  );
+  return COMPONENT_FIELDS.some((field) => input[field] !== '');
 }

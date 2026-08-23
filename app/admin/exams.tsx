@@ -1232,6 +1232,7 @@ function HallTicketModal({
   const [classId, setClassId] = useState('');
   const [sectionId, setSectionId] = useState('');
   const [ticketsPerPage, setTicketsPerPage] = useState<HallTicketsPerPage>(4);
+  const [showRollNumbers, setShowRollNumbers] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
@@ -1325,6 +1326,7 @@ function HallTicketModal({
         papers: data.papers,
         school: hallTicketSchoolSettings(school),
         ticketsPerPage,
+        showRollNumbers,
       });
       if (Platform.OS === 'web') {
         alertCompat(
@@ -1412,6 +1414,27 @@ function HallTicketModal({
                   {selectedModel.badge}: {selectedModel.description} Every model includes the school
                   icon, watermark, student details, and signature areas.
                 </Text>
+              </View>
+
+              <View style={styles.hallTicketOptionRow}>
+                <View style={styles.hallTicketOptionIcon}>
+                  <Ionicons name="list-outline" size={19} color={theme.colors.primary} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.hallTicketOptionTitle}>Show roll number</Text>
+                  <Text style={styles.hallTicketOptionText}>
+                    {showRollNumbers
+                      ? 'Each hall ticket will print the student’s saved roll number.'
+                      : 'Roll numbers will be omitted from every hall ticket in this batch.'}
+                  </Text>
+                </View>
+                <Switch
+                  value={showRollNumbers}
+                  onValueChange={setShowRollNumbers}
+                  trackColor={{ false: theme.colors.border, true: `${theme.colors.primary}66` }}
+                  thumbColor={showRollNumbers ? theme.colors.primary : theme.colors.textTertiary}
+                  accessibilityLabel="Show roll numbers on hall tickets"
+                />
               </View>
 
               <Text style={styles.fieldLabel}>Class</Text>
@@ -5564,6 +5587,28 @@ const getStyles = (theme: Theme, isDark: boolean) =>
       lineHeight: 17,
       color: theme.colors.textSecondary,
     },
+    hallTicketOptionRow: {
+      marginTop: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+    },
+    hallTicketOptionIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: `${theme.colors.primary}12`,
+    },
+    hallTicketOptionTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.textStrong },
+    hallTicketOptionText: { marginTop: 2, fontSize: 10.5, lineHeight: 14, color: theme.colors.textTertiary },
     fieldLabel: {
       fontSize: 12,
       fontWeight: '700',

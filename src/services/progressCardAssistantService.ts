@@ -67,6 +67,13 @@ export interface ProgressCardAssistantReport {
     working_days: number;
     days_present: number;
     percentage: number | null;
+    monthly: {
+      month: string;
+      month_label: string;
+      working_days: number;
+      days_present: number;
+      percentage: number | null;
+    }[];
   };
 }
 

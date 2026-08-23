@@ -43,6 +43,7 @@ const RANKING_LABELS = {
 } as const;
 
 const displayMark = (value: number | null | undefined) => value == null ? '—' : String(value);
+const displayDayCount = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
 type ResultDisplayMode = 'percentage' | 'grading';
 const RESULT_DISPLAY_MODE_KEY = 'progressCardResultDisplayMode';
 const finalPeriodLabels: Record<FinalCalculationPeriod, string> = {
@@ -99,6 +100,14 @@ function printableWorksheet(
         <td>${displayMark(subject.annual.total)}</td><td>${subject.annual.percentage == null ? '—' : displayMode === 'percentage' ? `${subject.annual.percentage}%` : `${subject.annual.grade} / ${subject.annual.gpa}`}</td></tr>`).join('')}
     </tbody></table>` : '';
 
+  const monthlyAttendanceRows = report.attendance.monthly.length
+    ? report.attendance.monthly.map((month) => `<tr>
+        <td>${escapeHtml(month.month_label)}</td><td>${month.working_days}</td>
+        <td>${displayDayCount(month.days_present)}</td>
+        <td>${month.percentage == null ? '—' : `${month.percentage.toFixed(2)}%`}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4">No attendance has been recorded for this academic year.</td></tr>';
+
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     @page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#172033}
     h1{font-size:22px;margin:0 0 4px;color:#7c2d12}h2{font-size:17px;margin:20px 0 8px;color:#5b21b6}h3{font-size:14px;margin:14px 0 7px;color:#5b21b6}.meta{font-size:12px;margin-bottom:14px}
@@ -119,6 +128,9 @@ function printableWorksheet(
       <div class="box">Rank<b>${report.summary.rank == null ? '—' : report.summary.rank}</b></div>
       <div class="box">Attendance<b>${report.attendance.days_present}/${report.attendance.working_days}</b></div>
     </div>
+    <h2>Month-wise Attendance</h2>
+    <table><thead><tr><th>Month</th><th>Working Days</th><th>Present Days</th><th>Percentage</th></tr></thead>
+      <tbody>${monthlyAttendanceRows}</tbody></table>
     <div class="note">Ranking: ${escapeHtml(RANKING_LABELS[report.summary.ranking_method])}. Missing entries: ${report.summary.missing_subjects}.</div>
     ${finalSection}
   </body></html>`;
@@ -154,6 +166,7 @@ export default function ProgressCardAssistantScreen() {
   useEffect(() => {
     let active = true;
     setLoadingContext(true);
+    setError('');
     ProgressCardAssistantService.getContext(staffId)
       .then((data) => {
         if (!active) return;
@@ -266,6 +279,12 @@ export default function ProgressCardAssistantScreen() {
 
       {loadingContext ? (
         <View style={styles.centerState}><LogoLoader size={68} color="#F97316" /><Text style={styles.stateText}>Preparing your class…</Text></View>
+      ) : error && !context ? (
+        <View style={styles.centerState}>
+          <View style={styles.stateIcon}><Ionicons name="alert-circle-outline" size={32} color="#DC2626" /></View>
+          <Text style={styles.stateTitle}>Could not load progress cards</Text>
+          <Text style={styles.stateText}>{error}</Text>
+        </View>
       ) : !context?.class_section ? (
         <View style={styles.centerState}>
           <View style={styles.stateIcon}><Ionicons name="school-outline" size={32} color="#F97316" /></View>
@@ -464,8 +483,30 @@ export default function ProgressCardAssistantScreen() {
               </View>
 
               <View style={styles.attendanceCard}>
-                <View><Text style={styles.attendanceTitle}>Attendance</Text><Text style={styles.attendanceHint}>Used only when the admin selects attendance tie-break ranking.</Text></View>
-                <View style={styles.attendanceNumbers}><Text style={styles.attendanceBig}>{report.attendance.days_present}/{report.attendance.working_days}</Text><Text style={styles.attendancePct}>{report.attendance.percentage == null ? '—' : `${report.attendance.percentage.toFixed(1)}%`}</Text></View>
+                <View style={styles.attendanceHeader}>
+                  <View style={styles.attendanceHeading}>
+                    <View style={styles.attendanceIcon}><Ionicons name="calendar-outline" size={20} color="#FFFFFF" /></View>
+                    <View style={{ flex: 1 }}><Text style={styles.attendanceTitle}>Month-wise attendance</Text><Text style={styles.attendanceHint}>Working days, present days and percentage for each month in the academic year.</Text></View>
+                  </View>
+                  <View style={styles.attendanceNumbers}><Text style={styles.attendanceOverallLabel}>Overall</Text><Text style={styles.attendanceBig}>{displayDayCount(report.attendance.days_present)}/{report.attendance.working_days}</Text><Text style={styles.attendancePct}>{report.attendance.percentage == null ? '—' : `${report.attendance.percentage.toFixed(1)}%`}</Text></View>
+                </View>
+                {report.attendance.monthly.length ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.attendanceMonths}>
+                    {report.attendance.monthly.map((month) => (
+                      <View key={month.month} style={styles.attendanceMonthCard}>
+                        <View style={styles.attendanceMonthTop}>
+                          <Text style={styles.attendanceMonthName}>{month.month_label}</Text>
+                          <Text style={styles.attendanceMonthPercentage}>{month.percentage == null ? '—' : `${month.percentage.toFixed(1)}%`}</Text>
+                        </View>
+                        <View style={styles.attendanceMonthStats}>
+                          <View style={styles.attendanceMonthStat}><Text style={styles.attendanceMonthStatLabel}>Working days</Text><Text style={styles.attendanceMonthStatValue}>{month.working_days}</Text></View>
+                          <View style={styles.attendanceMonthDivider} />
+                          <View style={styles.attendanceMonthStat}><Text style={styles.attendanceMonthStatLabel}>Present days</Text><Text style={styles.attendanceMonthStatValue}>{displayDayCount(month.days_present)}</Text></View>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                ) : <Text style={styles.noAttendance}>No attendance has been recorded for this academic year.</Text>}
               </View>
 
               <View style={styles.policyNote}><Ionicons name="shield-checkmark-outline" size={17} color="#7C3AED" /><Text style={styles.policyText}>Ranking policy: {RANKING_LABELS[report.summary.ranking_method]}</Text></View>
@@ -528,7 +569,15 @@ const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   finalTabs: { flexDirection: 'row', padding: 10, gap: 7, backgroundColor: isDark ? 'rgba(255,255,255,.025)' : '#FAFAFC' }, finalTab: { flex: 1, minHeight: 40, paddingHorizontal: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border }, finalTabActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }, finalTabText: { color: theme.colors.textSecondary, fontSize: 10.5, fontWeight: '900', textAlign: 'center' }, finalTabTextActive: { color: '#FFFFFF' },
   finalLoading: { minHeight: 110, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 9 }, formulaBanner: { margin: 12, marginBottom: 4, padding: 11, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: isDark ? 'rgba(124,58,237,.12)' : '#F5F3FF' }, formulaText: { flex: 1, color: isDark ? '#DDD6FE' : '#5B21B6', fontSize: 11, fontWeight: '700' },
   finalSummaryRow: { padding: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, finalSummaryItem: { flexGrow: 1, flexBasis: '21%', minWidth: 105, padding: 11, borderRadius: 13, backgroundColor: isDark ? 'rgba(255,255,255,.04)' : '#F8FAFC' }, finalSummaryLabel: { color: theme.colors.textTertiary, fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase' }, finalSummaryValue: { color: theme.colors.textStrong, fontSize: 14, fontWeight: '900', marginTop: 5 }, finalStatusCell: { padding: 10, fontSize: 10.5, fontWeight: '900', textAlign: 'center', textAlignVertical: 'center' }, finalComplete: { color: '#059669' }, finalIncomplete: { color: '#B45309' },
-  attendanceCard: { borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border }, attendanceTitle: { color: theme.colors.textStrong, fontSize: 15, fontWeight: '900' }, attendanceHint: { color: theme.colors.textSecondary, fontSize: 10.5, lineHeight: 15, marginTop: 4, maxWidth: 500 }, attendanceNumbers: { alignItems: 'flex-end' }, attendanceBig: { color: theme.colors.textStrong, fontSize: 18, fontWeight: '900' }, attendancePct: { color: '#059669', fontSize: 12, fontWeight: '800', marginTop: 2 },
+  attendanceCard: { borderRadius: 20, padding: 16, gap: 14, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
+  attendanceHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  attendanceHeading: { flex: 1, minWidth: 220, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  attendanceIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#059669' },
+  attendanceTitle: { color: theme.colors.textStrong, fontSize: 15, fontWeight: '900' }, attendanceHint: { color: theme.colors.textSecondary, fontSize: 10.5, lineHeight: 15, marginTop: 4, maxWidth: 500 },
+  attendanceNumbers: { minWidth: 92, alignItems: 'flex-end' }, attendanceOverallLabel: { color: theme.colors.textTertiary, fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .5 }, attendanceBig: { color: theme.colors.textStrong, fontSize: 18, fontWeight: '900', marginTop: 2 }, attendancePct: { color: '#059669', fontSize: 12, fontWeight: '800', marginTop: 2 },
+  attendanceMonths: { gap: 10, paddingVertical: 2 }, attendanceMonthCard: { width: 210, borderRadius: 15, padding: 13, gap: 13, backgroundColor: isDark ? 'rgba(16,185,129,.08)' : '#F0FDF4', borderWidth: 1, borderColor: isDark ? 'rgba(52,211,153,.25)' : '#BBF7D0' },
+  attendanceMonthTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }, attendanceMonthName: { flex: 1, color: theme.colors.textStrong, fontSize: 13, fontWeight: '900' }, attendanceMonthPercentage: { color: '#047857', fontSize: 12, fontWeight: '900' },
+  attendanceMonthStats: { flexDirection: 'row', alignItems: 'stretch' }, attendanceMonthStat: { flex: 1, gap: 4 }, attendanceMonthStatLabel: { color: theme.colors.textSecondary, fontSize: 9, fontWeight: '700' }, attendanceMonthStatValue: { color: theme.colors.textStrong, fontSize: 17, fontWeight: '900' }, attendanceMonthDivider: { width: 1, marginHorizontal: 10, backgroundColor: isDark ? 'rgba(255,255,255,.12)' : '#BBF7D0' }, noAttendance: { color: theme.colors.textSecondary, fontSize: 12, fontStyle: 'italic', paddingVertical: 5 },
   policyNote: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 5 }, policyText: { flex: 1, color: theme.colors.textSecondary, fontSize: 11, fontWeight: '600' },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, secondaryAction: { flex: 1, minWidth: 145, minHeight: 52, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: '#C4B5FD', backgroundColor: isDark ? 'rgba(124,58,237,.10)' : '#F5F3FF' }, secondaryActionText: { color: '#7C3AED', fontSize: 13, fontWeight: '900' },
   primaryAction: { flex: 1.4, minWidth: 175, minHeight: 52, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#EA580C' }, primaryActionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },

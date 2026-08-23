@@ -34,7 +34,7 @@ function mimeFromUrl(url: string): string {
   return 'image/png';
 }
 
-function isFileUri(uri: string | null | undefined): uri is string {
+function isFileUri(uri: string | null | undefined): boolean {
   return !!uri && uri.startsWith('file:');
 }
 
@@ -70,7 +70,7 @@ export async function resolveBundledAssetFileUri(assetModule: number): Promise<s
 
   await asset.downloadAsync();
 
-  if (isFileUri(asset.localUri)) {
+  if (asset.localUri && isFileUri(asset.localUri)) {
     return asset.localUri;
   }
 
@@ -109,7 +109,7 @@ export async function resolveBundledAssetFileUri(assetModule: number): Promise<s
   // Last resort: image-manipulator materializes a real file:// URI.
   try {
     const ImageManipulator = await import('expo-image-manipulator');
-    const input = isFileUri(asset.localUri) ? asset.localUri : sourceUri;
+    const input = asset.localUri && isFileUri(asset.localUri) ? asset.localUri : sourceUri;
     const result = await ImageManipulator.manipulateAsync(input, [], {
       format: ImageManipulator.SaveFormat.PNG,
     });

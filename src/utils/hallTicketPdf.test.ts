@@ -246,14 +246,22 @@ describe('hallTicketPdf', () => {
     expect(html).toMatch(/<tbody><tr><td>[\s\S]*Mathematics[\s\S]*Science[\s\S]*<\/tr><\/tbody>/);
   });
 
-  it('shows father names and leaves roll numbers as empty boxes', () => {
+  it('shows father names and omits roll numbers by default', () => {
     const html = buildHallTicketHtml(options);
 
     expect((html.match(/Father name/g) || []).length).toBe(options.students.length);
     expect(html).toContain('Father 1');
-    expect((html.match(/class="roll-number-box"/g) || []).length).toBe(options.students.length);
+    expect((html.match(/class="roll-number-box"/g) || []).length).toBe(0);
     expect(html).not.toContain('SECRET-ROLL-1');
     expect(html).toContain('min-height: 7mm;');
+  });
+
+  it('prints saved roll numbers only when enabled', () => {
+    const html = buildHallTicketHtml({ ...options, showRollNumbers: true });
+
+    expect((html.match(/class="roll-number-box"/g) || []).length).toBe(options.students.length);
+    expect(html).toContain('SECRET-ROLL-1');
+    expect(html).toContain('SECRET-ROLL-4');
   });
 
   it('uses white, larger date rows and edge-aligned signature blocks', () => {

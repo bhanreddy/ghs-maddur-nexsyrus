@@ -5,6 +5,7 @@
     "baseUrl": ".",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "allowImportingTsExtensions": true,
     "useDefineForClassFields": false,
     "paths": {
       "@/*": [

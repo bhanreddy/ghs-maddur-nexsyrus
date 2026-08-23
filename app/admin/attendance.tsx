@@ -159,7 +159,6 @@ function StatusSegment({
             activeOpacity={0.75}
             onPress={(e) => {
               // Keep segment taps from also cycling the whole card (esp. on web).
-              // @ts-expect-error RN web event
               e?.stopPropagation?.();
               onSelect(key);
             }}
@@ -429,7 +428,7 @@ export default function AdminAttendanceScreen() {
   const orb1Color = isDark ? 'rgba(124,111,255,0.08)' : 'rgba(124,111,255,0.05)';
   const orb2Color = isDark ? 'rgba(0,196,140,0.06)' : 'rgba(0,196,140,0.05)';
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = React.useCallback(async () => {
     try {
       setLoading(true);
       const data = await api.get<any[]>('/attendance/staff', { date: selectedDate });
@@ -441,9 +440,9 @@ export default function AdminAttendanceScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedDate]);
 
-  useEffect(() => { fetchAttendance(); }, [selectedDate]);
+  useEffect(() => { void fetchAttendance(); }, [fetchAttendance]);
 
   const onRefresh = () => { setRefreshing(true); fetchAttendance(); };
 

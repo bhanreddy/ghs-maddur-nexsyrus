@@ -699,6 +699,16 @@ const MENU_CONFIGS: Record<string, MenuConfig> = {
     shimmerColor: 'rgba(94,234,212,0.36)',
     patternType: 'arc',
   },
+  rollNumbers: {
+    icon: <Ionicons name="list-circle" size={28} color="#fff" />,
+    grad: ['#38BDF8', '#0284C7', '#075985'] as const,
+    accentLight: '#BAE6FD',
+    accentBar: ['#BAE6FD', '#38BDF8'],
+    shadowColor: '#0284C7',
+    category: 'STUDENTS',
+    shimmerColor: 'rgba(125,211,252,0.36)',
+    patternType: 'rings',
+  },
   attendance: {
     icon: <FontAwesome5 name="fingerprint" size={27} color="#fff" />,
     grad: ['#FF8040', '#E8520A', '#B83600'] as const,
@@ -909,6 +919,9 @@ function getStaffClayColors(configKey: string, isDark: boolean) {
   } else if (configKey === 'portfolio') {
     bg = isDark ? '#0F766E' : '#14B8A6';
     shadowColor = isDark ? '#064E3B' : '#0F766E';
+  } else if (configKey === 'rollNumbers') {
+    bg = isDark ? '#0369A1' : '#0EA5E9';
+    shadowColor = isDark ? '#0C4A6E' : '#0369A1';
   } else if (configKey === 'attendance') {
     bg = isDark ? '#C44E00' : '#FF6D00'; // Vivid Orange
     shadowColor = isDark ? '#802F00' : '#E65100';
@@ -1307,6 +1320,7 @@ export default function StaffDashboard() {
     { title: 'Diary', subtitle: 'Daily logs & notes', configKey: 'diary', route: '/staff/diary' },
     { title: 'Timetable', subtitle: 'Class schedule', configKey: 'timetable', route: '/staff/timetable' },
     { title: 'Student Portfolio', subtitle: 'First-class profiles', configKey: 'portfolio', route: '/staff/student-portfolio' },
+    { title: 'Roll Numbers', subtitle: 'Set your class order', configKey: 'rollNumbers', route: '/staff/roll-numbers' },
     { title: 'My Attendance', subtitle: 'History & reports', configKey: 'attendance', route: '/staff/attendance' },
     { title: 'Leaves', subtitle: 'Review approvals', configKey: 'leaves', route: '/staff/leaves', badge: data?.pendingLeaves ? `${data.pendingLeaves}` : undefined },
     { title: 'Results', subtitle: 'Enter & view marks', configKey: 'results', route: '/staff/results' },

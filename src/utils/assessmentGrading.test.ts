@@ -4,6 +4,7 @@ import {
   calculateAssessmentSummary,
   gradeForPercentage,
   isValidAssessmentInput,
+  normalizeAssessmentInput,
   rankAssessmentScores,
 } from './assessmentGrading';
 
@@ -21,6 +22,27 @@ describe('assessment grading', () => {
       percentage: 88,
       grade: 'B1',
       gpa: 9,
+    });
+  });
+
+  it('uses teacher-configured component maximums for percentage and weightage', () => {
+    expect(calculateComponentAssessment({
+      participation: '20',
+      writtenWork: '20',
+      projectWork: '10',
+      slipTest: '30',
+    }, {
+      participation: 20,
+      writtenWork: 20,
+      projectWork: 20,
+      slipTest: 40,
+    })).toMatchObject({
+      obtained: 80,
+      maximum: 100,
+      weightage: 16,
+      percentage: 80,
+      grade: 'B2',
+      gpa: 8,
     });
   });
 
@@ -88,5 +110,12 @@ describe('assessment grading', () => {
     expect(isValidAssessmentInput('10.25', 10)).toBe(false);
     expect(isValidAssessmentInput('-1', 10)).toBe(false);
     expect(isValidAssessmentInput('abc', 10)).toBe(false);
+  });
+
+  it('accepts decimal marks and normalizes mobile locale separators', () => {
+    expect(isValidAssessmentInput('8.5', 10)).toBe(true);
+    expect(isValidAssessmentInput('7.25', 10)).toBe(true);
+    expect(normalizeAssessmentInput('7,25')).toBe('7.25');
+    expect(normalizeAssessmentInput('7٫25')).toBe('7.25');
   });
 });

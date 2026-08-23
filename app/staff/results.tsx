@@ -1,15 +1,42 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform, ViewStyle, Pressable } from 'react-native';
+import {
+  AccessibilityInfo,
+  Keyboard,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+  useWindowDimensions,
+} from 'react-native';
 import KeyboardAwareScreen from '@/components/keyboard/KeyboardAwareScreen';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import Animated, {
+  FadeOutDown,
+  FadeInDown,
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+  Easing,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from '../../src/utils/haptics';
 import StaffHeader from '../../src/components/StaffHeader';
-import { staffTabBarReserve } from '../../src/components/StaffFooter';
+import { STAFF_TAB_BAR_HEIGHT, staffTabBarReserve } from '../../src/components/StaffFooter';
 import ViewAsBanner from '../../src/components/ViewAsBanner';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
 import { StudentService } from '../../src/services/studentService';
@@ -24,16 +51,18 @@ import {
   ComponentAssessmentInput,
   ComponentField,
   ResultRankingMethod,
-  COMPONENT_MAXIMUMS,
-  COMPONENT_TOTAL_MAX,
   DEFAULT_CONSOLIDATED_MAX,
   EMPTY_COMPONENT_MARKS,
   calculateComponentAssessment,
   calculateConsolidatedAssessment,
+  componentTotalMax,
   hasAnyComponentMark,
   isComponentAssessmentComplete,
   isValidAssessmentInput,
+  normalizeAssessmentInput,
+  parseComponentMaximums,
   rankAssessmentScores,
+  stringifyComponentMaximums,
 } from '../../src/utils/assessmentGrading';
 import { SchoolSettingsService } from '../../src/services/schoolSettingsService';
 
@@ -48,6 +77,7 @@ const ASSESSMENT_DRAFTS_KEY = 'staffAssessmentDraftsV1';
 
 interface AssessmentDraft {
   consolidatedMaxMarks: string;
+  componentMaximums: Record<ComponentField, string>;
   consolidatedByStudent: Record<string, string>;
   componentByStudent: Record<string, ComponentAssessmentInput>;
 }
@@ -59,6 +89,7 @@ interface PersistedAssessmentState {
 
 const emptyAssessmentDraft = (consolidatedMaximum = DEFAULT_CONSOLIDATED_MAX): AssessmentDraft => ({
   consolidatedMaxMarks: String(consolidatedMaximum),
+  componentMaximums: stringifyComponentMaximums(),
   consolidatedByStudent: {},
   componentByStudent: {},
 });
@@ -69,52 +100,6 @@ const COMPONENT_FIELDS: { field: ComponentField; label: string; shortLabel: stri
   { field: 'projectWork', label: 'Project Work', shortLabel: 'Project' },
   { field: 'slipTest', label: 'Slip Test', shortLabel: 'Slip Test' },
 ];
-
-// ponytail: local clay helpers — extract if a 3rd staff screen needs them
-function clay(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md'): any {
-  const spread = raised === 'lg' ? 24 : raised === 'sm' ? 12 : 18;
-  const dy = raised === 'lg' ? 12 : raised === 'sm' ? 6 : 9;
-  if (Platform.OS === 'web') {
-    const drop = isDark ? 'rgba(0,0,0,0.60)' : 'rgba(166,180,200,0.55)';
-    const light = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,1)';
-    const innerHi = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.9)';
-    const innerLo = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(166,180,200,0.35)';
-    return {
-      boxShadow:
-        `${dy}px ${dy}px ${spread}px ${drop}, ` +
-        `-${dy}px -${dy}px ${spread}px ${light}, ` +
-        `inset 3px 3px 6px ${innerHi}, ` +
-        `inset -3px -3px 6px ${innerLo}`,
-    } as ViewStyle;
-  }
-  return {
-    shadowColor: isDark ? '#000000' : '#94A3B8',
-    shadowOffset: { width: 0, height: dy },
-    shadowOpacity: isDark ? 0.45 : 0.26,
-    shadowRadius: spread,
-    elevation: raised === 'lg' ? 10 : raised === 'sm' ? 4 : 7,
-  };
-}
-
-function clayGlow(color: string, raised: 'sm' | 'md' = 'md'): any {
-  const dy = raised === 'sm' ? 4 : 7;
-  const spread = raised === 'sm' ? 10 : 16;
-  if (Platform.OS === 'web') {
-    return {
-      boxShadow:
-        `${dy}px ${dy}px ${spread}px ${color}44, ` +
-        `inset 1.5px 1.5px 3px rgba(255,255,255,0.40), ` +
-        `inset -1.5px -1.5px 3px rgba(0,0,0,0.12)`,
-    } as ViewStyle;
-  }
-  return {
-    shadowColor: color,
-    shadowOffset: { width: 0, height: dy },
-    shadowOpacity: 0.38,
-    shadowRadius: spread,
-    elevation: raised === 'sm' ? 5 : 8,
-  };
-}
 
 function clayInset(isDark: boolean): any {
   if (Platform.OS === 'web') {
@@ -130,29 +115,636 @@ function clayInset(isDark: boolean): any {
   };
 }
 
-function clayCard(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md'): any {
-  return {
-    backgroundColor: isDark ? '#1A2332' : '#EFF2F9',
-    borderRadius: raised === 'lg' ? 30 : 24,
-    borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.7)',
-    ...clay(isDark, raised),
+function PressScale({
+  children,
+  onPress,
+  disabled = false,
+  style,
+  accessibilityLabel,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+  disabled?: boolean;
+  style?: ViewStyle;
+  accessibilityLabel?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const pressScale = useSharedValue(1);
+  const hoverScale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: reduceMotion ? 0 : (1 - hoverScale.value) * 160 },
+      { scale: pressScale.value * hoverScale.value },
+    ],
+  }));
+
+  const handlePress = () => {
+    if (!onPress || disabled) return;
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onPress();
   };
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={handlePress}
+      onPressIn={() => {
+        if (!disabled && !reduceMotion) pressScale.value = withTiming(0.982, { duration: 85 });
+      }}
+      onPressOut={() => {
+        pressScale.value = reduceMotion
+          ? 1
+          : withSpring(1, { damping: 20, stiffness: 340, mass: 0.55 });
+      }}
+      onHoverIn={() => {
+        if (!disabled && !reduceMotion && Platform.OS === 'web') {
+          hoverScale.value = withTiming(1.008, { duration: 150 });
+        }
+      }}
+      onHoverOut={() => {
+        hoverScale.value = reduceMotion ? 1 : withTiming(1, { duration: 150 });
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      style={[
+        Platform.OS === 'web' && ({ cursor: disabled ? 'not-allowed' : 'pointer' } as object),
+        Platform.OS === 'web' && focused && webFocusRing,
+      ]}
+    >
+      <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>
+    </Pressable>
+  );
 }
 
-function FilterLabelPill({ icon, label, color }: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }) {
+const webFocusRing = {
+  outlineColor: '#6366F1',
+  outlineOffset: 3,
+  outlineStyle: 'solid',
+  outlineWidth: 2,
+  borderRadius: 18,
+} as object;
+
+interface ResultsFilterOption {
+  id: string;
+  label: string;
+}
+
+function ResultsFilterDropdown({
+  label,
+  value,
+  options,
+  accent,
+  onChange,
+  mutedText,
+  isDark,
+  disabled = false,
+  compact = false,
+  halfWidth = false,
+  emptyText = 'No options available',
+  footerAction,
+}: {
+  label: string;
+  value: string | null;
+  options: ResultsFilterOption[];
+  accent: string;
+  onChange: (id: string) => void;
+  mutedText: string;
+  isDark: boolean;
+  disabled?: boolean;
+  compact?: boolean;
+  halfWidth?: boolean;
+  emptyText?: string;
+  footerAction?: { label: string; onPress: () => void };
+}) {
+  const [open, setOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const isCompact = width < 600;
+  const selectedOption = options.find((option) => option.id === value);
+  const displayValue = selectedOption?.label ?? emptyText;
+
   return (
-    <View style={{
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      alignSelf: 'flex-start', marginBottom: 10,
-      paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
-      backgroundColor: `${color}12`, borderWidth: 1, borderColor: `${color}22`,
-    }}>
-      <Ionicons name={icon} size={12} color={color} />
-      <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 1, color, textTransform: 'uppercase' }}>{label}</Text>
+    <View
+      style={[
+        filterDropdownStyles.wrap,
+        compact && filterDropdownStyles.wrapCompact,
+        halfWidth && filterDropdownStyles.wrapHalf,
+      ]}
+    >
+      <Text style={[filterDropdownStyles.label, { color: mutedText }]}>{label}</Text>
+      <Pressable
+        disabled={disabled}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${displayValue}`}
+        accessibilityState={{ disabled, expanded: open }}
+        style={({ hovered, pressed }) => [
+          filterDropdownStyles.trigger,
+          isDark && filterDropdownStyles.triggerDark,
+          value && { borderColor: `${accent}88` },
+          (hovered || pressed) && !disabled && { borderColor: accent },
+          disabled && filterDropdownStyles.disabled,
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[
+            filterDropdownStyles.triggerText,
+            { color: selectedOption ? (isDark ? '#F8FAFC' : '#1E293B') : mutedText },
+          ]}
+        >
+          {displayValue}
+        </Text>
+        <Ionicons name="chevron-down" size={17} color={disabled ? mutedText : accent} />
+      </Pressable>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType={isCompact ? 'slide' : 'fade'}
+        statusBarTranslucent
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable
+          style={[
+            filterDropdownStyles.overlay,
+            isCompact && filterDropdownStyles.overlayCompact,
+            isCompact && { paddingBottom: Math.max(insets.bottom, 12) },
+          ]}
+          onPress={() => setOpen(false)}
+        >
+          <Pressable
+            onPress={(event) => event.stopPropagation()}
+            accessibilityViewIsModal
+            style={[
+              filterDropdownStyles.menu,
+              isCompact && filterDropdownStyles.menuCompact,
+              isDark && filterDropdownStyles.menuDark,
+            ]}
+          >
+            <View style={[filterDropdownStyles.menuHeader, isDark && filterDropdownStyles.menuDividerDark]}>
+              <View>
+                <Text style={[filterDropdownStyles.menuEyebrow, { color: accent }]}>FILTER</Text>
+                <Text style={[filterDropdownStyles.menuTitle, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>Select {label.toLowerCase()}</Text>
+              </View>
+              <Pressable onPress={() => setOpen(false)} hitSlop={8} accessibilityLabel={`Close ${label} menu`}>
+                <Ionicons name="close" size={21} color={mutedText} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={filterDropdownStyles.optionList} keyboardShouldPersistTaps="handled">
+              {options.map((option) => {
+                const active = option.id === value;
+                return (
+                  <Pressable
+                    key={option.id}
+                    accessibilityRole="menuitem"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') void Haptics.selectionAsync();
+                      onChange(option.id);
+                      setOpen(false);
+                    }}
+                    style={({ hovered, pressed }) => [
+                      filterDropdownStyles.option,
+                      isDark && filterDropdownStyles.optionDark,
+                      active && { backgroundColor: `${accent}${isDark ? '24' : '14'}` },
+                      (hovered || pressed) && { borderColor: `${accent}66` },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        filterDropdownStyles.optionText,
+                        { color: active ? accent : (isDark ? '#E2E8F0' : '#334155') },
+                        active && filterDropdownStyles.optionTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {active ? (
+                      <View style={[filterDropdownStyles.checkCircle, { backgroundColor: accent }]}>
+                        <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {footerAction ? (
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== 'web') void Haptics.selectionAsync();
+                  setOpen(false);
+                  footerAction.onPress();
+                }}
+                style={[filterDropdownStyles.footerAction, isDark && filterDropdownStyles.menuDividerDark]}
+              >
+                <Ionicons name="add-circle-outline" size={19} color={accent} />
+                <Text style={[filterDropdownStyles.footerActionText, { color: accent }]}>{footerAction.label}</Text>
+              </Pressable>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const filterDropdownStyles = StyleSheet.create({
+  wrap: {
+    flexGrow: 1,
+    flexBasis: 170,
+    minWidth: 150,
+    gap: 6,
+  },
+  wrapCompact: {
+    width: '100%',
+    minWidth: '100%',
+    flexBasis: '100%',
+  },
+  wrapHalf: {
+    minWidth: 140,
+    flexBasis: '46%',
+  },
+  label: {
+    paddingLeft: 2,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  trigger: {
+    minHeight: 44,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
+  },
+  triggerDark: {
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  triggerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  overlay: {
+    flex: 1,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15,23,42,0.42)',
+  },
+  overlayCompact: {
+    padding: 12,
+    justifyContent: 'flex-end',
+  },
+  menu: {
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: '72%',
+    overflow: 'hidden',
+    borderRadius: 22,
+    backgroundColor: '#F8FAFC',
+    ...Platform.select({
+      web: { boxShadow: '0 22px 60px rgba(15,23,42,0.24)' } as ViewStyle,
+      default: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 24,
+        elevation: 16,
+      },
+    }),
+  },
+  menuDark: {
+    backgroundColor: '#182131',
+  },
+  menuCompact: {
+    maxWidth: 560,
+    maxHeight: '82%',
+    borderRadius: 24,
+  },
+  menuHeader: {
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148,163,184,0.18)',
+  },
+  menuDividerDark: {
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  menuEyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  menuTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: -0.25,
+  },
+  optionList: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  option: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    marginVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  optionDark: {
+    backgroundColor: 'rgba(255,255,255,0.025)',
+  },
+  optionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  optionTextActive: {
+    fontWeight: '800',
+  },
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerAction: {
+    minHeight: 52,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148,163,184,0.18)',
+  },
+  footerActionText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+});
+
+function SchemaToggle({
+  value,
+  onChange,
+  accent,
+  mutedText,
+  isDark,
+}: {
+  value: AssessmentSchema;
+  onChange: (schema: AssessmentSchema) => void;
+  accent: string;
+  mutedText: string;
+  isDark: boolean;
+}) {
+  const reduceMotion = useReducedMotion();
+  const options = [
+    { key: 'component' as const, label: 'Components', icon: 'grid-outline' as const },
+    { key: 'consolidated' as const, label: 'Consolidated', icon: 'document-text-outline' as const },
+  ];
+  const [trackW, setTrackW] = useState(0);
+  const translateX = useSharedValue(0);
+  const activeIndex = value === 'component' ? 0 : 1;
+  const segmentW = trackW > 0 ? trackW / options.length : 0;
+
+  useEffect(() => {
+    if (segmentW > 0) {
+      translateX.value = reduceMotion
+        ? activeIndex * segmentW
+        : withSpring(activeIndex * segmentW, { damping: 20, stiffness: 220, mass: 0.7 });
+    }
+  }, [activeIndex, reduceMotion, segmentW, translateX]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
+
+  return (
+    <View
+      onLayout={(event) => setTrackW(Math.max(0, event.nativeEvent.layout.width - 8))}
+      style={[schemaToggleStyles.track, isDark && schemaToggleStyles.trackDark]}
+      accessibilityRole="tablist"
+    >
+      {segmentW > 0 ? (
+        <Animated.View
+          style={[
+            schemaToggleStyles.indicator,
+            { width: segmentW, backgroundColor: accent },
+            indicatorStyle,
+          ]}
+        />
+      ) : null}
+      {options.map((option) => {
+        const active = value === option.key;
+        return (
+          <Pressable
+            key={option.key}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => {
+              if (Platform.OS !== 'web') void Haptics.selectionAsync();
+              onChange(option.key);
+            }}
+            style={schemaToggleStyles.option}
+          >
+            <Ionicons name={option.icon} size={15} color={active ? '#FFFFFF' : mutedText} />
+            <Text style={[schemaToggleStyles.label, { color: active ? '#FFFFFF' : mutedText }]}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const schemaToggleStyles = StyleSheet.create({
+  track: {
+    flex: 1,
+    minWidth: 210,
+    flexDirection: 'row',
+    minHeight: 44,
+    padding: 4,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(148,163,184,0.14)',
+  },
+  trackDark: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  indicator: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    bottom: 4,
+    borderRadius: 11,
+  },
+  option: {
+    flex: 1,
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    zIndex: 1,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});
+
+function ProgressTrack({ progress, accent }: { progress: number; accent: string }) {
+  const reduceMotion = useReducedMotion();
+  const clamped = Math.max(0, Math.min(1, progress));
+  const animatedProgress = useSharedValue(clamped);
+
+  useEffect(() => {
+    animatedProgress.value = reduceMotion
+      ? clamped
+      : withTiming(clamped, { duration: 320, easing: Easing.out(Easing.cubic) });
+  }, [animatedProgress, clamped, reduceMotion]);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${animatedProgress.value * 100}%`,
+  }));
+
+  return (
+    <View
+      style={progressStyles.track}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
+    >
+      <Animated.View
+        style={[
+          progressStyles.fill,
+          { backgroundColor: accent },
+          fillStyle,
+        ]}
+      />
+    </View>
+  );
+}
+
+const progressStyles = StyleSheet.create({
+  track: {
+    height: 6,
+    borderRadius: 99,
+    backgroundColor: 'rgba(76,90,120,0.12)',
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 99,
+  },
+});
+
+function useShimmer() {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    if (reduceMotion) {
+      cancelAnimation(progress);
+      progress.value = 0.5;
+      return;
+    }
+    progress.value = withRepeat(
+      withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(progress);
+  }, [progress, reduceMotion]);
+  return progress;
+}
+
+function SkeletonBlock({
+  shimmer,
+  width,
+  height,
+  radius = 12,
+}: {
+  shimmer: SharedValue<number>;
+  width: number | `${number}%`;
+  height: number;
+  radius?: number;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: 0.45 + 0.35 * Math.sin(shimmer.value * Math.PI),
+  }));
+  return (
+    <Animated.View
+      style={[
+        {
+          width,
+          height,
+          borderRadius: radius,
+          backgroundColor: 'rgba(76,90,120,0.14)',
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function StudentsSkeleton() {
+  const shimmer = useShimmer();
+  const { width } = useWindowDimensions();
+  const compact = width < 430;
+  return (
+    <View style={{ paddingHorizontal: 12, paddingBottom: 8, gap: 10 }}>
+      {[0, 1, 2].map((index) => (
+        <View key={index} style={skeletonCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <SkeletonBlock shimmer={shimmer} width={44} height={44} radius={14} />
+            <View style={{ flex: 1, gap: 8 }}>
+              <SkeletonBlock shimmer={shimmer} width={compact ? '72%' : 168} height={14} radius={8} />
+              <SkeletonBlock shimmer={shimmer} width={88} height={10} radius={6} />
+            </View>
+            <SkeletonBlock shimmer={shimmer} width={compact ? 64 : 84} height={48} radius={14} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const skeletonCard: ViewStyle = {
+  padding: 14,
+  borderRadius: 18,
+  borderWidth: 1,
+  borderColor: 'rgba(148,163,184,0.14)',
+  backgroundColor: 'rgba(255,255,255,0.35)',
+};
 
 function parseExamIndex(name: string, prefix: string): number | null {
   const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -229,7 +821,15 @@ function getUniqueClassSections(
 export default function UploadMarks() {
   const { theme, isDark } = useTheme();
   const { isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
-  const styles = React.useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+  const { width: viewportWidth } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
+  const isPhone = viewportWidth < 600;
+  const studentColumns = viewportWidth >= 1080 ? 2 : 1;
+  const dashboardColumns = viewportWidth >= 1180 ? 3 : viewportWidth >= 720 ? 2 : 1;
+  const styles = React.useMemo(
+    () => getStyles(theme, isDark, dashboardColumns, isPhone, studentColumns),
+    [theme, isDark, dashboardColumns, isPhone, studentColumns]
+  );
 
   // ── view state ──────────────────────────────────────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState<ExamCategory | null>(null);
@@ -282,7 +882,13 @@ export default function UploadMarks() {
 
   // ── data state ───────────────────────────────────────────────────────────────
   const [students, setStudents] = useState<StudentWithDetails[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [marksLoading, setMarksLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const studentsRequestId = useRef(0);
+  const marksRequestId = useRef(0);
+  const dataLoading = studentsLoading || marksLoading;
 
   const activeSubExams = useMemo(() => {
     if (!selectedCategory) return [];
@@ -307,7 +913,21 @@ export default function UploadMarks() {
   const defaultConsolidatedMaximum = selectedCategory?.key === 'sa_results'
     ? 80
     : DEFAULT_CONSOLIDATED_MAX;
-  const currentDraft = assessmentDrafts[draftKey] ?? emptyAssessmentDraft(defaultConsolidatedMaximum);
+  const currentDraft = useMemo(() => {
+    const raw = assessmentDrafts[draftKey] ?? emptyAssessmentDraft(defaultConsolidatedMaximum);
+    return {
+      ...raw,
+      componentMaximums: {
+        ...stringifyComponentMaximums(),
+        ...(raw.componentMaximums ?? {}),
+      },
+    };
+  }, [assessmentDrafts, defaultConsolidatedMaximum, draftKey]);
+  const componentMaximums = useMemo(
+    () => parseComponentMaximums(currentDraft.componentMaximums),
+    [currentDraft.componentMaximums],
+  );
+  const componentTotal = componentTotalMax(componentMaximums);
 
   const filledCount = useMemo(() => {
     if (assessmentSchema === 'component') {
@@ -316,11 +936,19 @@ export default function UploadMarks() {
     return Object.values(currentDraft.consolidatedByStudent).filter((value) => value !== '').length;
   }, [assessmentSchema, currentDraft]);
 
+  const fillPercent = students.length === 0 ? 0 : filledCount / students.length;
+  const contextLabel = selectedAssignment
+    ? `${selectedAssignment.class_name}-${selectedAssignment.section_name} · ${selectedAssignment.subject_name} · ${selectedSubExam}`
+    : 'Choose class, subject and exam';
+
   const studentResults = useMemo(() => {
     return students.reduce<Record<string, ReturnType<typeof calculateConsolidatedAssessment> & { rank: number }>>(
       (acc, student) => {
         const result = assessmentSchema === 'component'
-          ? calculateComponentAssessment(currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS)
+          ? calculateComponentAssessment(
+              currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS,
+              componentMaximums,
+            )
           : calculateConsolidatedAssessment(
               currentDraft.consolidatedByStudent[student.id] ?? '',
               currentDraft.consolidatedMaxMarks,
@@ -330,7 +958,7 @@ export default function UploadMarks() {
       },
       {},
     );
-  }, [assessmentSchema, currentDraft, students]);
+  }, [assessmentSchema, componentMaximums, currentDraft, students]);
 
   const studentRanks = useMemo(() => {
     const entered = students.flatMap((student) => {
@@ -397,10 +1025,25 @@ export default function UploadMarks() {
       schemas: assessmentSchemas,
       drafts: assessmentDrafts,
     };
-    AsyncStorage.setItem(ASSESSMENT_DRAFTS_KEY, JSON.stringify(snapshot)).catch(() => {
-      // Server persistence remains available even if local storage is full.
-    });
+    const persistenceTimer = setTimeout(() => {
+      AsyncStorage.setItem(ASSESSMENT_DRAFTS_KEY, JSON.stringify(snapshot)).catch(() => {
+        // Server persistence remains available even if local storage is full.
+      });
+    }, 350);
+    return () => clearTimeout(persistenceTimer);
   }, [assessmentDrafts, assessmentSchemas, assessmentStorageReady]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSubscription = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedCategory) {
@@ -466,14 +1109,16 @@ export default function UploadMarks() {
 
   const fetchExistingMarks = useCallback(async () => {
     if (!selectedAssignment || !selectedCategory || !selectedSubExam) return;
+    const requestId = ++marksRequestId.current;
     try {
-      setLoading(true);
+      setMarksLoading(true);
       const data = await ResultService.getMarks({
         class_section_id: selectedAssignment.class_section_id,
         exam_category: selectedCategory.key,
         sub_exam: selectedSubExam,
         subject_id: selectedAssignment.subject_id
       });
+      if (requestId !== marksRequestId.current) return;
       const serverSchema = data.assessment_schema ?? 'consolidated';
       setAttendanceByStudent(Object.fromEntries(
         (data.attendance ?? []).map((row) => [
@@ -516,6 +1161,12 @@ export default function UploadMarks() {
           ...previous,
           [draftKey]: {
             consolidatedMaxMarks: String(data.consolidated_max_marks ?? DEFAULT_CONSOLIDATED_MAX),
+            componentMaximums: stringifyComponentMaximums(parseComponentMaximums({
+              participation: data.component_maximums?.participation,
+              writtenWork: data.component_maximums?.written_work,
+              projectWork: data.component_maximums?.project_work,
+              slipTest: data.component_maximums?.slip_test,
+            })),
             consolidatedByStudent,
             componentByStudent,
           },
@@ -523,14 +1174,16 @@ export default function UploadMarks() {
       });
     } catch {
     } finally {
-      setLoading(false);
+      if (requestId === marksRequestId.current) setMarksLoading(false);
     }
   }, [defaultConsolidatedMaximum, draftKey, schemaInstanceKey, selectedAssignment, selectedCategory, selectedSubExam]);
 
   const fetchStudents = useCallback(async () => {
     if (!selectedAssignment) return;
+    const requestId = ++studentsRequestId.current;
     try {
-      setLoading(true);
+      setStudentsLoading(true);
+      setStudents([]);
       const response = await StudentService.getAll<StudentWithDetails>({
         class_id: selectedAssignment.class_id,
         section_id: selectedAssignment.section_id,
@@ -538,11 +1191,12 @@ export default function UploadMarks() {
         sort_by: 'roll_number',
         sort_order: 'asc',
       });
+      if (requestId !== studentsRequestId.current) return;
       setStudents(response.data);
     } catch {
       alertCompat('Error', 'Failed to fetch students');
     } finally {
-      setLoading(false);
+      if (requestId === studentsRequestId.current) setStudentsLoading(false);
     }
   }, [selectedAssignment]);
 
@@ -551,6 +1205,8 @@ export default function UploadMarks() {
     if (selectedCategory && selectedAssignment) {
       fetchStudents();
     } else {
+      studentsRequestId.current += 1;
+      setStudentsLoading(false);
       setStudents([]);
     }
   }, [fetchStudents, selectedAssignment, selectedCategory]);
@@ -559,6 +1215,9 @@ export default function UploadMarks() {
   useEffect(() => {
     if (assessmentStorageReady && selectedCategory && selectedAssignment && selectedSubExam) {
       fetchExistingMarks();
+    } else {
+      marksRequestId.current += 1;
+      setMarksLoading(false);
     }
   }, [assessmentStorageReady, fetchExistingMarks, selectedAssignment, selectedCategory, selectedSubExam]);
 
@@ -588,24 +1247,51 @@ export default function UploadMarks() {
     updateCurrentDraft((draft) => ({ ...draft, consolidatedMaxMarks: text }));
   };
 
+  const handleComponentMaximumChange = (field: ComponentField, text: string) => {
+    if (!/^\d{0,3}$/.test(text)) return;
+    const maximum = Number(text);
+    if (text !== '' && (maximum < 1 || maximum > 999)) return;
+    updateCurrentDraft((draft) => {
+      const componentByStudent = { ...draft.componentByStudent };
+      if (text !== '') {
+        Object.entries(componentByStudent).forEach(([studentId, entry]) => {
+          if (entry[field] !== '' && Number(entry[field]) > maximum) {
+            componentByStudent[studentId] = { ...entry, [field]: String(maximum) };
+          }
+        });
+      }
+      return {
+        ...draft,
+        componentMaximums: {
+          ...stringifyComponentMaximums(),
+          ...draft.componentMaximums,
+          [field]: text,
+        },
+        componentByStudent,
+      };
+    });
+  };
+
   const handleConsolidatedMarkChange = (studentId: string, text: string) => {
     const maximum = Number(currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX);
-    if (!isValidAssessmentInput(text, maximum)) return;
+    const normalizedText = normalizeAssessmentInput(text);
+    if (!isValidAssessmentInput(normalizedText, maximum)) return;
     updateCurrentDraft((draft) => ({
       ...draft,
-      consolidatedByStudent: { ...draft.consolidatedByStudent, [studentId]: text },
+      consolidatedByStudent: { ...draft.consolidatedByStudent, [studentId]: normalizedText },
     }));
   };
 
   const handleComponentMarkChange = (studentId: string, field: ComponentField, text: string) => {
-    if (!isValidAssessmentInput(text, COMPONENT_MAXIMUMS[field])) return;
+    const normalizedText = normalizeAssessmentInput(text);
+    if (!isValidAssessmentInput(normalizedText, componentMaximums[field])) return;
     updateCurrentDraft((draft) => ({
       ...draft,
       componentByStudent: {
         ...draft.componentByStudent,
         [studentId]: {
           ...(draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS),
-          [field]: text,
+          [field]: normalizedText,
         },
       },
     }));
@@ -633,6 +1319,7 @@ export default function UploadMarks() {
     const partialComponentEntry = assessmentSchema === 'component' && Object.values(currentDraft.componentByStudent)
       .some((entry) => hasAnyComponentMark(entry) && !isComponentAssessmentComplete(entry));
     if (partialComponentEntry) {
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       alertCompat('Incomplete components', 'Complete all four component fields for each student you started.');
       return;
     }
@@ -641,7 +1328,7 @@ export default function UploadMarks() {
       if (assessmentSchema === 'component') {
         const components = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
         if (!isComponentAssessmentComplete(components)) return [];
-        const result = calculateComponentAssessment(components);
+        const result = calculateComponentAssessment(components, componentMaximums);
         return [{
           student_id: student.id,
           marks: result.obtained,
@@ -655,6 +1342,7 @@ export default function UploadMarks() {
       return marks === '' ? [] : [{ student_id: student.id, marks: Number(marks) }];
     });
     if (filledMarks.length === 0) {
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       alertCompat('Warning', 'No marks entered.');
       return;
     }
@@ -667,7 +1355,7 @@ export default function UploadMarks() {
           text: 'Upload',
           onPress: async () => {
             try {
-              setLoading(true);
+              setUploading(true);
               await ResultService.upload({
                 class_section_id: selectedAssignment.class_section_id,
                 exam_category: selectedCategory.key,
@@ -675,15 +1363,26 @@ export default function UploadMarks() {
                 subject_id: selectedAssignment.subject_id,
                 assessment_schema: assessmentSchema,
                 max_marks: assessmentSchema === 'component'
-                  ? COMPONENT_TOTAL_MAX
+                  ? componentTotal
                   : Number(currentDraft.consolidatedMaxMarks),
+                component_maximums: assessmentSchema === 'component'
+                  ? {
+                      participation: componentMaximums.participation,
+                      written_work: componentMaximums.writtenWork,
+                      project_work: componentMaximums.projectWork,
+                      slip_test: componentMaximums.slipTest,
+                    }
+                  : undefined,
                 results: filledMarks
               });
+              if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              void AccessibilityInfo.announceForAccessibility(`${filledMarks.length} results uploaded successfully.`);
               alertCompat('Success', 'Marks uploaded successfully!');
             } catch {
+              if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
               alertCompat('Error', 'Failed to upload marks');
             } finally {
-              setLoading(false);
+              setUploading(false);
             }
           }
         }]
@@ -694,41 +1393,97 @@ export default function UploadMarks() {
   // ── renders ───────────────────────────────────────────────────────────────────
 
   const renderDashboard = () =>
-    <ScrollView contentContainerStyle={styles.dashboardContent}>
+    <ScrollView
+      contentContainerStyle={styles.dashboardContent}
+      showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior="automatic"
+    >
       <View style={styles.headerSection}>
         <LinearGradient
           colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']}
           style={styles.cardSheen}
         />
-        <Text style={styles.pageTitle}>Marks Entry</Text>
-        <Text style={styles.pageSubtitle}>Select an exam category to begin</Text>
+        <View style={styles.heroIcon}>
+          <Ionicons name="create-outline" size={24} color={theme.colors.primary} />
+        </View>
+        <View style={styles.heroCopy}>
+          <Text style={styles.eyebrow}>RESULTS &amp; ASSESSMENTS</Text>
+          <Text style={styles.pageTitle}>Choose an assessment</Text>
+          <Text style={styles.pageSubtitle}>
+            Select a category to choose an exam, class and subject, then enter student marks.
+          </Text>
+        </View>
+        {!isPhone ? (
+          <View style={styles.heroMeta}>
+            <Text style={styles.heroMetaValue}>{EXAM_CATEGORIES.length}</Text>
+            <Text style={styles.heroMetaLabel}>categories</Text>
+          </View>
+        ) : null}
       </View>
+
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionTitle}>Assessment categories</Text>
+        <Text style={styles.sectionHint}>Choose one to continue</Text>
+      </View>
+
       <View style={styles.gridContainer}>
         {EXAM_CATEGORIES.map((cat, index) =>
           <Animated.View
             key={cat.key}
-            entering={FadeInDown.delay(index * 80).duration(500)}
-            style={styles.cardContainer}>
+            entering={reduceMotion ? undefined : FadeInDown.delay(index * 45).duration(260)}
+            style={[
+              styles.cardContainer,
+              dashboardColumns === 3 && index >= 3 && styles.cardContainerWide,
+              dashboardColumns === 2 && index === EXAM_CATEGORIES.length - 1 && styles.cardContainerCentered,
+            ]}>
 
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.75}
+            <PressScale
+              style={{ width: '100%' }}
+              accessibilityLabel={`Open ${cat.title}`}
               onPress={() => {
                 setSelectedCategory(cat);
                 const exams = getDisplaySubExams(cat);
                 if (exams.length) setSelectedSubExam(exams[0]);
-              }}>
+              }}
+            >
+              <View style={styles.card}>
+                <View style={[styles.cardAccent, { backgroundColor: cat.color }]} />
+                {isPhone ? (
+                  <View style={styles.mobileCardRow}>
+                    <View style={[styles.iconBox, { backgroundColor: cat.color + (isDark ? '22' : '14') }]}>
+                      <Ionicons name={cat.icon} size={23} color={cat.color} />
+                    </View>
+                    <View style={styles.mobileCardCopy}>
+                      <Text style={styles.cardTitle}>{cat.title}</Text>
+                      <Text style={styles.cardSubtitle} numberOfLines={2}>{cat.description}</Text>
+                      <Text style={[styles.mobileExamCount, { color: cat.color }]}>
+                        {getDisplaySubExams(cat).length} exams available
+                      </Text>
+                    </View>
+                    <View style={[styles.arrowBox, { backgroundColor: cat.color + (isDark ? '22' : '12') }]}>
+                      <Ionicons name="chevron-forward" size={18} color={cat.color} />
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.cardTopRow}>
+                      <View style={[styles.iconBox, { backgroundColor: cat.color + (isDark ? '22' : '14') }]}>
+                    <Ionicons name={cat.icon} size={23} color={cat.color} />
+                  </View>
+                      <View style={[styles.examCountPill, { backgroundColor: cat.color + (isDark ? '22' : '10') }]}>
+                        <Text style={[styles.examCountText, { color: cat.color }]}>
+                      {getDisplaySubExams(cat).length} exams
+                    </Text>
+                  </View>
+                </View>
 
-              <View style={[styles.iconBox, { backgroundColor: cat.color + '18' }, clayGlow(cat.color, 'sm')]}>
-                <Ionicons name={cat.icon} size={22} color={cat.color} />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.cardTitle}>{cat.title}</Text>
-                <Text style={styles.cardSubtitle}>{cat.description}</Text>
-                {cat.subExams &&
+                <View style={styles.textContainer}>
+                  <Text style={styles.cardTitle}>{cat.title}</Text>
+                  <Text style={styles.cardSubtitle}>{cat.description}</Text>
+                  {cat.subExams &&
                   <View style={styles.badgeRow}>
                     {getDisplaySubExams(cat).slice(0, 4).map((sub) =>
-                      <View key={sub} style={[styles.badge, { borderColor: cat.color + '60' }]}>
+                          <View key={sub} style={[styles.badge, { borderColor: cat.color + '3D' }]}>
                         <Text style={[styles.badgeText, { color: cat.color }]}>{sub}</Text>
                       </View>
                     )}
@@ -738,12 +1493,19 @@ export default function UploadMarks() {
                       </Text>
                     }
                   </View>
-                }
+                  }
+                </View>
+
+                <View style={styles.cardActionRow}>
+                  <Text style={[styles.cardActionText, { color: cat.color }]}>Enter marks</Text>
+                      <View style={[styles.arrowBox, { backgroundColor: cat.color + (isDark ? '22' : '12') }]}>
+                    <Ionicons name="arrow-forward" size={17} color={cat.color} />
+                  </View>
+                </View>
+                  </>
+                )}
               </View>
-              <View style={[styles.arrowBox, { backgroundColor: cat.color }, clayGlow(cat.color, 'sm')]}>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </View>
-            </TouchableOpacity>
+            </PressScale>
           </Animated.View>
         )}
       </View>
@@ -755,137 +1517,118 @@ export default function UploadMarks() {
         <View style={styles.emptyFilterBanner}>
           <Ionicons name="warning-outline" size={16} color="#DC2626" />
           <Text style={styles.emptyFilterText}>No classes are assigned to you in the timetable.</Text>
-        </View>);
-
+        </View>
+      );
     }
 
     return (
-      <View style={styles.filterSection}>
-        <LinearGradient
-          colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']}
-          style={styles.cardSheen}
-        />
-        <View style={styles.filterGroup}>
-          <FilterLabelPill icon="business-outline" label="Class" color="#8B5CF6" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            {classSections.map((cs) => {
-              const active = selectedClassSectionId === cs.class_section_id;
-              return (
-                <TouchableOpacity
-                  key={cs.class_section_id}
-                  style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => setSelectedClassSectionId(cs.class_section_id)}
-                  activeOpacity={0.7}>
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{cs.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+      <View style={styles.filterStack}>
+        <View style={styles.filterDropdownRow}>
+          <ResultsFilterDropdown
+            label="Class"
+            value={selectedClassSectionId}
+            options={classSections.map((classSection) => ({
+              id: classSection.class_section_id,
+              label: classSection.label,
+            }))}
+            accent={accentColor}
+            mutedText={theme.colors.textSecondary}
+            isDark={isDark}
+            halfWidth={isPhone}
+            onChange={setSelectedClassSectionId}
+          />
+          <ResultsFilterDropdown
+            label="Subject"
+            value={selectedSubjectId}
+            options={availableSubjects.map((assignment) => ({
+              id: assignment.subject_id,
+              label: assignment.subject_name,
+            }))}
+            accent={accentColor}
+            mutedText={theme.colors.textSecondary}
+            isDark={isDark}
+            halfWidth={isPhone}
+            disabled={availableSubjects.length === 0}
+            emptyText="No subjects for this class"
+            onChange={setSelectedSubjectId}
+          />
+          <ResultsFilterDropdown
+            label="Exam"
+            value={selectedSubExam || null}
+            options={activeSubExams.map((exam) => ({ id: exam, label: exam }))}
+            accent={accentColor}
+            mutedText={theme.colors.textSecondary}
+            isDark={isDark}
+            compact={isPhone}
+            disabled={activeSubExams.length === 0}
+            emptyText="No exams available"
+            onChange={setSelectedSubExam}
+            footerAction={selectedCategory ? {
+              label: `Add ${getNextExamName(selectedCategory, activeSubExams)}`,
+              onPress: handleAddSubExam,
+            } : undefined}
+          />
         </View>
 
-        <View style={styles.filterGroup}>
-          <FilterLabelPill icon="book-outline" label="Subject" color="#10B981" />
-          {availableSubjects.length === 0 ? (
-            <Text style={styles.noSubjectText}>No subjects for this class.</Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {availableSubjects.map((a) => {
-                const active = selectedSubjectId === a.subject_id;
-                return (
-                  <TouchableOpacity
-                    key={a.subject_id}
-                    style={[styles.chip, styles.chipSubject, active && styles.chipSubjectActive]}
-                    onPress={() => setSelectedSubjectId(a.subject_id)}
-                    activeOpacity={0.7}>
-                    <Text style={[styles.chipText, active && styles.chipSubjectTextActive]}>{a.subject_name}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
-
-        <View style={styles.filterGroup}>
-          <FilterLabelPill icon="layers-outline" label="Exam" color="#F59E0B" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            {activeSubExams.map((exam) => {
-              const active = selectedSubExam === exam;
-              return (
-                <TouchableOpacity
-                  key={exam}
-                  style={[styles.examTab, active && styles.examTabActive]}
-                  onPress={() => setSelectedSubExam(exam)}
-                  activeOpacity={0.7}>
-                  <Text style={[styles.examTabText, active && styles.examTabTextActive]}>{exam}</Text>
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity style={styles.examTabAdd} onPress={handleAddSubExam} activeOpacity={0.7} accessibilityLabel="Add exam">
-              <Ionicons name="add" size={18} color="#8B5CF6" />
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        <View style={styles.workspaceDivider} />
-
-        <View style={styles.schemaSection}>
-          <FilterLabelPill icon="options-outline" label="Assessment schema" color={accentColor} />
-          <View style={styles.schemaToggle} accessibilityRole="tablist">
-            {([
-              { key: 'component', label: 'Component-Based', icon: 'grid-outline' },
-              { key: 'consolidated', label: 'Consolidated', icon: 'document-text-outline' },
-            ] as const).map((option) => {
-              const active = assessmentSchema === option.key;
-              return (
-                <TouchableOpacity
-                  key={option.key}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                  activeOpacity={0.8}
-                  onPress={() => handleSchemaChange(option.key)}
-                  style={[styles.schemaOption, active && { backgroundColor: accentColor }]}
-                >
-                  <Ionicons name={option.icon} size={16} color={active ? '#FFFFFF' : theme.colors.textSecondary} />
-                  <Text style={[styles.schemaOptionText, active && styles.schemaOptionTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <Text style={styles.schemaHint}>
-            {assessmentSchema === 'component'
-              ? 'Participation 10 + Written 10 + Project 10 + Slip Test 20 = 50 marks'
-              : 'Enter the final subject score directly. Grade, GPA and rank update automatically.'}
-          </Text>
-        </View>
-
-        {assessmentSchema === 'consolidated' && (
-          <View style={styles.maxMarksRow}>
-            <View style={styles.maxMarksLeft}>
-              <View style={[styles.maxMarksIcon, clayGlow(accentColor, 'sm')]}>
-                <Ionicons name="trophy" size={16} color={accentColor} />
-              </View>
-              <View>
-                <Text style={styles.maxMarksLabel}>Max Marks</Text>
-                <Text style={styles.maxMarksHint}>Default 25 for this subject</Text>
-              </View>
+        <View style={styles.schemaRow}>
+          <SchemaToggle
+            value={assessmentSchema}
+            onChange={handleSchemaChange}
+            accent={accentColor}
+            mutedText={theme.colors.textSecondary}
+            isDark={isDark}
+          />
+          {assessmentSchema === 'consolidated' ? (
+            <View style={styles.maxMarksCompact}>
+              <Text style={styles.maxMarksCompactLabel}>Max</Text>
+              <AppTextInput
+                style={styles.maxMarksInput}
+                value={currentDraft.consolidatedMaxMarks}
+                onChangeText={handleMaxMarksChange}
+                  keyboardType="numeric"
+                  maxLength={3}
+                  selectTextOnFocus
+                  accessibilityLabel="Maximum marks"
+              />
             </View>
-            <AppTextInput
-              style={styles.maxMarksInput}
-              value={currentDraft.consolidatedMaxMarks}
-              onChangeText={handleMaxMarksChange}
-              keyboardType="numeric"
-              maxLength={3}
-            />
+          ) : null}
+        </View>
+        {assessmentSchema === 'component' ? (
+          <View style={styles.componentMaxPanel}>
+            <View style={styles.componentMaxHeader}>
+              <Text style={styles.componentMaxTitle}>Maximum marks</Text>
+              <Text style={[styles.componentMaxTotal, { color: accentColor }]}>Total {componentTotal}</Text>
+            </View>
+            <View style={styles.componentMaxGrid}>
+              {COMPONENT_FIELDS.map(({ field, shortLabel }) => (
+                <View key={field} style={styles.componentMaxItem}>
+                  <Text style={styles.componentMaxLabel} numberOfLines={1}>{shortLabel}</Text>
+                  <AppTextInput
+                    style={styles.componentMaxInput}
+                    value={currentDraft.componentMaximums[field]}
+                    onChangeText={(text) => handleComponentMaximumChange(field, text)}
+                    keyboardType="numeric"
+                    maxLength={3}
+                    selectTextOnFocus
+                    accessibilityLabel={`Maximum marks for ${shortLabel}`}
+                  />
+                </View>
+              ))}
+            </View>
+            <Text style={styles.schemaHint}>
+              These maximums apply to every student. Grade, GPA and rank update automatically.
+            </Text>
           </View>
+        ) : (
+          <Text style={styles.schemaHint}>
+            Enter the final score. Grade, GPA and rank update automatically.
+          </Text>
         )}
       </View>
     );
-
   };
 
-  const renderStudentAssessmentCard = (student: StudentWithDetails, index: number) => {
+  const renderStudentAssessmentCard = (student: StudentWithDetails) => {
     const displayName = student.person.display_name ??
       `${student.person.first_name} ${student.person.last_name}`;
     const result = studentResults[student.id];
@@ -893,21 +1636,17 @@ export default function UploadMarks() {
     const entered = assessmentSchema === 'component'
       ? isComponentAssessmentComplete(componentMarks)
       : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
-    const componentResult = calculateComponentAssessment(componentMarks);
+    const componentResult = calculateComponentAssessment(componentMarks, componentMaximums);
 
     return (
-      <Animated.View
-        key={student.id}
-        entering={FadeInDown.delay(index * 40).duration(350)}
-        style={styles.assessmentStudentCard}
-      >
+      <View key={student.id} style={styles.assessmentStudentCard}>
         <View style={styles.assessmentStudentHeader}>
-          <View style={[styles.studentAvatar, clayGlow('#8B5CF6', 'sm')]}>
+          <View style={styles.studentAvatar}>
             <StudentPhoto
               photoUrl={student.person.photo_url}
               displayName={displayName}
-              size={44}
-              borderRadius={14}
+              size={40}
+              borderRadius={12}
               fallbackTextStyle={styles.studentAvatarText}
             />
           </View>
@@ -928,19 +1667,22 @@ export default function UploadMarks() {
               <View key={field} style={styles.componentField}>
                 <View style={styles.componentLabelRow}>
                   <Text style={styles.componentLabel} numberOfLines={1}>{shortLabel}</Text>
-                  <Text style={styles.componentMaximum}>/{COMPONENT_MAXIMUMS[field]}</Text>
+                  <Text style={styles.componentMaximum}>/{componentMaximums[field]}</Text>
                 </View>
                 <AppTextInput
-                  accessibilityLabel={`${label}, maximum ${COMPONENT_MAXIMUMS[field]}`}
+                  accessibilityLabel={`${label}, maximum ${componentMaximums[field]}`}
                   style={[
                     styles.componentInput,
                     componentMarks[field] !== '' && styles.markInputFilled,
                   ]}
-                  placeholder="0"
+                  placeholder="0.00"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="decimal-pad"
+                  inputMode="decimal"
                   maxLength={5}
                   value={componentMarks[field]}
+                  selectTextOnFocus
+                  accessibilityHint="Enter a whole number or a decimal with up to two places"
                   onChangeText={(text) => handleComponentMarkChange(student.id, field, text)}
                 />
               </View>
@@ -951,7 +1693,7 @@ export default function UploadMarks() {
             <View style={styles.consolidatedCopy}>
               <Text style={styles.consolidatedLabel}>Marks Obtained</Text>
               <Text style={styles.consolidatedHint}>
-                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX}
+                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX} · decimals allowed
               </Text>
             </View>
             <AppTextInput
@@ -960,11 +1702,14 @@ export default function UploadMarks() {
                 styles.consolidatedInput,
                 currentDraft.consolidatedByStudent[student.id] && styles.markInputFilled,
               ]}
-              placeholder="—"
+              placeholder="0.00"
               placeholderTextColor="#9CA3AF"
               keyboardType="decimal-pad"
+              inputMode="decimal"
               maxLength={6}
               value={currentDraft.consolidatedByStudent[student.id] ?? ''}
+              selectTextOnFocus
+              accessibilityHint="Enter a whole number or a decimal with up to two places"
               onChangeText={(text) => handleConsolidatedMarkChange(student.id, text)}
             />
           </View>
@@ -1022,9 +1767,14 @@ export default function UploadMarks() {
             </View>
           )}
         </View>
-      </Animated.View>
+      </View>
     );
   };
+
+  const uploadLabel = filledCount === 0
+    ? 'Upload results'
+    : `Upload ${filledCount} ${filledCount === 1 ? 'result' : 'results'}`;
+  const canUpload = !dataLoading && !uploading && !!selectedAssignment && filledCount > 0;
 
   const renderUploadForm = () =>
     <>
@@ -1034,90 +1784,119 @@ export default function UploadMarks() {
         showsVerticalScrollIndicator={false}
         bottomOffset={120}>
 
-        {selectedAssignment && (
-          <Animated.View entering={FadeInRight.duration(300)} style={styles.breadcrumb}>
-            <View style={[styles.breadcrumbDot, { backgroundColor: accentColor }]} />
-            <Text style={styles.breadcrumbText} numberOfLines={1}>
-              {selectedAssignment.class_name}-{selectedAssignment.section_name}
-              <Text style={styles.breadcrumbSep}> · </Text>
-              {selectedAssignment.subject_name}
-              <Text style={styles.breadcrumbSep}> · </Text>
-              {selectedSubExam}
-            </Text>
-          </Animated.View>
-        )}
-
-        {renderFilterSection()}
-
-        <View style={styles.studentsCard}>
+        <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(260)} style={styles.workspace}>
           <LinearGradient
-            colors={isDark ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.65)', 'rgba(255,255,255,0)']}
+            colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']}
             style={styles.cardSheen}
           />
-          <View style={styles.studentsCardHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.studentsTitle}>Students</Text>
-              <Text style={styles.studentsSubtitle}>
-                {filledCount} of {students.length} marks entered
-              </Text>
-            </View>
-            <View style={[styles.marksCapPill, clayGlow(accentColor, 'sm')]}>
-              <Text style={[styles.marksCapText, { color: accentColor }]}>
-                /{assessmentSchema === 'component' ? COMPONENT_TOTAL_MAX : currentDraft.consolidatedMaxMarks}
+
+          <View style={styles.workspaceToolbar}>
+            <PressScale onPress={handleBackToDashboard} accessibilityLabel="All exams">
+              <View style={styles.allExamsBtn}>
+                <Ionicons name="grid-outline" size={14} color={accentColor} />
+                <Text style={[styles.allExamsText, { color: accentColor }]}>All exams</Text>
+              </View>
+            </PressScale>
+            <Text style={styles.toolbarContext} numberOfLines={1}>{contextLabel}</Text>
+            <View style={styles.toolbarMeta}>
+              <Text style={styles.toolbarCount}>
+                {filledCount}/{students.length || 0}
               </Text>
             </View>
           </View>
 
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <LogoLoader size={60} color={accentColor} />
-              <Text style={styles.loadingText}>Loading students…</Text>
-            </View>
-          ) : students.length > 0 ? (
-            students.map(renderStudentAssessmentCard)
-          ) : (
-            <View style={styles.emptyStudents}>
-              <View style={[styles.emptyIcon, clayGlow(accentColor, 'sm')]}>
-                <Ionicons name="people-outline" size={28} color={accentColor} />
+          {renderFilterSection()}
+
+          <View style={styles.studentsBlock}>
+            <View style={styles.studentsCardHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.studentsTitle}>Enter marks</Text>
+                <Text style={styles.studentsSubtitle}>
+                  {students.length === 0
+                    ? 'Students appear once a class is selected'
+                    : `${filledCount} of ${students.length} entered`}
+                </Text>
               </View>
-              <Text style={styles.emptyStudentsText}>No students found</Text>
-              <Text style={styles.emptyStudentsSubtext}>
-                {selectedAssignment
-                  ? `No students in ${selectedAssignment.class_name}-${selectedAssignment.section_name}`
-                  : 'Select a class and subject above'}
-              </Text>
+              {dataLoading && students.length > 0 ? (
+                <View style={styles.syncPill} accessibilityLiveRegion="polite">
+                  <LogoLoader size={16} color={accentColor} />
+                  <Text style={styles.syncText}>Syncing</Text>
+                </View>
+              ) : (
+                <View style={styles.marksCapPill}>
+                  <Text style={[styles.marksCapText, { color: accentColor }]}>
+                    /{assessmentSchema === 'component' ? componentTotal : currentDraft.consolidatedMaxMarks}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
+
+            {studentsLoading ? (
+              <StudentsSkeleton />
+            ) : students.length > 0 ? (
+              <View style={styles.studentGrid}>
+                {students.map(renderStudentAssessmentCard)}
+              </View>
+            ) : (
+              <View style={styles.emptyStudents}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="people-outline" size={28} color={accentColor} />
+                </View>
+                <Text style={styles.emptyStudentsText}>No students found</Text>
+                <Text style={styles.emptyStudentsSubtext}>
+                  {selectedAssignment
+                    ? `No students in ${selectedAssignment.class_name}-${selectedAssignment.section_name}`
+                    : 'Select a class and subject above'}
+                </Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
       </KeyboardAwareScreen>
 
-      <View style={styles.floatingAction}>
-        <View style={styles.submitCountBadge}>
-          <View style={[styles.submitCountDot, { backgroundColor: filledCount > 0 ? '#10B981' : '#94A3B8' }]} />
-          <Text style={styles.submitCountText}>
-            {filledCount} / {students.length} filled
-          </Text>
-        </View>
-        <Pressable
-          style={({ pressed }) => [styles.submitPressable, pressed && { opacity: 0.92 }]}
-          onPress={handleSubmit}
-          disabled={loading || !selectedAssignment}>
-          <LinearGradient
-            colors={loading || !selectedAssignment ? ['#C4B5FD', '#A78BFA'] : ['#6D28D9', '#8B5CF6', '#A78BFA']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.submitButton, clayGlow('#7C3AED', 'md')]}>
-            {loading ? (
-              <LogoLoader size={30} color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
-                <Text style={styles.submitText}>Upload Results</Text>
-              </>
-            )}
-          </LinearGradient>
-        </Pressable>
-      </View>
+      {!keyboardVisible || Platform.OS === 'web' ? (
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeInDown.duration(220)}
+          exiting={reduceMotion ? undefined : FadeOutDown.duration(160)}
+          style={styles.ctaDockWrap}
+          pointerEvents="box-none"
+        >
+          <View style={styles.ctaDock}>
+            <View style={styles.ctaProgressBlock}>
+              <View style={styles.ctaProgressRow}>
+                <Text style={styles.ctaProgressLabel} numberOfLines={1}>
+                  {students.length === 0 ? 'Select a class' : `${filledCount} of ${students.length} entered`}
+                </Text>
+                <Text style={[styles.ctaProgressPct, { color: accentColor }]}>
+                  {Math.round(fillPercent * 100)}%
+                </Text>
+              </View>
+              <ProgressTrack progress={fillPercent} accent={accentColor} />
+            </View>
+            <View style={styles.ctaActionWrap}>
+              <PressScale onPress={handleSubmit} disabled={!canUpload} accessibilityLabel={uploadLabel}>
+                <View style={[styles.ctaButton, { backgroundColor: canUpload ? theme.colors.primary : theme.colors.primaryLight, opacity: canUpload ? 1 : 0.45 }]}>
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                    pointerEvents="none"
+                  />
+                  {uploading ? (
+                    <LogoLoader size={26} color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
+                      <Text style={styles.submitText}>{uploadLabel}</Text>
+                    </>
+                  )}
+                </View>
+              </PressScale>
+            </View>
+          </View>
+        </Animated.View>
+      ) : null}
     </>;
 
   // ── Main Render ───────────────────────────────────────────────────────────────
@@ -1126,22 +1905,17 @@ export default function UploadMarks() {
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View style={[styles.orb1, { backgroundColor: isDark ? 'rgba(124,111,255,0.14)' : 'rgba(124,111,255,0.10)' }]} />
-      <View style={[styles.orb2, { backgroundColor: isDark ? 'rgba(59,130,246,0.10)' : 'rgba(59,130,246,0.08)' }]} />
+      {!isPhone ? (
+        <>
+          <View style={[styles.orb1, { backgroundColor: isDark ? 'rgba(124,111,255,0.14)' : 'rgba(124,111,255,0.10)' }]} />
+          <View style={[styles.orb2, { backgroundColor: isDark ? 'rgba(59,130,246,0.10)' : 'rgba(59,130,246,0.08)' }]} />
+        </>
+      ) : null}
 
       <StaffHeader
         title={selectedCategory?.title ?? 'Upload Marks'}
         showBackButton={true} />
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
-
-      {selectedCategory && (
-        <TouchableOpacity style={styles.backToDash} onPress={handleBackToDashboard} activeOpacity={0.8}>
-          <View style={[styles.backIcon, clayGlow(accentColor, 'sm')]}>
-            <Ionicons name="grid-outline" size={14} color={accentColor} />
-          </View>
-          <Text style={styles.backText}>All Exams</Text>
-        </TouchableOpacity>
-      )}
 
       {selectedCategory ? renderUploadForm() : renderDashboard()}
     </View>);
@@ -1152,18 +1926,16 @@ export default function UploadMarks() {
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
 
-const getStyles = (theme: Theme, isDark: boolean) => {
-  const pageBg = isDark ? '#0B1020' : '#EFF2F9';
-  const cardBg = isDark ? '#1A2332' : '#EFF2F9';
-  const chipBase: ViewStyle = {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#EFF2F9',
-    borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.8)',
-    ...clay(isDark, 'sm'),
-  };
+const getStyles = (
+  theme: Theme,
+  isDark: boolean,
+  dashboardColumns: number,
+  isPhone: boolean,
+  studentColumns: number,
+) => {
+  const pageBg = isDark ? '#0B1020' : '#F6F8FC';
+  const cardBg = isDark ? '#151D2D' : '#FFFFFF';
+  const dashboardCardWidth = dashboardColumns === 3 ? '32%' : dashboardColumns === 2 ? '48.6%' : '100%';
 
   return StyleSheet.create({
     container: {
@@ -1200,58 +1972,180 @@ const getStyles = (theme: Theme, isDark: boolean) => {
 
     // ── Dashboard ────────────────────────────────────────────────────────────
     dashboardContent: {
-      padding: 20,
+      width: '100%',
+      maxWidth: 1240,
+      alignSelf: 'center',
+      paddingHorizontal: isPhone ? 14 : 24,
+      paddingTop: isPhone ? 14 : 24,
       // Clear the floating bottom tab bar so the last category card isn't covered.
       paddingBottom: staffTabBarReserve(Spacing),
     },
     headerSection: {
-      marginBottom: 22,
-      ...clayCard(isDark, 'md'),
-      padding: 20,
+      marginBottom: isPhone ? 22 : 28,
+      padding: isPhone ? 18 : 24,
+      minHeight: isPhone ? undefined : 136,
+      flexDirection: 'row',
+      alignItems: isPhone ? 'flex-start' : 'center',
+      gap: isPhone ? 14 : 18,
+      backgroundColor: isDark ? '#151D2D' : '#FFFFFF',
+      borderRadius: isPhone ? 20 : 24,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: isDark ? 0.28 : 0.06,
+      shadowRadius: 20,
+      elevation: 3,
       overflow: 'hidden',
     },
+    heroIcon: {
+      width: isPhone ? 44 : 52,
+      height: isPhone ? 44 : 52,
+      borderRadius: isPhone ? 14 : 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(129,140,248,0.14)' : '#EEF2FF',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(129,140,248,0.22)' : '#E0E7FF',
+    },
+    heroCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    eyebrow: {
+      marginBottom: 6,
+      color: theme.colors.primary,
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.2,
+    },
     pageTitle: {
-      fontSize: 24,
-      fontWeight: '900',
-      color: theme.colors.text,
-      letterSpacing: -0.5,
+      fontSize: isPhone ? 21 : 27,
+      lineHeight: isPhone ? 27 : 34,
+      fontWeight: '800',
+      color: theme.colors.textStrong,
+      letterSpacing: -0.6,
     },
     pageSubtitle: {
-      fontSize: 13,
+      maxWidth: 620,
+      fontSize: isPhone ? 13 : 14,
       color: theme.colors.textSecondary,
-      marginTop: 6,
-      lineHeight: 18,
+      marginTop: 7,
+      lineHeight: isPhone ? 19 : 21,
+    },
+    heroMeta: {
+      minWidth: 92,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#E2E8F0',
+    },
+    heroMetaValue: {
+      color: theme.colors.textStrong,
+      fontSize: 22,
+      lineHeight: 26,
+      fontWeight: '900',
+    },
+    heroMetaLabel: {
+      marginTop: 2,
+      color: theme.colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    sectionHeading: {
+      marginBottom: 14,
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    sectionTitle: {
+      color: theme.colors.textStrong,
+      fontSize: isPhone ? 16 : 18,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+    },
+    sectionHint: {
+      color: theme.colors.textSecondary,
+      fontSize: 12,
+      fontWeight: '600',
     },
     gridContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 16,
     },
     cardContainer: {
-      width: '100%',
+      width: dashboardCardWidth,
+    },
+    cardContainerWide: {
+      width: '48.6%',
+    },
+    cardContainerCentered: {
+      marginLeft: '25.7%',
     },
     card: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 20,
-      ...clayCard(isDark, 'md'),
+      minHeight: isPhone ? 118 : 218,
+      height: '100%',
+      padding: isPhone ? 14 : 18,
+      backgroundColor: isDark ? '#151D2D' : '#FFFFFF',
+      borderRadius: isPhone ? 18 : 20,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.24 : 0.045,
+      shadowRadius: 12,
+      elevation: 2,
       overflow: 'hidden',
     },
+    cardAccent: {
+      position: 'absolute',
+      top: isPhone ? 14 : 0,
+      bottom: isPhone ? 14 : undefined,
+      left: isPhone ? 0 : 18,
+      right: isPhone ? undefined : 18,
+      width: isPhone ? 3 : undefined,
+      height: isPhone ? undefined : 3,
+      borderTopRightRadius: 3,
+      borderBottomRightRadius: 3,
+      borderBottomLeftRadius: isPhone ? 0 : 3,
+    },
+    cardTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
     iconBox: {
-      width: 54,
-      height: 54,
-      borderRadius: 18,
+      width: isPhone ? 46 : 48,
+      height: isPhone ? 46 : 48,
+      borderRadius: 15,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 16,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.4)',
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.12)',
+    },
+    examCountPill: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    examCountText: {
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.2,
     },
     textContainer: {
       flex: 1,
     },
     cardTitle: {
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: '800',
-      color: theme.colors.text,
+      color: theme.colors.textStrong,
       marginBottom: 4,
       letterSpacing: -0.2,
     },
@@ -1264,15 +2158,14 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 6,
-      marginTop: 10,
+      marginTop: 12,
     },
     badge: {
       borderWidth: 1,
-      borderRadius: 10,
+      borderRadius: 999,
       paddingHorizontal: 8,
-      paddingVertical: 3,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)',
-      ...clayInset(isDark),
+      paddingVertical: 4,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.035)' : '#F8FAFC',
     },
     badgeText: {
       fontSize: 11,
@@ -1284,160 +2177,125 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       alignSelf: 'center',
     },
     arrowBox: {
-      width: 42,
-      height: 42,
-      borderRadius: 16,
+      width: 30,
+      height: 30,
+      borderRadius: 10,
       justifyContent: 'center',
       alignItems: 'center',
-      marginLeft: 10,
+    },
+    cardActionRow: {
+      marginTop: 16,
+      paddingTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9',
+    },
+    cardActionText: {
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    mobileCardRow: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    mobileCardCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    mobileExamCount: {
+      marginTop: 7,
+      fontSize: 11,
+      fontWeight: '800',
     },
 
     // ── Upload flow ──────────────────────────────────────────────────────────
     uploadScroll: {
-      paddingBottom: 200,
+      width: '100%',
+      maxWidth: 1180,
+      alignSelf: 'center',
+      paddingHorizontal: isPhone ? 12 : 20,
+      paddingTop: isPhone ? 10 : 16,
+      paddingBottom: STAFF_TAB_BAR_HEIGHT + 148,
     },
-    backToDash: {
+    workspace: {
+      backgroundColor: cardBg,
+      borderRadius: isPhone ? 20 : 24,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: isDark ? 0.28 : 0.06,
+      shadowRadius: 18,
+      elevation: 3,
+      overflow: 'hidden',
+      paddingBottom: 12,
+    },
+    workspaceToolbar: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginHorizontal: 16,
-      marginTop: 8,
-      marginBottom: 10,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      alignSelf: 'flex-start',
       gap: 10,
+      paddingHorizontal: 14,
+      paddingTop: 14,
+      paddingBottom: 10,
     },
-    backIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 12,
-      backgroundColor: isDark ? 'rgba(124,111,255,0.14)' : '#EFF2F9',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(124,111,255,0.3)',
-      ...clay(isDark, 'sm'),
-    },
-    backText: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-      fontWeight: '800',
-    },
-    breadcrumb: {
+    allExamsBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      marginHorizontal: 16,
-      marginBottom: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 16,
-      backgroundColor: isDark ? 'rgba(124,111,255,0.10)' : 'rgba(124,111,255,0.05)',
+      gap: 6,
+      minHeight: 40,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)',
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(124,111,255,0.18)' : 'rgba(124,111,255,0.15)',
-      ...clayInset(isDark),
+      borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(148,163,184,0.18)',
     },
-    breadcrumbDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
+    allExamsText: {
+      fontSize: 13,
+      fontWeight: '700',
     },
-    breadcrumbText: {
+    toolbarContext: {
       flex: 1,
       fontSize: 13,
+      fontWeight: '700',
+      color: theme.colors.text,
+      letterSpacing: -0.1,
+    },
+    toolbarMeta: {
+      minWidth: 44,
+      alignItems: 'flex-end',
+    },
+    toolbarCount: {
+      fontSize: 13,
       fontWeight: '800',
-      color: isDark ? '#C4B5FD' : '#5B21B6',
-      letterSpacing: 0.1,
+      color: theme.colors.textSecondary,
+      fontVariant: ['tabular-nums'],
     },
-    breadcrumbSep: {
-      color: isDark ? 'rgba(196,181,253,0.5)' : 'rgba(91,33,182,0.35)',
-      fontWeight: '600',
+    filterStack: {
+      gap: 10,
+      paddingHorizontal: 14,
+      paddingBottom: 4,
     },
-
-    // ── Workspace / filters ────────────────────────────────────────────────────
-    filterSection: {
-      marginHorizontal: 16,
-      marginBottom: 16,
-      paddingTop: 20,
-      paddingBottom: 20,
-      gap: 20,
-      ...clayCard(isDark, 'lg'),
-      overflow: 'hidden',
-    },
-    filterGroup: {
-      paddingHorizontal: 16,
-    },
-    chipRow: {
+    filterDropdownRow: {
       flexDirection: 'row',
-      gap: 12,
-      paddingRight: 16,
-      paddingBottom: 6,
-    },
-    chip: chipBase,
-    chipActive: {
-      backgroundColor: isDark ? 'rgba(139,92,246,0.10)' : '#EEF2FF',
-      borderColor: 'rgba(139,92,246,0.2)',
-      ...clayInset(isDark),
-    },
-    chipSubject: chipBase,
-    chipSubjectActive: {
-      backgroundColor: isDark ? 'rgba(16,185,129,0.18)' : '#F0FDF4',
-      borderColor: 'rgba(16,185,129,0.2)',
-      ...clayInset(isDark),
-    },
-    chipText: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: theme.colors.textSecondary,
-    },
-    chipTextActive: {
-      color: '#7C3AED',
-    },
-    chipSubjectTextActive: {
-      color: '#059669',
-    },
-    examTab: chipBase,
-    examTabActive: {
-      backgroundColor: isDark ? 'rgba(245,158,11,0.18)' : '#FFF7ED',
-      borderColor: 'rgba(245,158,11,0.2)',
-      ...clayInset(isDark),
-    },
-    examTabText: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: theme.colors.textSecondary,
-    },
-    examTabTextActive: {
-      color: '#D97706',
-    },
-    examTabAdd: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      backgroundColor: isDark ? 'rgba(139,92,246,0.10)' : '#EFF2F9',
-      borderWidth: 1.5,
-      borderColor: '#8B5CF6',
-      borderStyle: 'dashed',
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...clayInset(isDark),
-    },
-    workspaceDivider: {
-      height: 1,
-      marginHorizontal: 16,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.14)',
+      flexWrap: 'wrap',
+      alignItems: 'flex-end',
+      gap: 10,
     },
     emptyFilterBanner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      margin: 16,
+      marginHorizontal: 14,
+      marginBottom: 8,
       padding: 14,
       backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : '#FEF2F2',
-      borderRadius: 18,
+      borderRadius: 16,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(239,68,68,0.25)' : '#FECACA',
-      ...clayGlow('#EF4444', 'sm'),
     },
     emptyFilterText: {
       color: '#DC2626',
@@ -1445,119 +2303,119 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       fontWeight: '600',
       flex: 1,
     },
-    noSubjectText: {
-      color: theme.colors.textTertiary,
-      fontSize: 13,
-      fontStyle: 'italic',
-      paddingLeft: 4,
-    },
-    schemaSection: {
-      paddingHorizontal: 16,
-    },
-    schemaToggle: {
-      flexDirection: 'row',
-      padding: 5,
-      gap: 5,
-      borderRadius: 18,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#E2E8F0',
-      ...clayInset(isDark),
-    },
-    schemaOption: {
-      flex: 1,
-      minHeight: 46,
-      paddingHorizontal: 8,
-      paddingVertical: 10,
-      borderRadius: 14,
+    schemaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: 7,
-    },
-    schemaOptionText: {
-      color: theme.colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '800',
-      textAlign: 'center',
-    },
-    schemaOptionTextActive: {
-      color: '#FFFFFF',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 6,
     },
     schemaHint: {
       color: theme.colors.textTertiary,
       fontSize: 12,
-      lineHeight: 18,
-      marginTop: 10,
-      paddingHorizontal: 4,
+      lineHeight: 17,
+      paddingHorizontal: 2,
     },
-    maxMarksRow: {
+    componentMaxPanel: {
+      gap: 10,
+      padding: 12,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.55)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.16)',
+    },
+    componentMaxHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingTop: 4,
+      gap: 12,
     },
-    maxMarksLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-      flex: 1,
+    componentMaxTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: theme.colors.textSecondary,
     },
-    maxMarksIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 16,
-      backgroundColor: isDark ? 'rgba(124,111,255,0.12)' : '#EFF2F9',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(124,111,255,0.3)',
-      ...clay(isDark, 'sm'),
-    },
-    maxMarksLabel: {
-      fontSize: 15,
+    componentMaxTotal: {
+      fontSize: 13,
       fontWeight: '800',
-      color: theme.colors.text,
       letterSpacing: -0.2,
     },
-    maxMarksHint: {
-      fontSize: 12,
-      color: theme.colors.textTertiary,
-      marginTop: 2,
+    componentMaxGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    componentMaxItem: {
+      flexGrow: 1,
+      flexBasis: isPhone ? '46%' : '22%',
+      minWidth: isPhone ? 120 : 72,
+      gap: 6,
+    },
+    componentMaxLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.colors.textSecondary,
+      paddingHorizontal: 2,
+    },
+    componentMaxInput: {
+      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(148,163,184,0.22)',
+      borderRadius: 14,
+      height: 44,
+      textAlign: 'center',
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.colors.text,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+    },
+    maxMarksCompact: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    maxMarksCompactLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      color: theme.colors.textSecondary,
     },
     maxMarksInput: {
       borderWidth: 1.5,
-      borderColor: 'rgba(139,92,246,0.2)',
-      borderRadius: 16,
-      width: 86,
-      height: 54,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(148,163,184,0.22)',
+      borderRadius: 14,
+      width: 64,
+      height: 44,
       textAlign: 'center',
-      fontSize: 20,
-      fontWeight: '900',
-      color: '#7C3AED',
-      backgroundColor: isDark ? 'rgba(139,92,246,0.10)' : '#F5F3FF',
-      ...clayInset(isDark),
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.colors.text,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
     },
-
-    // ── Students card ────────────────────────────────────────────────────────
-    studentsCard: {
-      marginHorizontal: 16,
-      marginTop: 8,
-      ...clayCard(isDark, 'lg'),
-      overflow: 'hidden',
-      paddingBottom: 8,
+    studentsBlock: {
+      marginTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.14)',
     },
-    studentsCardHeader: {
+    studentGrid: {
+      paddingHorizontal: 12,
+      paddingBottom: 4,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+        studentsCardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingTop: 20,
-      paddingBottom: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.15)',
+      paddingHorizontal: 14,
+      paddingTop: 14,
+      paddingBottom: 10,
     },
     studentsTitle: {
-      fontSize: 18,
-      fontWeight: '900',
+      fontSize: 16,
+      fontWeight: '800',
       color: theme.colors.text,
       letterSpacing: -0.3,
     },
@@ -1568,17 +2426,32 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       fontWeight: '600',
     },
     marksCapPill: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 14,
-      backgroundColor: isDark ? 'rgba(124,111,255,0.10)' : '#EFF2F9',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)',
       borderWidth: 1,
-      borderColor: 'rgba(124,111,255,0.2)',
-      ...clay(isDark, 'sm'),
+      borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(148,163,184,0.18)',
     },
     marksCapText: {
       fontSize: 16,
       fontWeight: '900',
+    },
+    syncPill: {
+      minHeight: 36,
+      paddingHorizontal: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8FAFC',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+    },
+    syncText: {
+      color: theme.colors.textSecondary,
+      fontSize: 11,
+      fontWeight: '700',
     },
     loadingContainer: {
       alignItems: 'center',
@@ -1603,15 +2476,13 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       borderBottomWidth: 0,
     },
     studentAvatar: {
-      width: 46,
-      height: 46,
-      borderRadius: 16,
-      backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : '#EFF2F9',
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : 'rgba(255,255,255,0.7)',
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: 'rgba(139,92,246,0.3)',
-      ...clay(isDark, 'sm'),
+      overflow: 'hidden',
     },
     studentAvatarText: {
       fontSize: 16,
@@ -1653,19 +2524,18 @@ const getStyles = (theme: Theme, isDark: boolean) => {
       color: '#7C3AED',
     },
     assessmentStudentCard: {
-      padding: 16,
-      marginHorizontal: 12,
-      marginTop: 12,
-      borderRadius: 22,
+      width: studentColumns === 2 ? '49.35%' : '100%',
+      padding: isPhone ? 12 : 14,
+      borderRadius: 18,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(148,163,184,0.18)',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.42)',
+      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(148,163,184,0.16)',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : '#FAFBFD',
     },
     assessmentStudentHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      marginBottom: 16,
+      gap: 10,
+      marginBottom: 12,
     },
     gradeBadge: {
       minWidth: 46,
@@ -1764,7 +2634,7 @@ const getStyles = (theme: Theme, isDark: boolean) => {
     },
     metricItem: {
       flexGrow: 1,
-      minWidth: 64,
+      minWidth: isPhone ? 82 : 72,
       paddingHorizontal: 8,
       paddingVertical: 8,
       borderRadius: 12,
@@ -1786,21 +2656,20 @@ const getStyles = (theme: Theme, isDark: boolean) => {
     },
     emptyStudents: {
       alignItems: 'center',
-      paddingVertical: 56,
+      paddingVertical: 28,
       paddingHorizontal: 24,
-      gap: 12,
+      gap: 10,
     },
     emptyIcon: {
-      width: 64,
-      height: 64,
-      borderRadius: 20,
-      backgroundColor: isDark ? 'rgba(124,111,255,0.10)' : '#EFF2F9',
+      width: 56,
+      height: 56,
+      borderRadius: 18,
+      backgroundColor: isDark ? 'rgba(124,111,255,0.10)' : 'rgba(255,255,255,0.7)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 4,
+      marginBottom: 2,
       borderWidth: 1,
-      borderColor: 'rgba(124,111,255,0.2)',
-      ...clay(isDark, 'sm'),
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.18)',
     },
     emptyStudentsText: {
       fontSize: 17,
@@ -1815,52 +2684,72 @@ const getStyles = (theme: Theme, isDark: boolean) => {
     },
 
     // ── Submit ───────────────────────────────────────────────────────────────
-    floatingAction: {
+    ctaDockWrap: {
       position: 'absolute',
-      bottom: 90,
-      left: 18,
-      right: 18,
-      gap: 12,
-    },
-    submitCountBadge: {
-      alignSelf: 'center',
-      flexDirection: 'row',
+      left: 0,
+      right: 0,
+      bottom: STAFF_TAB_BAR_HEIGHT + Spacing.xl + 8,
       alignItems: 'center',
-      gap: 8,
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      borderRadius: 24,
+      paddingHorizontal: 16,
+    },
+    ctaDock: {
+      width: '100%',
+      maxWidth: 440,
+      padding: isPhone ? 10 : 12,
+      gap: isPhone ? 12 : 10,
+      flexDirection: isPhone ? 'row' : 'column',
+      alignItems: isPhone ? 'center' : 'stretch',
       backgroundColor: cardBg,
+      borderRadius: 22,
       borderWidth: 1,
       borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.8)',
-      ...clay(isDark, 'sm'),
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: isDark ? 0.32 : 0.12,
+      shadowRadius: 18,
+      elevation: 8,
     },
-    submitCountDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
+    ctaProgressBlock: {
+      flex: isPhone ? 1 : undefined,
+      alignSelf: 'stretch',
+      justifyContent: 'center',
+      gap: 8,
+      minWidth: 0,
     },
-    submitCountText: {
+    ctaActionWrap: {
+      width: isPhone ? 166 : '100%',
+    },
+    ctaProgressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 4,
+    },
+    ctaProgressLabel: {
       fontSize: 13,
-      fontWeight: '800',
+      fontWeight: '700',
       color: theme.colors.textSecondary,
     },
-    submitPressable: {
-      borderRadius: 24,
-      overflow: 'hidden',
+    ctaProgressPct: {
+      fontSize: 13,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
     },
-    submitButton: {
-      paddingVertical: 18,
-      borderRadius: 24,
+    ctaButton: {
+      height: isPhone ? 48 : 52,
+      borderRadius: 16,
+      overflow: 'hidden',
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
+      borderBottomWidth: 1.5,
+      borderBottomColor: 'rgba(0,0,0,0.14)',
     },
     submitText: {
       color: '#fff',
-      fontSize: 17,
-      fontWeight: '800',
+      fontSize: 16,
+      fontWeight: '700',
       letterSpacing: 0.2,
     },
   });
