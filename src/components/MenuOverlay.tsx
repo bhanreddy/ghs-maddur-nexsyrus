@@ -193,6 +193,7 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
         { key: 'dcgd', label: 'DCGD', icon: 'ribbon-outline', link: '/Screen/dcgd', accent: '#0D9488', feature: 'menu.dcgd' },
         { key: 'ai_doubt', label: 'AI Doubt Assist', icon: 'chatbubble-ellipses-outline', link: '/Screen/aiChat', accent: '#6366F1', feature: 'menu.ai_doubt_assist' },
         { key: 'insurance', label: 'Insurance', icon: 'shield-checkmark-outline', link: '/Screen/insurance', accent: '#10B981', feature: 'menu.insurance' },
+        { key: 'hostel', label: 'Hostel', icon: 'bed-outline', link: '/Screen/hostel', accent: '#6366F1', feature: 'quick.hostel' },
         { key: 'money_science', label: 'Money Science', icon: 'cash-outline', link: '/Screen/moneyScience', accent: '#8B5CF6', feature: 'menu.money_science' },
     ];
 

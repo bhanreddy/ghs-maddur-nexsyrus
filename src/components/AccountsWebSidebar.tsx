@@ -92,6 +92,14 @@ export const ACCOUNTS_SIDEBAR_NAV: AccountsSidebarNavItem[] = [
     category: 'Admissions',
   },
   {
+    title: 'Hostel Students',
+    icon: 'bed-outline',
+    route: '/accounts/hostel',
+    gradient: ['#312E81', '#6366F1'],
+    category: 'Student services',
+    permission: 'hostel.allocate',
+  },
+  {
     title: 'Settings',
     icon: 'settings-outline',
     route: '/accounts/settings',

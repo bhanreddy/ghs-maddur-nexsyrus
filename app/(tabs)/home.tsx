@@ -104,7 +104,9 @@ interface HomeTab {
   translationKey?: string;
   subtitleKey: string;
   /** Purpose-built claymorphic scene that explains the destination at a glance. */
-  image: ImageSourcePropType;
+  image?: ImageSourcePropType;
+  /** Code-native fallback for modules that do not need a bitmap illustration. */
+  icon?: keyof typeof Ionicons.glyphMap;
   /** 3-stop gradient: [deep edge, mid base, light top-highlight] */
   grad: [string, string, string];
   /** Single shadow hue — keep tight, don't oversaturate */
@@ -158,6 +160,15 @@ const homeTabs: HomeTab[] = [
     grad: ['#78350F', '#B45309', '#FCD34D'], // Amber 900, Amber 700
     shadow: '#92400E', // Amber 800
     feature: 'quick.transport',
+  },
+  {
+    key: 'hostel',
+    translationKey: 'hostel', title: 'Hostel',
+    subtitleKey: 'hostelDetails',
+    icon: 'bed-outline',
+    grad: ['#312E81', '#4F46E5', '#A5B4FC'],
+    shadow: '#4338CA',
+    feature: 'quick.hostel',
   },
   {
     key: 'projects',
@@ -483,12 +494,18 @@ const FeatureCard = ({ tab, isDark, onPress, cardWidth }: {
 
           <View style={fc.card}>
             <View style={[fc.artStage, { shadowColor: tab.shadow }]}>
-              <Image
-                source={tab.image}
-                style={fc.artImage}
-                resizeMode="cover"
-                accessibilityIgnoresInvertColors
-              />
+              {tab.image ? (
+                <Image
+                  source={tab.image}
+                  style={fc.artImage}
+                  resizeMode="cover"
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <View style={fc.artIconFallback}>
+                  <Ionicons name={tab.icon || 'apps-outline'} size={42} color="#FFFFFF" />
+                </View>
+              )}
               <LinearGradient
                 colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']}
                 start={{ x: 0, y: 0 }}
@@ -545,6 +562,12 @@ const fc = StyleSheet.create({
   artImage: {
     width: '100%',
     height: '100%',
+  },
+  artIconFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4F46E5',
   },
   copy: {
     flex: 1,

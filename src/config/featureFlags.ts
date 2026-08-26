@@ -14,6 +14,7 @@ export const FEATURE_DEFAULTS = {
   'quick.complaints': true,
   'quick.life_values': true,
   'quick.transport': true,
+  'quick.hostel': true,
   'quick.science_projects': true,
   'quick.profile': true,
   'topbar.diary': true,
