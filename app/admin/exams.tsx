@@ -299,6 +299,7 @@ export default function AdminExams() {
   // list view
   const [exams, setExams] = useState<ExamListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [publishingExamId, setPublishingExamId] = useState<string | null>(null);
   const [hallTicketExam, setHallTicketExam] = useState<ExamListItem | null>(null);
   const [signatureVisible, setSignatureVisible] = useState(false);
 
@@ -437,9 +438,14 @@ export default function AdminExams() {
     const publishing = !detail.exam.results_published;
     const readiness = detail.result_readiness;
     if (publishing && !readiness.ready) {
+      const message = readiness.papers_total === 0
+        ? 'Teachers can enter marks for this exam from Results without creating or publishing a timetable. Publishing becomes available after marks entry starts and every student has a result.'
+        : readiness.expected_entries === 0
+          ? 'No active student results are expected yet. Check the selected classes and active enrollments before publishing.'
+          : `${readiness.missing_entries} mark ${readiness.missing_entries === 1 ? 'entry is' : 'entries are'} still missing. Results can be published after every teacher finishes entry.`;
       alertCompat(
-        'Marks are still incomplete',
-        `${readiness.missing_entries} mark ${readiness.missing_entries === 1 ? 'entry is' : 'entries are'} still missing. Results can be published after every teacher finishes entry.`
+        readiness.papers_total === 0 ? 'Results are ready for mark entry' : 'Marks are still incomplete',
+        message
       );
       return;
     }
@@ -482,6 +488,58 @@ export default function AdminExams() {
       );
     }
   }, [detail, refreshDetail]);
+
+  const handleListResultAction = useCallback((exam: ExamListItem) => {
+    const readiness = exam.result_readiness;
+
+    if (exam.results_published) {
+      void openDetail(exam.id);
+      return;
+    }
+    if (readiness?.papers_total === 0) {
+      alertCompat(
+        'Results do not need a timetable',
+        'Teachers can select this exam in Staff → Results and enter marks immediately. Once every student has a result, you can publish here—even if the timetable was never generated or published.'
+      );
+      return;
+    }
+    if (!readiness?.ready) {
+      void openDetail(exam.id);
+      return;
+    }
+
+    const publish = async () => {
+      try {
+        setPublishingExamId(exam.id);
+        await ExamTimetableService.setResultsPublished(exam.id, true);
+        setExams((current) => current.map((item) => (
+          item.id === exam.id
+            ? { ...item, results_published: true, results_published_at: new Date().toISOString() }
+            : item
+        )));
+        alertCompat(
+          'Results published',
+          `${t_field(exam.name, exam.name_te)} is now visible to students and parents.`
+        );
+      } catch (err: any) {
+        // Marks may have changed since the list was loaded. Refresh so the
+        // readiness message always reflects the server's final safety check.
+        await loadExams();
+        alertCompat('Could not publish results', err?.message || 'Please review the marks and try again.');
+      } finally {
+        setPublishingExamId(null);
+      }
+    };
+
+    alertCompat(
+      'Publish exam results?',
+      `All ${readiness.entered_entries} mark entries are complete. Students and parents will be notified and can view the results immediately.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Publish results', onPress: () => { void publish(); } },
+      ]
+    );
+  }, [loadExams, openDetail]);
 
   const handleDeleteExam = useCallback(() => {
     if (!detail || saving) return;
@@ -562,6 +620,8 @@ export default function AdminExams() {
           exams={exams}
           onOpen={openDetail}
           onHallTickets={setHallTicketExam}
+          onResultAction={handleListResultAction}
+          publishingExamId={publishingExamId}
           onCreate={() => setCreateVisible(true)}
           onManageSignature={() => setSignatureVisible(true)}
         />
@@ -749,14 +809,16 @@ export default function AdminExams() {
 
 // ─── List view ────────────────────────────────────────────────────────────────
 
-type ExamFilter = 'all' | 'live' | 'draft' | 'setup';
+type ExamFilter = 'all' | 'ready' | 'results_live' | 'live' | 'draft' | 'setup';
 
 function examNeedsSetup(exam: ExamListItem): boolean {
-  return !exam.timetable_published && (exam.papers_count || 0) === 0;
+  const scheduledPapers = exam.scheduled_papers_count ?? exam.papers_count ?? 0;
+  return !exam.timetable_published && scheduledPapers === 0;
 }
 
 function examIsDraft(exam: ExamListItem): boolean {
-  return !exam.timetable_published && (exam.papers_count || 0) > 0;
+  const scheduledPapers = exam.scheduled_papers_count ?? exam.papers_count ?? 0;
+  return !exam.timetable_published && scheduledPapers > 0;
 }
 
 const ExamCard = React.memo(function ExamCard({
@@ -765,82 +827,187 @@ const ExamCard = React.memo(function ExamCard({
   theme,
   onPress,
   onHallTickets,
+  onResultAction,
+  publishing,
 }: {
   exam: ExamListItem;
   styles: Styles;
   theme: Theme;
   onPress: (id: string) => void;
   onHallTickets: (exam: ExamListItem) => void;
+  onResultAction: (exam: ExamListItem) => void;
+  publishing: boolean;
 }) {
   const category = examCategoryFor(exam.exam_type);
   const gradient = categoryGradient(exam.exam_type, category.color);
   const live = !!exam.timetable_published;
-  const hasPapers = (exam.papers_count || 0) > 0;
+  const scheduledPaperCount = exam.scheduled_papers_count ?? exam.papers_count ?? 0;
+  const hasScheduledPapers = scheduledPaperCount > 0;
+  const resultsPublished = !!exam.results_published;
+  const readiness = exam.result_readiness;
+  const resultSubjectCount = readiness?.papers_total ?? exam.papers_count ?? 0;
+  const hasResultSubjects = resultSubjectCount > 0;
+  const resultsReady = !!readiness?.ready && !resultsPublished;
+  const hasMarkProgress = (readiness?.expected_entries || 0) > 0;
+  const completion = hasMarkProgress
+    ? Math.min(100, Math.round(((readiness?.entered_entries || 0) / (readiness?.expected_entries || 1)) * 100))
+    : 0;
   const nextHint = live
     ? null
-    : !hasPapers
-      ? 'Generate timetable'
-      : 'Finish & publish';
+    : !hasScheduledPapers
+      ? 'Not set · optional for results'
+      : 'Ready to publish';
+
+  const resultTitle = resultsPublished
+    ? 'Results published'
+    : resultsReady
+      ? 'Results ready to publish'
+      : hasMarkProgress
+        ? 'Marks entry in progress'
+        : hasResultSubjects
+          ? 'Waiting for marks'
+          : 'Results not started';
+  const resultSubtitle = resultsPublished
+    ? 'Visible to students and parents'
+    : resultsReady
+      ? `All ${readiness?.entered_entries || 0} entries complete`
+      : hasMarkProgress
+        ? `${readiness?.entered_entries || 0} of ${readiness?.expected_entries || 0} entered · ${readiness?.missing_entries || 0} remaining`
+        : hasResultSubjects
+          ? 'Teachers can continue entering marks'
+          : 'Marks can be entered without a timetable';
+  const resultColor = resultsPublished
+    ? theme.colors.success
+    : resultsReady
+      ? theme.colors.primary
+      : hasMarkProgress
+        ? theme.colors.warning
+        : theme.colors.textTertiary;
+  const resultIcon = resultsPublished
+    ? 'checkmark-circle'
+    : resultsReady
+      ? 'megaphone-outline'
+      : hasMarkProgress
+        ? 'time-outline'
+        : 'school-outline';
+  const resultActionLabel = publishing
+    ? 'Publishing…'
+    : resultsReady
+      ? 'Publish results'
+      : resultsPublished
+        ? 'View'
+        : hasResultSubjects
+          ? 'Review'
+          : 'Results';
 
   return (
-    <TouchableOpacity style={styles.examCard} activeOpacity={0.72} onPress={() => onPress(exam.id)}>
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.examCardIconGradient}
-      >
-        <Ionicons name={category.icon} size={20} color="#FFFFFF" />
-      </LinearGradient>
-      <View style={styles.examCardBody}>
-        <View style={styles.examCardTitleRow}>
-          <Text style={styles.examCardTitle} numberOfLines={1}>
-            {t_field(exam.name, exam.name_te)}
+    <View style={styles.examCard}>
+      <View style={styles.examCardTopRow}>
+        <TouchableOpacity
+          style={styles.examCardOpen}
+          activeOpacity={0.72}
+          onPress={() => onPress(exam.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${exam.name}`}
+        >
+          <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.examCardIconGradient}
+          >
+            <Ionicons name={category.icon} size={20} color="#FFFFFF" />
+          </LinearGradient>
+          <View style={styles.examCardBody}>
+            <View style={styles.examCardTitleRow}>
+              <Text style={styles.examCardTitle} numberOfLines={1}>
+                {t_field(exam.name, exam.name_te)}
+              </Text>
+              {live ? (
+                <View style={[styles.statusPill, { backgroundColor: `${theme.colors.success}14` }]}>
+                  <View style={[styles.statusDot, { backgroundColor: theme.colors.success }]} />
+                  <Text style={[styles.statusPillText, { color: theme.colors.success }]}>Schedule live</Text>
+                </View>
+              ) : hasScheduledPapers ? (
+                <View style={[styles.statusPill, { backgroundColor: `${theme.colors.warning}16` }]}>
+                  <View style={[styles.statusDot, { backgroundColor: theme.colors.warning }]} />
+                  <Text style={[styles.statusPillText, { color: theme.colors.warning }]}>Draft</Text>
+                </View>
+              ) : (
+                <View style={[styles.statusPill, { backgroundColor: theme.colors.borderLight }]}>
+                  <Text style={[styles.statusPillText, { color: theme.colors.textTertiary }]}>No schedule</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.examCardSub} numberOfLines={1}>
+              {category.title}
+              {` · ${fmtDateRange(exam.start_date, exam.end_date)}`}
+              {hasScheduledPapers ? ` · ${pluralCount(scheduledPaperCount, 'scheduled paper')}` : ''}
+            </Text>
+            {nextHint && (
+              <Text style={styles.examCardHint} numberOfLines={1}>
+                Schedule: {nextHint}
+              </Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
+        </TouchableOpacity>
+        {live && hasScheduledPapers && (
+          <TouchableOpacity
+            style={styles.hallTicketIconBtn}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Download hall tickets for ${exam.name}`}
+            onPress={() => onHallTickets(exam)}
+          >
+            <Ionicons name="download-outline" size={18} color={theme.colors.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={styles.resultQuickRow}>
+        <View style={[styles.resultQuickIcon, { backgroundColor: `${resultColor}14` }]}>
+          <Ionicons name={resultIcon as any} size={18} color={resultColor} />
+        </View>
+        <View style={styles.resultQuickBody}>
+          <Text style={[styles.resultQuickTitle, { color: resultColor }]} numberOfLines={1}>
+            {resultTitle}
           </Text>
-          {live ? (
-            <View style={[styles.statusPill, { backgroundColor: `${theme.colors.success}14` }]}>
-              <View style={[styles.statusDot, { backgroundColor: theme.colors.success }]} />
-              <Text style={[styles.statusPillText, { color: theme.colors.success }]}>Live</Text>
-            </View>
-          ) : hasPapers ? (
-            <View style={[styles.statusPill, { backgroundColor: `${theme.colors.warning}16` }]}>
-              <View style={[styles.statusDot, { backgroundColor: theme.colors.warning }]} />
-              <Text style={[styles.statusPillText, { color: theme.colors.warning }]}>Draft</Text>
-            </View>
-          ) : (
-            <View style={[styles.statusPill, { backgroundColor: theme.colors.borderLight }]}>
-              <Text style={[styles.statusPillText, { color: theme.colors.textTertiary }]}>Setup</Text>
+          <Text style={styles.resultQuickSub} numberOfLines={1}>{resultSubtitle}</Text>
+          {!resultsPublished && hasMarkProgress && (
+            <View style={styles.resultProgressTrack}>
+              <View
+                style={[
+                  styles.resultProgressFill,
+                  { width: `${completion}%`, backgroundColor: resultsReady ? theme.colors.success : theme.colors.warning },
+                ]}
+              />
             </View>
           )}
         </View>
-        <Text style={styles.examCardSub} numberOfLines={1}>
-          {category.title}
-          {` · ${fmtDateRange(exam.start_date, exam.end_date)}`}
-          {hasPapers ? ` · ${pluralCount(exam.papers_count || 0, 'paper')}` : ''}
-        </Text>
-        {nextHint && (
-          <Text style={styles.examCardHint} numberOfLines={1}>
-            Next: {nextHint}
-          </Text>
-        )}
-      </View>
-      {live && hasPapers && (
         <TouchableOpacity
-          style={styles.hallTicketIconBtn}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={[
+            styles.resultQuickAction,
+            resultsReady && styles.resultQuickActionPrimary,
+            publishing && styles.disabledBtn,
+          ]}
+          activeOpacity={0.78}
+          disabled={publishing}
+          onPress={() => onResultAction(exam)}
           accessibilityRole="button"
-          accessibilityLabel={`Download hall tickets for ${exam.name}`}
-          onPress={(e) => {
-            (e as any)?.stopPropagation?.();
-            onHallTickets(exam);
-          }}
+          accessibilityLabel={`${resultActionLabel} for ${exam.name}`}
         >
-          <Ionicons name="download-outline" size={18} color={theme.colors.primary} />
+          {publishing ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : resultsReady ? (
+            <Ionicons name="megaphone-outline" size={14} color="#FFFFFF" />
+          ) : null}
+          <Text style={[styles.resultQuickActionText, resultsReady && styles.resultQuickActionTextPrimary]}>
+            {resultActionLabel}
+          </Text>
         </TouchableOpacity>
-      )}
-      <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
-    </TouchableOpacity>
+      </View>
+    </View>
   );
 });
 
@@ -850,6 +1017,8 @@ function ExamListView({
   exams,
   onOpen,
   onHallTickets,
+  onResultAction,
+  publishingExamId,
   onCreate,
   onManageSignature,
 }: {
@@ -858,6 +1027,8 @@ function ExamListView({
   exams: ExamListItem[];
   onOpen: (id: string) => void;
   onHallTickets: (exam: ExamListItem) => void;
+  onResultAction: (exam: ExamListItem) => void;
+  publishingExamId: string | null;
   onCreate: () => void;
   onManageSignature: () => void;
 }) {
@@ -867,6 +1038,8 @@ function ExamListView({
     () => ({
       all: exams.length,
       live: exams.filter((e) => e.timetable_published).length,
+      ready: exams.filter((e) => e.result_readiness?.ready && !e.results_published).length,
+      results_live: exams.filter((e) => e.results_published).length,
       draft: exams.filter(examIsDraft).length,
       setup: exams.filter(examNeedsSetup).length,
     }),
@@ -874,6 +1047,8 @@ function ExamListView({
   );
 
   const filtered = useMemo(() => {
+    if (filter === 'ready') return exams.filter((e) => e.result_readiness?.ready && !e.results_published);
+    if (filter === 'results_live') return exams.filter((e) => e.results_published);
     if (filter === 'live') return exams.filter((e) => e.timetable_published);
     if (filter === 'draft') return exams.filter(examIsDraft);
     if (filter === 'setup') return exams.filter(examNeedsSetup);
@@ -882,9 +1057,11 @@ function ExamListView({
 
   const filters: { key: ExamFilter; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: counts.all },
-    { key: 'live', label: 'Live', count: counts.live },
+    { key: 'ready', label: 'Results ready', count: counts.ready },
+    { key: 'results_live', label: 'Results published', count: counts.results_live },
+    { key: 'live', label: 'Schedule live', count: counts.live },
     { key: 'draft', label: 'Drafts', count: counts.draft },
-    { key: 'setup', label: 'Setup', count: counts.setup },
+    { key: 'setup', label: 'No schedule', count: counts.setup },
   ];
 
   const renderItem = useCallback(
@@ -896,10 +1073,12 @@ function ExamListView({
           theme={theme}
           onPress={onOpen}
           onHallTickets={onHallTickets}
+          onResultAction={onResultAction}
+          publishing={publishingExamId === item.id}
         />
       </Animated.View>
     ),
-    [styles, theme, onOpen, onHallTickets]
+    [styles, theme, onOpen, onHallTickets, onResultAction, publishingExamId]
   );
 
   return (
@@ -916,7 +1095,9 @@ function ExamListView({
                 <View>
                   <Text style={styles.listHeaderTitle}>Exams</Text>
                   <Text style={styles.listHeaderSub}>
-                    {counts.live} live · {counts.draft} draft · {counts.setup} to set up
+                    {counts.ready > 0
+                      ? `${pluralCount(counts.ready, 'result')} ready to publish · ${counts.results_live} published`
+                      : `${counts.live} schedules live · ${counts.results_live} results published`}
                   </Text>
                 </View>
                 <View style={styles.headerActions}>
@@ -1545,12 +1726,13 @@ function ExamDetailView({
 }) {
   const { exam, papers } = detail;
   const category = examCategoryFor(exam.exam_type);
-  const groups = useMemo(() => groupPapersByDate(papers), [papers]);
+  const scheduledPapers = useMemo(() => papers.filter((paper) => !!paper.exam_date), [papers]);
+  const groups = useMemo(() => groupPapersByDate(scheduledPapers), [scheduledPapers]);
   const published = !!exam.timetable_published;
   const resultsPublished = !!exam.results_published;
   const resultReadiness = detail.result_readiness;
   const incompleteResultPapers = resultReadiness.papers.filter((paper) => !paper.complete);
-  const missingTeachers = papers.filter((p) => p.has_teacher === false).length;
+  const missingTeachers = scheduledPapers.filter((p) => p.has_teacher === false).length;
   const hasSeating = allocations.length > 0;
   const [seatingOpen, setSeatingOpen] = useState(!published || !hasSeating);
 
@@ -1578,7 +1760,7 @@ function ExamDetailView({
   const missingInvigilators = allocations.filter((a) => !a.invigilator_staff_id).length;
 
   const progressSteps = [
-    { label: 'Schedule', done: papers.length > 0 },
+    { label: 'Schedule', done: scheduledPapers.length > 0 },
     { label: 'Seating', done: hasSeating },
     { label: 'Live', done: published },
   ];
@@ -1593,7 +1775,7 @@ function ExamDetailView({
 
   const nextStep: NextStep = published
     ? null
-    : papers.length === 0
+    : scheduledPapers.length === 0
       ? {
           kind: 'generate',
           title: 'Build the timetable',
@@ -1694,10 +1876,10 @@ function ExamDetailView({
                 <Ionicons name="calendar-outline" size={12} color={theme.colors.textSecondary} />
                 <Text style={styles.metaChipText}>{fmtDateRange(exam.start_date, exam.end_date)}</Text>
               </View>
-              {papers.length > 0 && (
+              {scheduledPapers.length > 0 && (
                 <View style={styles.metaChip}>
                   <Ionicons name="document-text-outline" size={12} color={theme.colors.textSecondary} />
-                  <Text style={styles.metaChipText}>{pluralCount(papers.length, 'paper')}</Text>
+                  <Text style={styles.metaChipText}>{pluralCount(scheduledPapers.length, 'scheduled paper')}</Text>
                 </View>
               )}
               {hasSeating && (
@@ -1777,7 +1959,7 @@ function ExamDetailView({
 
             <View style={styles.summaryActions}>
               <View style={styles.summaryActionsPrimary}>
-                {papers.length > 0 && (
+                {scheduledPapers.length > 0 && (
                   <>
                     <TouchableOpacity
                       style={styles.actionChip}
@@ -1947,7 +2129,7 @@ function ExamDetailView({
         ))}
 
         {/* Seating — collapsed by default when live */}
-        {papers.length > 0 && (
+        {scheduledPapers.length > 0 && (
           <View style={styles.dateGroup}>
             <TouchableOpacity
               style={styles.seatingHeaderRow}
@@ -2140,7 +2322,7 @@ function ExamDetailView({
           </View>
         )}
 
-        {papers.length === 0 && !nextStep && (
+        {scheduledPapers.length === 0 && !nextStep && (
           <View style={styles.emptyWrap}>
             <Ionicons name="sparkles-outline" size={44} color={theme.colors.textTertiary} />
             <Text style={styles.emptyTitle}>Nothing scheduled</Text>
@@ -2150,8 +2332,7 @@ function ExamDetailView({
           </View>
         )}
 
-        {papers.length > 0 && (
-          <View style={styles.resultPublishCard}>
+        <View style={styles.resultPublishCard}>
             <View
               style={[
                 styles.resultPublishIcon,
@@ -2182,13 +2363,17 @@ function ExamDetailView({
                   ? 'Results published'
                   : resultReadiness.ready
                     ? 'Results ready to publish'
-                    : 'Waiting for teachers'}
+                    : resultReadiness.papers_total === 0
+                      ? 'Results not started'
+                      : 'Waiting for teachers'}
               </Text>
               <Text style={styles.resultPublishSub}>
                 {resultsPublished
                   ? 'Parents and students can see this exam result.'
-                  : resultReadiness.expected_entries === 0
-                    ? 'No active student mark entries found for these papers.'
+                  : resultReadiness.papers_total === 0
+                    ? 'Teachers can enter marks without creating or publishing a timetable.'
+                    : resultReadiness.expected_entries === 0
+                      ? 'No active student results are expected for the selected classes.'
                     : `${resultReadiness.entered_entries} of ${resultReadiness.expected_entries} mark entries complete`}
               </Text>
               {!resultsPublished && resultReadiness.missing_entries > 0 && (
@@ -2231,11 +2416,10 @@ function ExamDetailView({
               </TouchableOpacity>
             )}
           </View>
-        )}
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {papers.length > 0 && (
+      {scheduledPapers.length > 0 && (
         <View style={styles.publishBar}>
           <View
             style={[
@@ -4739,21 +4923,20 @@ const getStyles = (theme: Theme, isDark: boolean) =>
     filterChipTextActive: { color: theme.colors.primary, fontWeight: '700' },
 
     examCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
       backgroundColor: theme.colors.card,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: isDark ? theme.colors.border : theme.colors.borderLight,
-      marginBottom: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 12,
+      marginBottom: 12,
       ...(Platform.OS === 'ios'
         ? { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0 : 0.04, shadowRadius: 8 }
         : Platform.OS === 'web'
           ? ({ boxShadow: isDark ? 'none' : '0 2px 10px rgba(15,23,42,0.04)' } as any)
           : { elevation: 1 }),
+    },
+    examCardTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     examCardOpen: {
       flex: 1,
@@ -4770,6 +4953,7 @@ const getStyles = (theme: Theme, isDark: boolean) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: `${theme.colors.primary}10`,
+      marginRight: 14,
     },
     hallTicketCardBtn: {
       width: 72,
@@ -4817,6 +5001,55 @@ const getStyles = (theme: Theme, isDark: boolean) =>
       color: theme.colors.primary,
       marginTop: 2,
     },
+    resultQuickRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      minHeight: 64,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: isDark ? theme.colors.border : theme.colors.borderLight,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.018)' : '#FBFCFE',
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: 16,
+    },
+    resultQuickIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    resultQuickBody: { flex: 1, minWidth: 0 },
+    resultQuickTitle: { fontSize: 12.5, fontWeight: '800' },
+    resultQuickSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
+    resultProgressTrack: {
+      height: 3,
+      borderRadius: 2,
+      backgroundColor: theme.colors.border,
+      marginTop: 6,
+      overflow: 'hidden',
+    },
+    resultProgressFill: { height: '100%', borderRadius: 2 },
+    resultQuickAction: {
+      minHeight: 36,
+      paddingHorizontal: 12,
+      borderRadius: 11,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.card,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+    },
+    resultQuickActionPrimary: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary,
+    },
+    resultQuickActionText: { fontSize: 11.5, fontWeight: '800', color: theme.colors.text },
+    resultQuickActionTextPrimary: { color: '#FFFFFF' },
     examCardMetaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 2 },
     metaChip: {
       flexDirection: 'row',

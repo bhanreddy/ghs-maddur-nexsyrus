@@ -165,7 +165,7 @@ const homeTabs: HomeTab[] = [
     key: 'hostel',
     translationKey: 'hostel', title: 'Hostel',
     subtitleKey: 'hostelDetails',
-    icon: 'bed-outline',
+    image: require('../../assets/images/student-actions/hostel-clay.png'),
     grad: ['#312E81', '#4F46E5', '#A5B4FC'],
     shadow: '#4338CA',
     feature: 'quick.hostel',

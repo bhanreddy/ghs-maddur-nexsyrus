@@ -405,4 +405,12 @@ export const AdminService = {
     setStaffPayslipsEnabled: async (enabled: boolean): Promise<{ enabled: boolean; message?: string }> => {
         return api.put<{ enabled: boolean; message?: string }>('/admin/staff-payslips', { enabled });
     },
+
+    getStudentHostelCardSetting: async (): Promise<{ enabled: boolean }> => {
+        return api.get<{ enabled: boolean }>('/admin/student-hostel-card');
+    },
+
+    setStudentHostelCardEnabled: async (enabled: boolean): Promise<{ enabled: boolean; message?: string }> => {
+        return api.put<{ enabled: boolean; message?: string }>('/admin/student-hostel-card', { enabled });
+    },
 };

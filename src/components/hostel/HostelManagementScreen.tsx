@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -19,6 +20,7 @@ import AdminHeader from '../AdminHeader';
 import LogoLoader from '../LogoLoader';
 import { useAccountsWebChrome } from '../../contexts/AccountsWebChromeContext';
 import { useTheme } from '../../hooks/useTheme';
+import { AdminService } from '../../services/adminService';
 import {
   HostelBlock,
   HostelPermissionRequest,
@@ -89,6 +91,21 @@ export default function HostelManagementScreen({ scope }: { scope: Scope }) {
   const [assignRoomId, setAssignRoomId] = useState('');
   const [assignBedNo, setAssignBedNo] = useState('');
   const [saving, setSaving] = useState(false);
+  const [studentCardEnabled, setStudentCardEnabled] = useState(true);
+  const [studentCardLoading, setStudentCardLoading] = useState(scope === 'admin');
+  const [studentCardSaving, setStudentCardSaving] = useState(false);
+
+  const loadStudentCardSetting = useCallback(async () => {
+    if (scope !== 'admin') return;
+    try {
+      const setting = await AdminService.getStudentHostelCardSetting();
+      setStudentCardEnabled(setting?.enabled !== false);
+    } catch {
+      setStudentCardEnabled(true);
+    } finally {
+      setStudentCardLoading(false);
+    }
+  }, [scope]);
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -120,6 +137,23 @@ export default function HostelManagementScreen({ scope }: { scope: Scope }) {
   }, [scope]);
 
   useEffect(() => { void loadData(); }, [loadData]);
+  useEffect(() => { void loadStudentCardSetting(); }, [loadStudentCardSetting]);
+
+  const toggleStudentCard = async (enabled: boolean) => {
+    if (studentCardSaving) return;
+    const previous = studentCardEnabled;
+    setStudentCardEnabled(enabled);
+    setStudentCardSaving(true);
+    try {
+      const result = await AdminService.setStudentHostelCardEnabled(enabled);
+      setStudentCardEnabled(result?.enabled !== false);
+    } catch (error: any) {
+      setStudentCardEnabled(previous);
+      alertCompat('Could not update student dashboard', error?.message || 'Only an administrator can show or hide the hostel card.');
+    } finally {
+      setStudentCardSaving(false);
+    }
+  };
 
   const visibleStudents = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -277,7 +311,7 @@ export default function HostelManagementScreen({ scope }: { scope: Scope }) {
       {!shellActive && <AdminHeader title={scope === 'admin' ? 'Hostel Management' : 'Hostel Students'} showBackButton={scope === 'admin'} onMenuPress={scope === 'accounts' ? accountsChrome.openMobileNav : undefined} />}
       <ScrollView
         contentContainerStyle={[styles.content, isWide && styles.contentWide]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void loadData(true); }} tintColor="#4F46E5" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void Promise.all([loadData(true), loadStudentCardSetting()]); }} tintColor="#4F46E5" />}
       >
         <LinearGradient colors={isDark ? ['#1E1B4B', '#312E81'] : ['#312E81', '#6366F1']} style={styles.hero}>
           <View style={styles.heroIcon}><Ionicons name="bed-outline" size={30} color="#FFFFFF" /></View>
@@ -288,6 +322,31 @@ export default function HostelManagementScreen({ scope }: { scope: Scope }) {
           </View>
           <View style={styles.heroPill}><Text style={styles.heroPillText}>{summary.occupied}/{summary.beds} beds</Text></View>
         </LinearGradient>
+
+        {scope === 'admin' ? (
+          <View style={styles.studentCardToggle}>
+            <View style={[styles.studentCardIcon, !studentCardEnabled && styles.studentCardIconOff]}>
+              <Ionicons name={studentCardEnabled ? 'phone-portrait-outline' : 'eye-off-outline'} size={18} color={studentCardEnabled ? '#4F46E5' : '#94A3B8'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.studentCardTitle}>Student dashboard card</Text>
+              <Text style={styles.studentCardSub}>
+                {studentCardLoading
+                  ? 'Loading student dashboard setting…'
+                  : studentCardEnabled
+                    ? 'Visible to students and parents'
+                    : 'Hidden from the student dashboard'}
+              </Text>
+            </View>
+            <Switch
+              value={studentCardEnabled}
+              onValueChange={(next) => void toggleStudentCard(next)}
+              disabled={studentCardLoading || studentCardSaving}
+              trackColor={{ false: '#FCA5A5', true: '#A5B4FC' }}
+              thumbColor={studentCardEnabled ? '#4F46E5' : '#EF4444'}
+            />
+          </View>
+        ) : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
           {tabs.map((item) => (
@@ -459,6 +518,11 @@ function createStyles(theme: any, isDark: boolean) {
     heroCopy: { flex: 1 }, heroEyebrow: { color: '#C7D2FE', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
     heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', marginTop: 3 }, heroText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, lineHeight: 18, marginTop: 5 },
     heroPill: { backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }, heroPillText: { color: '#fff', fontWeight: '800', fontSize: 11 },
+    studentCardToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: card, borderRadius: 16, borderWidth: 1, borderColor: border, padding: 14 },
+    studentCardIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: isDark ? 'rgba(79,70,229,0.14)' : '#EEF2FF', alignItems: 'center', justifyContent: 'center' },
+    studentCardIconOff: { backgroundColor: isDark ? 'rgba(148,163,184,0.14)' : '#F1F5F9' },
+    studentCardTitle: { color: text, fontSize: 13, fontWeight: '800' },
+    studentCardSub: { color: secondary, fontSize: 11, marginTop: 3, fontWeight: '600' },
     tabs: { gap: 8, paddingVertical: 2 }, tab: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: card, borderWidth: 1, borderColor: border },
     tabActive: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' }, tabText: { color: secondary, fontWeight: '700', fontSize: 12 }, tabTextActive: { color: '#fff' },
     badge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: '#F59E0B', alignItems: 'center', justifyContent: 'center' }, badgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },

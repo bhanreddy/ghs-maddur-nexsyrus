@@ -13,6 +13,15 @@ export type ExamWeekday =
     | 'friday'
     | 'saturday';
 
+export interface ExamResultReadinessSummary {
+    ready: boolean;
+    papers_total: number;
+    papers_complete: number;
+    expected_entries: number;
+    entered_entries: number;
+    missing_entries: number;
+}
+
 export interface ExamListItem {
     id: string;
     name: string;
@@ -25,6 +34,8 @@ export interface ExamListItem {
     results_published?: boolean;
     results_published_at?: string | null;
     papers_count?: number;
+    scheduled_papers_count?: number;
+    result_readiness?: ExamResultReadinessSummary;
     academic_year?: string;
 }
 
@@ -72,13 +83,7 @@ export interface ExamResultReadinessPaper {
     complete: boolean;
 }
 
-export interface ExamResultReadiness {
-    ready: boolean;
-    papers_total: number;
-    papers_complete: number;
-    expected_entries: number;
-    entered_entries: number;
-    missing_entries: number;
+export interface ExamResultReadiness extends ExamResultReadinessSummary {
     papers: ExamResultReadinessPaper[];
 }
 
