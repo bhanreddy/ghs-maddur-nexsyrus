@@ -1,7 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	// wrangler.jsonc
-    "name": "ghs-maddur-nexsyrus",
+    "name": "samskruthe-school-nawabpet-nexsyrus",
 	"compatibility_date": "2026-07-08",
 	"observability": {
 		"enabled": true

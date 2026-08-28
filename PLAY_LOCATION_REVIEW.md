@@ -1,6 +1,6 @@
 # Google Play background-location resubmission
 
-Use this checklist for the Geetanjali High School Maddur release that contains the prominent-disclosure fix.
+Use this checklist for the Samskruthe School Nawabpet release that contains the prominent-disclosure fix.
 
 ## Declaration form
 
