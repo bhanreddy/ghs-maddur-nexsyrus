@@ -39,6 +39,11 @@ import {
   ProgressReportType,
   progressReportSummary,
 } from '../../src/utils/progressReportHtml';
+import {
+  bundledAssetToBase64Uri,
+  resolveApiAssetUrl,
+  toBase64Uri,
+} from '../../src/utils/toBase64Uri';
 
 type ReportScope = 'student' | 'class';
 
@@ -263,6 +268,15 @@ function printableStudent(record: StudentReportRecord): ProgressReportStudent {
     subjects: exam?.subjects || [],
     classRank: record.classRank,
   };
+}
+
+async function resolveProgressReportLogo(remoteLogoUrl?: string | null): Promise<string> {
+  const remote = resolveApiAssetUrl(remoteLogoUrl);
+  if (remote) {
+    const encoded = await toBase64Uri(remote);
+    if (encoded) return encoded;
+  }
+  return (await bundledAssetToBase64Uri(SCHOOL_CONFIG.logo as number)) ?? '';
 }
 
 function applyClassRanks(
@@ -500,6 +514,11 @@ export default function ProgressReportGenerator() {
     }
   };
 
+  const printBrand = async (): Promise<ProgressReportBrand> => ({
+    ...brand(),
+    logoUrl: await resolveProgressReportLogo(schoolLogoUrl),
+  });
+
   const printHtml = async (html: string, title: string) => {
     if (Platform.OS === 'web') {
       const popup = window.open('', '_blank', 'width=1000,height=1200');
@@ -510,10 +529,22 @@ export default function ProgressReportGenerator() {
       popup.document.open();
       popup.document.write(html);
       popup.document.close();
-      setTimeout(() => {
-        popup.focus();
-        popup.print();
-      }, 500);
+      const images = Array.from(popup.document.images);
+      await Promise.race([
+        Promise.all(
+          images.map((image) =>
+            image.complete
+              ? Promise.resolve()
+              : new Promise<void>((resolve) => {
+                  image.onload = () => resolve();
+                  image.onerror = () => resolve();
+                }),
+          ),
+        ),
+        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+      ]);
+      popup.focus();
+      popup.print();
       return;
     }
     const Print = await import('expo-print');
@@ -531,7 +562,7 @@ export default function ProgressReportGenerator() {
       return;
     }
     await printHtml(
-      buildTwoUpProgressReportHtml([report], reportType, brand(), { duplicateSingle: true }),
+      buildTwoUpProgressReportHtml([report], reportType, await printBrand(), { duplicateSingle: true }),
       'Save student progress report',
     );
   };
@@ -548,7 +579,7 @@ export default function ProgressReportGenerator() {
       return;
     }
     await printHtml(
-      buildTwoUpProgressReportHtml(matching, reportType, brand()),
+      buildTwoUpProgressReportHtml(matching, reportType, await printBrand()),
       'Save class progress reports',
     );
   };
@@ -1168,7 +1199,11 @@ function ReportPreview({
     <View style={styles.previewCard}>
       <View style={styles.previewAccent} />
       <View style={styles.previewHeader}>
-        {schoolLogoUrl ? <Image source={{ uri: schoolLogoUrl }} style={styles.previewLogo} /> : <View style={styles.previewLogoFallback}><Text style={styles.previewLogoFallbackText}>{schoolName.slice(0, 2).toUpperCase()}</Text></View>}
+        {schoolLogoUrl ? (
+          <Image source={{ uri: schoolLogoUrl }} style={styles.previewLogo} />
+        ) : (
+          <Image source={SCHOOL_CONFIG.logo} style={styles.previewLogo} />
+        )}
         <View style={{ flex: 1 }}><Text style={styles.previewSchool}>{schoolName}</Text><Text style={styles.previewKind}>{reportType === 'direct' ? 'DIRECT ASSESSMENT' : 'COMPONENT-BASED ASSESSMENT'} PROGRESS REPORT</Text></View>
       </View>
       <View style={styles.previewStudentRow}>

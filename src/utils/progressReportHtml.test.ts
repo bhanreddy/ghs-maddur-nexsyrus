@@ -91,4 +91,15 @@ describe('progress report HTML', () => {
     expect(output).toContain('Project');
     expect(output).toContain('Slip test');
   });
+
+  it('embeds a provided school logo instead of initials', () => {
+    const output = buildTwoUpProgressReportHtml(
+      [student],
+      'direct',
+      { ...brand, logoUrl: 'data:image/png;base64,abc' },
+    );
+    expect(output).toContain('src="data:image/png;base64,abc"');
+    expect(output).toContain('alt="School logo"');
+    expect(output).not.toContain('class="logo-fallback"');
+  });
 });

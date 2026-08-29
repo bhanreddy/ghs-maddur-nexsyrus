@@ -222,8 +222,8 @@ function stylesheet(brand: ProgressReportBrand) {
     .report-card { position: relative; height: 100%; overflow: hidden; border: .35mm solid #cbd5e1; border-radius: 2.4mm; padding: 3mm 3.5mm 2.4mm; background: linear-gradient(180deg, #fff 0%, #fff 86%, #f8fafc 100%); }
     .top-accent { position: absolute; top: 0; left: 0; right: 0; height: 1.4mm; background: linear-gradient(90deg, ${brand.primary}, ${brand.secondary}); }
     .school-header { height: 18mm; display: grid; grid-template-columns: 18mm 1fr 20mm; align-items: center; border-bottom: .3mm solid #dbe4ef; padding-top: 1mm; }
-    .logo { width: 15mm; height: 15mm; display: grid; place-items: center; }
-    .logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .logo { width: 16mm; height: 16mm; display: grid; place-items: center; overflow: hidden; }
+    .logo img { width: 16mm; height: 16mm; object-fit: contain; display: block; }
     .logo-fallback { width: 12mm; height: 12mm; border-radius: 50%; display: grid; place-items: center; background: ${brand.primary}; color: #fff; font-size: 9pt; font-weight: 900; }
     .school-copy { text-align: center; min-width: 0; }
     .school-name { color: ${brand.primary}; text-transform: uppercase; font-size: 13.5pt; line-height: 1.05; font-weight: 900; letter-spacing: .35pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
