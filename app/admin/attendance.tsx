@@ -422,8 +422,6 @@ export default function AdminAttendanceScreen() {
   const filterBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
   const filterBorder = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)';
   const filterText = isDark ? 'rgba(255,255,255,0.70)' : 'rgba(0,0,0,0.65)';
-  const footerBg = isDark ? 'rgba(14,15,26,0.97)' : 'rgba(242,243,248,0.97)';
-  const footerBorder = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
   const searchBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
   const orb1Color = isDark ? 'rgba(124,111,255,0.08)' : 'rgba(124,111,255,0.05)';
   const orb2Color = isDark ? 'rgba(0,196,140,0.06)' : 'rgba(0,196,140,0.05)';
@@ -557,7 +555,7 @@ export default function AdminAttendanceScreen() {
         </View>
       ) : (
         <View style={[styles.body, { paddingTop: headerHeight + 10 }]}>
-          {/* ── Slim overview strip (fixed) ───────────────────────────────── */}
+          {/* ── Slim overview strip (stays pinned) ────────────────────────── */}
           <View style={[
             styles.summaryStrip,
             { backgroundColor: summaryBg, borderColor: summaryBorder },
@@ -614,87 +612,15 @@ export default function AdminAttendanceScreen() {
             </View>
           </View>
 
-          {/* ── Search + filters (fixed) ──────────────────────────────────── */}
-          <View style={[styles.searchWrap, { backgroundColor: searchBg, borderColor: filterBorder }, clay(isDark, 'sm')]}>
-            <Ionicons name="search" size={16} color={filterText} style={{ marginRight: 8 }} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search staff…"
-              placeholderTextColor={isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.32)'}
-              style={[styles.searchInput, { color: titleColor }]}
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-            />
-            {searchQuery.length > 0 && Platform.OS !== 'ios' ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={filterText} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          <View style={styles.filterRow}>
-            <FilterChip
-              label={deptFilter ?? 'All Depts'}
-              active={!!deptFilter}
-              isDark={isDark}
-              filterBg={filterBg}
-              filterBorder={filterBorder}
-              filterText={filterText}
-              icon="business-outline"
-              onPress={() => setOpenMenu('dept')}
-            />
-            <FilterChip
-              label={statusFilter ? (STATUS_META[statusFilter]?.label ?? 'Status') : 'Status'}
-              active={!!statusFilter}
-              isDark={isDark}
-              filterBg={filterBg}
-              filterBorder={filterBorder}
-              filterText={filterText}
-              icon="funnel-outline"
-              onPress={() => setOpenMenu('status')}
-            />
-            <AppDatePicker
-              value={selectedDate}
-              onChange={setSelectedDate}
-              maximumDate={todayYMD}
-              variant="compact"
-              isDark={isDark}
-              accentColor="#7C6FFF"
-              containerStyle={styles.datePickerContainer}
-            />
-          </View>
-
-          {hasActiveFilters && (
-            <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersRow} activeOpacity={0.7}>
-              <Ionicons name="close-circle-outline" size={14} color="#7C6FFF" />
-              <Text style={styles.clearFiltersText}>Clear filters</Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.listHeader}>
-            <View style={styles.sectionAccentRow}>
-              <LinearGradient
-                colors={['#7C6FFF', '#5A4FE0']}
-                style={styles.sectionAccent}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <Text style={[styles.sectionTitle, { color: sectionColor }]}>STAFF LIST</Text>
-            </View>
-            <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(124,111,255,0.18)' : 'rgba(124,111,255,0.12)' }, clayGlow('#7C6FFF', 'sm')]}>
-              <Text style={styles.countBadgeText}>
-                {hasActiveFilters ? `${filteredStaff.length} of ${staffList.length}` : filteredStaff.length}
-              </Text>
-            </View>
-          </View>
-
-          {/* ── Scrollable staff list ─────────────────────────────────────── */}
+          {/* ── Scrollable: search, filters, staff, actions ──────────────── */}
           <Animated.FlatList
             data={filteredStaff}
             keyExtractor={(item) => String(item.staff_id)}
             style={styles.list}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: Math.max(insets.bottom, 16) },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             onScroll={onScroll}
@@ -709,11 +635,87 @@ export default function AdminAttendanceScreen() {
               />
             }
             ListHeaderComponent={
-              refreshing ? (
-                <View style={{ alignItems: 'center', paddingBottom: 12 }}>
-                  <LogoLoader size={28} color="#7C6FFF" />
+              <View>
+                {refreshing ? (
+                  <View style={{ alignItems: 'center', paddingBottom: 12 }}>
+                    <LogoLoader size={28} color="#7C6FFF" />
+                  </View>
+                ) : null}
+
+                <View style={[styles.searchWrap, { backgroundColor: searchBg, borderColor: filterBorder }, clay(isDark, 'sm')]}>
+                  <Ionicons name="search" size={16} color={filterText} style={{ marginRight: 8 }} />
+                  <TextInput
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search staff…"
+                    placeholderTextColor={isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.32)'}
+                    style={[styles.searchInput, { color: titleColor }]}
+                    returnKeyType="search"
+                    clearButtonMode="while-editing"
+                  />
+                  {searchQuery.length > 0 && Platform.OS !== 'ios' ? (
+                    <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+                      <Ionicons name="close-circle" size={16} color={filterText} />
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
-              ) : null
+
+                <View style={styles.filterRow}>
+                  <FilterChip
+                    label={deptFilter ?? 'All Depts'}
+                    active={!!deptFilter}
+                    isDark={isDark}
+                    filterBg={filterBg}
+                    filterBorder={filterBorder}
+                    filterText={filterText}
+                    icon="business-outline"
+                    onPress={() => setOpenMenu('dept')}
+                  />
+                  <FilterChip
+                    label={statusFilter ? (STATUS_META[statusFilter]?.label ?? 'Status') : 'Status'}
+                    active={!!statusFilter}
+                    isDark={isDark}
+                    filterBg={filterBg}
+                    filterBorder={filterBorder}
+                    filterText={filterText}
+                    icon="funnel-outline"
+                    onPress={() => setOpenMenu('status')}
+                  />
+                  <AppDatePicker
+                    value={selectedDate}
+                    onChange={setSelectedDate}
+                    maximumDate={todayYMD}
+                    variant="compact"
+                    isDark={isDark}
+                    accentColor="#7C6FFF"
+                    containerStyle={styles.datePickerContainer}
+                  />
+                </View>
+
+                {hasActiveFilters && (
+                  <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersRow} activeOpacity={0.7}>
+                    <Ionicons name="close-circle-outline" size={14} color="#7C6FFF" />
+                    <Text style={styles.clearFiltersText}>Clear filters</Text>
+                  </TouchableOpacity>
+                )}
+
+                <View style={styles.listHeader}>
+                  <View style={styles.sectionAccentRow}>
+                    <LinearGradient
+                      colors={['#7C6FFF', '#5A4FE0']}
+                      style={styles.sectionAccent}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    />
+                    <Text style={[styles.sectionTitle, { color: sectionColor }]}>STAFF LIST</Text>
+                  </View>
+                  <View style={[styles.countBadge, { backgroundColor: isDark ? 'rgba(124,111,255,0.18)' : 'rgba(124,111,255,0.12)' }, clayGlow('#7C6FFF', 'sm')]}>
+                    <Text style={styles.countBadgeText}>
+                      {hasActiveFilters ? `${filteredStaff.length} of ${staffList.length}` : filteredStaff.length}
+                    </Text>
+                  </View>
+                </View>
+              </View>
             }
             ListEmptyComponent={
               <Animated.View entering={FadeIn.duration(240)} style={styles.emptyBox}>
@@ -749,6 +751,91 @@ export default function AdminAttendanceScreen() {
                 onSelectStatus={(status) => setStaffStatus(item.staff_id, status)}
               />
             )}
+            ListFooterComponent={
+              staffList.length === 0 ? null : (
+                <View
+                  style={[
+                    styles.footerContainer,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: cardBorder,
+                    },
+                    clay(isDark, 'lg'),
+                  ]}
+                >
+                  <View style={styles.quickActions}>
+                    <TouchableOpacity
+                      onPress={handleMarkAll}
+                      disabled={filteredStaff.length === 0}
+                      accessibilityRole="button"
+                      accessibilityLabel="Mark all visible staff present"
+                      style={[
+                        styles.quickBtn,
+                        { backgroundColor: isDark ? STATUS_META.present.darkBg : STATUS_META.present.lightBg },
+                        filteredStaff.length === 0 && { opacity: 0.45 },
+                      ]}
+                    >
+                      <Ionicons name="checkmark-done" size={15} color={isDark ? STATUS_META.present.darkText : STATUS_META.present.lightText} />
+                      <Text style={[styles.quickBtnText, { color: isDark ? STATUS_META.present.darkText : STATUS_META.present.lightText }]}>
+                        Mark All
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleReset}
+                      disabled={staffList.length === 0}
+                      accessibilityRole="button"
+                      accessibilityLabel="Reset attendance to last loaded values"
+                      style={[
+                        styles.quickBtn,
+                        { backgroundColor: isDark ? 'rgba(124,111,255,0.16)' : 'rgba(124,111,255,0.10)' },
+                        staffList.length === 0 && { opacity: 0.45 },
+                      ]}
+                    >
+                      <Ionicons name="refresh" size={15} color={isDark ? '#C7D2FE' : '#5A4FE0'} />
+                      <Text style={[styles.quickBtnText, { color: isDark ? '#C7D2FE' : '#5A4FE0' }]}>
+                        Reset
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.footerRow}>
+                    <View style={styles.footerMeta}>
+                      <Text style={[styles.footerCount, { color: titleColor }]}>
+                        {stats.present}
+                        <Text style={[styles.footerTotal, { color: subColor }]}> / {stats.total}</Text>
+                      </Text>
+                      <Text style={[styles.footerPct, { color: subColor }]}>{presentPct}% present</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={submitAttendance}
+                      disabled={isSaving || staffList.length === 0}
+                      activeOpacity={0.85}
+                      style={[
+                        styles.submitBtn,
+                        clayGlow('#7C6FFF', 'md'),
+                        (isSaving || staffList.length === 0) && { opacity: 0.55 },
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={['#7C6FFF', '#5A4FE0']}
+                        style={styles.submitGrad}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        {isSaving ? (
+                          <LogoLoader size={20} color="#fff" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark-done" size={18} color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.submitText}>Save Attendance</Text>
+                          </>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )
+            }
           />
         </View>
       )}
@@ -772,89 +859,6 @@ export default function AdminAttendanceScreen() {
         onClose={() => setOpenMenu(null)}
       />
 
-      {/* ── Footer CTA ──────────────────────────────────────────────────────── */}
-      <View
-        style={[
-          styles.footerContainer,
-          {
-            backgroundColor: footerBg,
-            borderTopColor: footerBorder,
-            paddingBottom: Math.max(insets.bottom, 12),
-          },
-          clay(isDark, 'lg'),
-        ]}
-      >
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            onPress={handleMarkAll}
-            disabled={filteredStaff.length === 0}
-            accessibilityRole="button"
-            accessibilityLabel="Mark all visible staff present"
-            style={[
-              styles.quickBtn,
-              { backgroundColor: isDark ? STATUS_META.present.darkBg : STATUS_META.present.lightBg },
-              filteredStaff.length === 0 && { opacity: 0.45 },
-            ]}
-          >
-            <Ionicons name="checkmark-done" size={15} color={isDark ? STATUS_META.present.darkText : STATUS_META.present.lightText} />
-            <Text style={[styles.quickBtnText, { color: isDark ? STATUS_META.present.darkText : STATUS_META.present.lightText }]}>
-              Mark All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleReset}
-            disabled={staffList.length === 0}
-            accessibilityRole="button"
-            accessibilityLabel="Reset attendance to last loaded values"
-            style={[
-              styles.quickBtn,
-              { backgroundColor: isDark ? 'rgba(124,111,255,0.16)' : 'rgba(124,111,255,0.10)' },
-              staffList.length === 0 && { opacity: 0.45 },
-            ]}
-          >
-            <Ionicons name="refresh" size={15} color={isDark ? '#C7D2FE' : '#5A4FE0'} />
-            <Text style={[styles.quickBtnText, { color: isDark ? '#C7D2FE' : '#5A4FE0' }]}>
-              Reset
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footerRow}>
-          <View style={styles.footerMeta}>
-            <Text style={[styles.footerCount, { color: titleColor }]}>
-              {stats.present}
-              <Text style={[styles.footerTotal, { color: subColor }]}> / {stats.total}</Text>
-            </Text>
-            <Text style={[styles.footerPct, { color: subColor }]}>{presentPct}% present</Text>
-          </View>
-          <TouchableOpacity
-            onPress={submitAttendance}
-            disabled={isSaving || staffList.length === 0}
-            activeOpacity={0.85}
-            style={[
-              styles.submitBtn,
-              clayGlow('#7C6FFF', 'md'),
-              (isSaving || staffList.length === 0) && { opacity: 0.55 },
-            ]}
-          >
-            <LinearGradient
-              colors={['#7C6FFF', '#5A4FE0']}
-              style={styles.submitGrad}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              {isSaving ? (
-                <LogoLoader size={20} color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-done" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.submitText}>Save Attendance</Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </View>
     </View>
   );
 }
@@ -976,7 +980,7 @@ const styles = StyleSheet.create({
   countBadgeText: { fontSize: 12, fontWeight: '700', color: '#7C6FFF' },
 
   list: { flex: 1 },
-  listContent: { paddingBottom: 170, flexGrow: 1 },
+  listContent: { flexGrow: 1 },
 
   card: {
     borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8,
@@ -1044,9 +1048,11 @@ const styles = StyleSheet.create({
   emptyClearText: { fontSize: 13, fontWeight: '700', color: '#7C6FFF' },
 
   footerContainer: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 16, paddingTop: 12,
-    borderTopWidth: 1,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
     flexDirection: 'column',
     gap: 10,
   },

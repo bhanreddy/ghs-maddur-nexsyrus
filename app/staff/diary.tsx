@@ -203,6 +203,37 @@ export default function StaffDiary() {
   const [descFocused, setDescFocused] = useState(false);
   const [titleFocused, setTitleFocused] = useState(false);
   const scrollRef = React.useRef<ScrollView>(null);
+  const composerTopRef = React.useRef(0);
+  const fieldTopRef = React.useRef({ title: 0, description: 0 });
+  const focusScrollTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * KeyboardAwareScrollView handles the normal case. This measured fallback is
+   * needed on some Android keyboards where the first focus event arrives before
+   * the final keyboard height, leaving the diary field behind the IME.
+   */
+  const revealComposerField = useCallback((field: 'title' | 'description') => {
+    const scrollToField = () => {
+      const fieldY = composerTopRef.current + fieldTopRef.current[field];
+      const topClearance = Platform.OS === 'ios' ? 104 : 88;
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, fieldY - topClearance),
+        animated: true,
+      });
+    };
+
+    // Start moving immediately, then correct once the keyboard has reached its
+    // final height. This also covers switching fields while it is already open.
+    requestAnimationFrame(scrollToField);
+    if (focusScrollTimerRef.current) clearTimeout(focusScrollTimerRef.current);
+    focusScrollTimerRef.current = setTimeout(scrollToField, 360);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (focusScrollTimerRef.current) clearTimeout(focusScrollTimerRef.current);
+    };
+  }, []);
 
   const todayAnchor = useMemo(() => new Date(), []);
   const todayYmd = useMemo(() => toYmd(todayAnchor), [todayAnchor]);
@@ -493,7 +524,8 @@ export default function StaffDiary() {
         scrollViewRef={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        bottomOffset={24}
+        bottomOffset={Platform.OS === 'android' ? 104 : 80}
+        extraScrollPadding={160}
       >
         <Animated.View entering={FadeInDown.delay(40).duration(320)} style={styles.tabWrap}>
           <DiaryHistoryTabSwitcher
@@ -625,6 +657,9 @@ export default function StaffDiary() {
             <Animated.View
               entering={FadeInDown.delay(120).duration(360)}
               style={[styles.formCard, clayCard(isDark, 'md')]}
+              onLayout={(event) => {
+                composerTopRef.current = event.nativeEvent.layout.y;
+              }}
             >
               <LinearGradient
                 colors={
@@ -699,7 +734,12 @@ export default function StaffDiary() {
                 </Text>
               </View>
 
-              <View style={styles.inputGroup}>
+              <View
+                style={styles.inputGroup}
+                onLayout={(event) => {
+                  fieldTopRef.current.title = event.nativeEvent.layout.y;
+                }}
+              >
                 <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
                   {TE.titleLabel}
                 </Text>
@@ -722,12 +762,20 @@ export default function StaffDiary() {
                   placeholderTextColor="#94A3B8"
                   value={title}
                   onChangeText={setTitle}
-                  onFocus={() => setTitleFocused(true)}
+                  onFocus={() => {
+                    setTitleFocused(true);
+                    revealComposerField('title');
+                  }}
                   onBlur={() => setTitleFocused(false)}
                 />
               </View>
 
-              <View style={styles.inputGroup}>
+              <View
+                style={styles.inputGroup}
+                onLayout={(event) => {
+                  fieldTopRef.current.description = event.nativeEvent.layout.y;
+                }}
+              >
                 <View style={styles.labelRow}>
                   <Text style={[styles.label, { color: theme.colors.textSecondary, marginBottom: 0 }]}>
                     {TE.descLabel}
@@ -770,7 +818,10 @@ export default function StaffDiary() {
                   value={description}
                   onChangeText={setDescription}
                   textAlignVertical="top"
-                  onFocus={() => setDescFocused(true)}
+                  onFocus={() => {
+                    setDescFocused(true);
+                    revealComposerField('description');
+                  }}
                   onBlur={() => setDescFocused(false)}
                 />
               </View>

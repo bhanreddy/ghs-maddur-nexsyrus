@@ -34,6 +34,7 @@
     "android": {
       "package": "com.nexsyrussims.samskrutheschool",
       "jsEngine": "hermes",
+      "softwareKeyboardLayoutMode": "resize",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "enableShrinkResources": true,
