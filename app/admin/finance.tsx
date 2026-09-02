@@ -112,6 +112,7 @@ export default function AdminFinanceScreen() {
   const [dueListOptions, setDueListOptions] = useState<PendingFeeFilterOptions | null>(null);
   const [dueClassId, setDueClassId] = useState<string>('');
   const [dueSectionId, setDueSectionId] = useState<string>('');
+  const [dueFeeTypeId, setDueFeeTypeId] = useState<string>('');
   const [dueVillageId, setDueVillageId] = useState<string>('');
   const [dueOverdueOnly, setDueOverdueOnly] = useState(false);
   const [dueExporting, setDueExporting] = useState(false);
@@ -271,6 +272,7 @@ export default function AdminFinanceScreen() {
 
   const selectedDueClass = dueListOptions?.classes.find((item) => item.id === dueClassId);
   const selectedDueSection = dueListOptions?.sections.find((item) => item.id === dueSectionId);
+  const selectedDueFeeType = dueListOptions?.fee_types.find((item) => item.id === dueFeeTypeId);
   const selectedDueVillage = dueListOptions?.villages.find((item) => item.id === dueVillageId);
 
   const exportDueList = async () => {
@@ -281,6 +283,7 @@ export default function AdminFinanceScreen() {
         academic_year_id: dueListOptions.academic_year.id,
         class_id: dueClassId || undefined,
         section_id: dueSectionId || undefined,
+        fee_type_id: dueFeeTypeId || undefined,
         village_id: dueVillageId || undefined,
         overdue_only: dueOverdueOnly || undefined,
       });
@@ -571,6 +574,15 @@ export default function AdminFinanceScreen() {
               >
                 <Ionicons name="layers-outline" size={13} color={dueSectionId ? theme.colors.primary : theme.colors.textSecondary} style={{ marginRight: 5 }} />
                 <Text style={[styles.filterChipText, dueSectionId && { color: theme.colors.primary }]}>Section: {selectedDueSection?.name || 'All'}</Text>
+                <Ionicons name="chevron-down" size={13} color={theme.colors.textSecondary} style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={!dueListOptions}
+                style={[styles.filterChip, dueFeeTypeId && styles.filterChipActive]}
+                onPress={() => selectDueFilter('Filter by Fee Type', dueListOptions?.fee_types || [], dueFeeTypeId, setDueFeeTypeId)}
+              >
+                <Ionicons name="pricetag-outline" size={13} color={dueFeeTypeId ? theme.colors.primary : theme.colors.textSecondary} style={{ marginRight: 5 }} />
+                <Text style={[styles.filterChipText, dueFeeTypeId && { color: theme.colors.primary }]}>Fee type: {selectedDueFeeType?.name || 'All'}</Text>
                 <Ionicons name="chevron-down" size={13} color={theme.colors.textSecondary} style={{ marginLeft: 4 }} />
               </TouchableOpacity>
               <TouchableOpacity

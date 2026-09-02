@@ -32,8 +32,9 @@ import {
   ResultRankingMethod,
 } from '../../src/utils/assessmentGrading';
 import {
-  buildTwoUpProgressReportHtml,
+  buildProgressReportHtml,
   ProgressReportBrand,
+  ProgressReportLayout,
   ProgressReportStudent,
   ProgressReportSubject,
   ProgressReportType,
@@ -87,6 +88,29 @@ const REPORT_OPTIONS: {
     title: 'Component-based assessment',
     subtitle: 'Participation, written work, project work, slip test, total and grade',
     icon: 'grid-outline',
+  },
+];
+
+const PRINT_LAYOUT_OPTIONS: {
+  value: ProgressReportLayout;
+  title: string;
+  subtitle: string;
+  badge: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    value: 'ultra-premium',
+    title: 'Ultra Premium',
+    subtitle: 'One student per A4 page with spacious typography and signature areas',
+    badge: '1 PER PAGE',
+    icon: 'diamond-outline',
+  },
+  {
+    value: 'normal',
+    title: 'Normal',
+    subtitle: 'Two students per A4 page with a clearly marked tear gap',
+    badge: '2 PER PAGE',
+    icon: 'cut-outline',
   },
 ];
 
@@ -316,6 +340,7 @@ export default function ProgressReportGenerator() {
   );
 
   const [reportType, setReportType] = useState<ProgressReportType>('direct');
+  const [printLayout, setPrintLayout] = useState<ProgressReportLayout>('normal');
   const [scope, setScope] = useState<ReportScope>('class');
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings | null>(null);
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile | null>(null);
@@ -562,7 +587,13 @@ export default function ProgressReportGenerator() {
       return;
     }
     await printHtml(
-      buildTwoUpProgressReportHtml([report], reportType, await printBrand(), { duplicateSingle: true }),
+      buildProgressReportHtml(
+        [report],
+        reportType,
+        await printBrand(),
+        printLayout,
+        { duplicateSingle: true },
+      ),
       'Save student progress report',
     );
   };
@@ -579,7 +610,7 @@ export default function ProgressReportGenerator() {
       return;
     }
     await printHtml(
-      buildTwoUpProgressReportHtml(matching, reportType, await printBrand()),
+      buildProgressReportHtml(matching, reportType, await printBrand(), printLayout),
       'Save class progress reports',
     );
   };
@@ -599,6 +630,8 @@ export default function ProgressReportGenerator() {
     selectedExamId,
   ].filter(Boolean).length;
   const classSelectionComplete = selectedFilterCount === 4;
+  const reportsPerPage = printLayout === 'ultra-premium' ? 1 : 2;
+  const printLayoutTitle = printLayout === 'ultra-premium' ? 'Ultra Premium' : 'Normal';
   const hasPrintableReport =
     (scope === 'student' && Boolean(studentReport)) ||
     (scope === 'class' && batchReports.length > 0);
@@ -723,7 +756,7 @@ export default function ProgressReportGenerator() {
               <Text style={styles.sectionStep}>1</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>Choose the progress report type</Text>
-                <Text style={styles.sectionHint}>Pick the layout that matches how marks were entered.</Text>
+                <Text style={styles.sectionHint}>Pick the assessment structure that matches how marks were entered.</Text>
               </View>
               <View style={styles.requiredBadge}>
                 <Text style={styles.requiredBadgeText}>REQUIRED</Text>
@@ -752,6 +785,56 @@ export default function ProgressReportGenerator() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.optionTitle, active && styles.optionTitleActive]}>{option.title}</Text>
+                      <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
+                    </View>
+                    <Ionicons
+                      name={active ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={23}
+                      color={active ? colors.primary : colors.textMuted}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.typeCard}>
+            <View style={styles.sectionHeading}>
+              <Text style={styles.sectionStep}>2</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>Choose the print design</Text>
+                <Text style={styles.sectionHint}>Both designs use larger, easier-to-read text.</Text>
+              </View>
+              <View style={styles.requiredBadge}>
+                <Text style={styles.requiredBadgeText}>REQUIRED</Text>
+              </View>
+            </View>
+            <View style={[styles.typeOptions, mobile && styles.stack]}>
+              {PRINT_LAYOUT_OPTIONS.map((option) => {
+                const active = printLayout === option.value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    accessibilityLabel={`${option.title}, ${option.badge}`}
+                    onPress={() => setPrintLayout(option.value)}
+                    style={({ pressed }) => [
+                      styles.typeOption,
+                      active && styles.typeOptionActive,
+                      pressed && styles.optionPressed,
+                    ]}
+                  >
+                    <View style={[styles.optionIcon, active && styles.optionIconActive]}>
+                      <Ionicons name={option.icon} size={23} color={active ? '#fff' : colors.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.layoutTitleRow}>
+                        <Text style={[styles.optionTitle, active && styles.optionTitleActive]}>{option.title}</Text>
+                        <View style={[styles.layoutBadge, active && styles.layoutBadgeActive]}>
+                          <Text style={[styles.layoutBadgeText, active && styles.layoutBadgeTextActive]}>{option.badge}</Text>
+                        </View>
+                      </View>
                       <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
                     </View>
                     <Ionicons
@@ -801,7 +884,7 @@ export default function ProgressReportGenerator() {
           {scope === 'class' && (
             <View style={styles.rankingCard}>
               <View style={styles.sectionHeading}>
-                <Text style={styles.sectionStep}>2</Text>
+                <Text style={styles.sectionStep}>3</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.sectionTitle}>
                     Choose the ranking algorithm
@@ -892,7 +975,7 @@ export default function ProgressReportGenerator() {
           {scope === 'student' ? (
             <View style={styles.filterCard}>
               <View style={styles.sectionHeading}>
-                <Text style={styles.sectionStep}>2</Text>
+                <Text style={styles.sectionStep}>3</Text>
                 <View style={{ flex: 1 }}><Text style={styles.sectionTitle}>Find a student</Text><Text style={styles.sectionHint}>Admission number, roll number or full name</Text></View>
                 {studentReport && (
                   <Pressable
@@ -962,7 +1045,7 @@ export default function ProgressReportGenerator() {
           ) : (
             <View style={styles.filterCard}>
               <View style={styles.sectionHeading}>
-                <Text style={styles.sectionStep}>3</Text>
+                <Text style={styles.sectionStep}>4</Text>
                 <View style={{ flex: 1 }}><Text style={styles.sectionTitle}>Select the class assessment</Text><Text style={styles.sectionHint}>Complete all four selections to prepare the class pack.</Text></View>
                 <View style={[styles.completionBadge, classSelectionComplete && styles.completionBadgeDone]}>
                   <Text style={[styles.completionBadgeText, classSelectionComplete && styles.completionBadgeTextDone]}>
@@ -1049,10 +1132,13 @@ export default function ProgressReportGenerator() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.readyTitle}>{batchReports.length} reports ready</Text>
                 <Text style={styles.readyHint}>
-                  Two per A4 page in roll-number order · {rankingLabel} ranking applied.
+                  {printLayout === 'ultra-premium'
+                    ? 'One student per A4 page'
+                    : 'Two students per A4 page with tear gap'}{' '}
+                  in roll-number order · {rankingLabel} ranking applied.
                 </Text>
               </View>
-              <View style={styles.pageCount}><Text style={styles.pageCountValue}>{Math.ceil(batchReports.length / 2)}</Text><Text style={styles.pageCountLabel}>PAGES</Text></View>
+              <View style={styles.pageCount}><Text style={styles.pageCountValue}>{Math.ceil(batchReports.length / reportsPerPage)}</Text><Text style={styles.pageCountLabel}>PAGES</Text></View>
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -1099,10 +1185,12 @@ export default function ProgressReportGenerator() {
               <Ionicons name="checkmark-circle" size={15} color={colors.success} />
               <Text style={styles.printReadyText}>READY TO PRINT</Text>
             </View>
-            <Text style={styles.printBarTitle}>Two reports per A4 page</Text>
+            <Text style={styles.printBarTitle}>
+              {printLayout === 'ultra-premium' ? 'One report per A4 page' : 'Two reports per A4 page'}
+            </Text>
             {!compact && (
               <Text style={styles.printBarHint} numberOfLines={1}>
-                {reportType === 'direct' ? 'Direct assessment' : 'Component-based assessment'}
+                {printLayoutTitle} · {reportType === 'direct' ? 'Direct assessment' : 'Component-based assessment'}
                 {scope === 'class' ? ` · ${rankingLabel}` : ' · School + parent copies'}
               </Text>
             )}
@@ -1381,6 +1469,11 @@ const createStyles = (
   optionPressed: { opacity: 0.84, transform: [{ scale: 0.99 }] },
   optionIcon: { width: mobile ? 40 : 44, height: mobile ? 40 : 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: schoolColorWithAlpha(colors.primary, 0.1) },
   optionIconActive: { backgroundColor: colors.primary },
+  layoutTitleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
+  layoutBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, backgroundColor: schoolColorWithAlpha(colors.textMuted, 0.1) },
+  layoutBadgeActive: { backgroundColor: schoolColorWithAlpha(colors.primary, 0.13) },
+  layoutBadgeText: { fontSize: 7, fontWeight: '900', letterSpacing: 0.55, color: colors.textMuted },
+  layoutBadgeTextActive: { color: colors.primary },
   optionTitle: { fontSize: mobile ? 14 : 15, fontWeight: '900', color: colors.textStrong },
   optionTitleActive: { color: colors.primary },
   optionSubtitle: { marginTop: 3, fontSize: mobile ? 10 : 11, lineHeight: mobile ? 14 : 16, color: colors.textSecondary },

@@ -88,10 +88,17 @@ describe('substitution report PDF', () => {
     expect(html).toContain('data:image/png;base64,school-logo');
     expect(html).toContain('Daily Substitution Report');
     expect(html).toContain('All assigned substitutions');
+    expect(html).toContain('Powered by Nexsyrus SIMS');
     expect(html).toContain('Mr. Arun');
     expect(html).toContain('Ms. Bina');
     expect(html).toContain('<th>Signature</th>');
     expect(html).toContain('class="signature-cell"');
+    expect(html).toContain('@page { size: A4 portrait;');
+    expect(html).toContain('margin: 7px 0 8px;');
+    expect(html).toContain('class="period-time"');
+    expect(html).not.toContain('<th>Subject</th>');
+    expect(html).not.toContain('Mathematics');
+    expect(html).not.toContain('English');
     expect(html).not.toContain('Note / reason');
     expect(html).not.toContain('Training');
     expect(html).not.toContain('Hidden Unassigned Teacher');

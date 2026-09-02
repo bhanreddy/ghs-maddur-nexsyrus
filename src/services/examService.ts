@@ -75,12 +75,30 @@ export interface ExamTimetableDetail {
 
 export interface ExamResultReadinessPaper {
     exam_subject_id: string;
+    class_id: string;
+    subject_id: string;
     class_name: string;
     subject_name: string;
     expected_entries: number;
     entered_entries: number;
     missing_entries: number;
     complete: boolean;
+    pending_teachers: ExamResultReadinessTeacher[];
+    unassigned_sections: ExamResultReadinessSection[];
+}
+
+export interface ExamResultReadinessSection {
+    section_id: string;
+    section_name: string;
+}
+
+export interface ExamResultReadinessTeacher {
+    teacher_id: string;
+    teacher_name: string;
+    section_names: string[];
+    expected_entries: number;
+    entered_entries: number;
+    missing_entries: number;
 }
 
 export interface ExamResultReadiness extends ExamResultReadinessSummary {

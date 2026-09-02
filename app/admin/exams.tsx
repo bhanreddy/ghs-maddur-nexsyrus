@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -47,6 +48,8 @@ import {
   ExamRoomAllocation,
   ExamAllocationParams,
   ExamSeatStudent,
+  ExamResultReadinessPaper,
+  ExamResultReadinessSection,
   SeatingStrategy,
 } from '../../src/services/examService';
 import { TimetableService, TimetableTeacher } from '../../src/services/timetableService';
@@ -289,6 +292,7 @@ function groupPapersByDate(papers: ExamPaper[]): DateGroup[] {
 
 export default function AdminExams() {
   useTranslation();
+  const router = useRouter();
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
 
@@ -602,6 +606,19 @@ export default function AdminExams() {
             onEditPaper={setEditPaper}
             onPublishToggle={handlePublishToggle}
             onResultPublishToggle={handleResultPublishToggle}
+            onAssignTeacher={(paper, section) => {
+              router.push({
+                pathname: '/admin/timetable',
+                params: {
+                  classId: paper.class_id,
+                  sectionId: section.section_id,
+                  subjectId: paper.subject_id,
+                  academicYearId: detail.exam.academic_year_id,
+                  focusAssignment: '1',
+                  focusToken: Date.now().toString(),
+                },
+              });
+            }}
             onQuickAllocate={handleQuickAllocate}
             onCustomizeAllocate={() => setAllocVisible(true)}
             onManageRooms={() => setRoomsVisible(true)}
@@ -1698,6 +1715,7 @@ function ExamDetailView({
   onEditPaper,
   onPublishToggle,
   onResultPublishToggle,
+  onAssignTeacher,
   onQuickAllocate,
   onCustomizeAllocate,
   onManageRooms,
@@ -1716,6 +1734,7 @@ function ExamDetailView({
   onEditPaper: (p: ExamPaper) => void;
   onPublishToggle: () => void;
   onResultPublishToggle: () => void;
+  onAssignTeacher: (paper: ExamResultReadinessPaper, section: ExamResultReadinessSection) => void;
   onQuickAllocate: () => void;
   onCustomizeAllocate: () => void;
   onManageRooms: () => void;
@@ -1735,6 +1754,7 @@ function ExamDetailView({
   const missingTeachers = scheduledPapers.filter((p) => p.has_teacher === false).length;
   const hasSeating = allocations.length > 0;
   const [seatingOpen, setSeatingOpen] = useState(!published || !hasSeating);
+  const [resultGapsOpen, setResultGapsOpen] = useState(true);
 
   // Group room allocations into sittings (date + session).
   const sittingGroups = useMemo(() => {
@@ -2377,16 +2397,100 @@ function ExamDetailView({
                     : `${resultReadiness.entered_entries} of ${resultReadiness.expected_entries} mark entries complete`}
               </Text>
               {!resultsPublished && resultReadiness.missing_entries > 0 && (
-                <>
-                  <Text style={[styles.resultMissingText, { color: theme.colors.warning }]}>
-                    {`${resultReadiness.missing_entries} missing across ${incompleteResultPapers.length} paper${incompleteResultPapers.length === 1 ? '' : 's'}`}
-                  </Text>
-                  {incompleteResultPapers.slice(0, 2).map((paper) => (
-                    <Text key={paper.exam_subject_id} style={styles.resultPaperMissing} numberOfLines={1}>
-                      {`${paper.class_name} · ${paper.subject_name}: ${paper.missing_entries} missing`}
+                <View style={styles.resultMissingWrap}>
+                  <TouchableOpacity
+                    style={styles.resultMissingHeader}
+                    activeOpacity={0.7}
+                    onPress={() => setResultGapsOpen((open) => !open)}
+                  >
+                    <Text style={[styles.resultMissingText, { color: theme.colors.warning }]}>
+                      {`${resultReadiness.missing_entries} missing across ${incompleteResultPapers.length} paper${incompleteResultPapers.length === 1 ? '' : 's'}`}
                     </Text>
-                  ))}
-                </>
+                    <Ionicons
+                      name={resultGapsOpen ? 'chevron-up' : 'chevron-down'}
+                      size={14}
+                      color={theme.colors.warning}
+                    />
+                  </TouchableOpacity>
+
+                  {resultGapsOpen && incompleteResultPapers.map((paper) => {
+                    const pendingTeachers = paper.pending_teachers || [];
+                    const unassignedSections = paper.unassigned_sections || [];
+                    return (
+                      <View key={paper.exam_subject_id} style={styles.resultPaperBlock}>
+                        <View style={styles.resultPaperHeader}>
+                          <Text style={styles.resultPaperTitle} numberOfLines={1}>
+                            {`${paper.class_name} · ${paper.subject_name}`}
+                          </Text>
+                          <Text style={[styles.resultPaperCount, { color: theme.colors.warning }]}>
+                            {pluralCount(paper.missing_entries, 'mark')} pending
+                          </Text>
+                        </View>
+
+                        {pendingTeachers.map((teacher) => {
+                          const sections = teacher.section_names || [];
+                          const sectionLabel = sections.length > 0
+                            ? `Section${sections.length === 1 ? '' : 's'} ${sections.join(', ')}`
+                            : 'Assigned class';
+                          return (
+                            <View
+                              key={`${paper.exam_subject_id}-${teacher.teacher_id}`}
+                              style={styles.resultTeacherRow}
+                            >
+                              <View style={[styles.resultTeacherAvatar, { backgroundColor: `${theme.colors.warning}18` }]}>
+                                <Text style={[styles.resultTeacherAvatarText, { color: theme.colors.warning }]}>
+                                  {(teacher.teacher_name || 'T').slice(0, 1).toUpperCase()}
+                                </Text>
+                              </View>
+                              <View style={styles.flex}>
+                                <Text style={styles.resultTeacherName} numberOfLines={1}>
+                                  {teacher.teacher_name}
+                                </Text>
+                                <Text style={styles.resultTeacherMeta}>
+                                  {`${sectionLabel} · ${pluralCount(teacher.missing_entries, 'mark')} pending`}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+
+                        {unassignedSections.map((section) => (
+                          <View
+                            key={`${paper.exam_subject_id}-${section.section_id}`}
+                            style={styles.resultTeacherRow}
+                          >
+                            <View style={styles.flex}>
+                              <Text style={styles.resultTeacherName} numberOfLines={1}>
+                                {`Section ${section.section_name}`}
+                              </Text>
+                              <Text style={[styles.resultTeacherMeta, { color: theme.colors.warning }]}>
+                                No subject teacher is assigned
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              style={[styles.resultAssignTeacherBtn, { borderColor: `${theme.colors.warning}55` }]}
+                              activeOpacity={0.7}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Assign ${paper.subject_name} teacher for ${paper.class_name}, section ${section.section_name}`}
+                              onPress={() => onAssignTeacher(paper, section)}
+                            >
+                              <Ionicons name="add" size={17} color={theme.colors.warning} />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+
+                        {pendingTeachers.length === 0 && unassignedSections.length === 0 && (
+                          <View style={styles.resultTeacherRow}>
+                            <Ionicons name="alert-circle-outline" size={15} color={theme.colors.warning} />
+                            <Text style={[styles.resultTeacherMeta, { color: theme.colors.warning }]}>
+                              No teacher assignment could be resolved
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
               )}
             </View>
             {resultsPublished ? (
@@ -5537,7 +5641,7 @@ const getStyles = (theme: Theme, isDark: boolean) =>
 
     resultPublishCard: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: 12,
       marginTop: 14,
       padding: 14,
@@ -5556,8 +5660,50 @@ const getStyles = (theme: Theme, isDark: boolean) =>
     resultPublishBody: { flex: 1 },
     resultPublishTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.textStrong },
     resultPublishSub: { fontSize: 11.5, color: theme.colors.textSecondary, marginTop: 2 },
-    resultMissingText: { fontSize: 11.5, fontWeight: '700', marginTop: 3 },
-    resultPaperMissing: { fontSize: 10.5, color: theme.colors.textTertiary, marginTop: 2 },
+    resultMissingWrap: { marginTop: 7, gap: 7 },
+    resultMissingHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    resultMissingText: { flex: 1, fontSize: 11.5, fontWeight: '700' },
+    resultPaperBlock: {
+      borderWidth: 1,
+      borderColor: theme.colors.borderLight,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      gap: 7,
+      backgroundColor: theme.colors.background,
+    },
+    resultPaperHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    resultPaperTitle: { flex: 1, fontSize: 11.5, fontWeight: '800', color: theme.colors.textStrong },
+    resultPaperCount: { fontSize: 10.5, fontWeight: '700' },
+    resultTeacherRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    resultTeacherAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    resultTeacherAvatarText: { fontSize: 11, fontWeight: '800' },
+    resultTeacherName: { fontSize: 11.5, fontWeight: '700', color: theme.colors.textStrong },
+    resultTeacherMeta: { fontSize: 10.5, color: theme.colors.textTertiary, marginTop: 1 },
+    resultAssignTeacherBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     resultPublishBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -5565,6 +5711,7 @@ const getStyles = (theme: Theme, isDark: boolean) =>
       paddingHorizontal: 14,
       paddingVertical: 11,
       borderRadius: 12,
+      marginTop: 1,
     },
     resultPublishBtnText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '800' },
     resultUnpublishBtn: {

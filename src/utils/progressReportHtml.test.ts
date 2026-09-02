@@ -1,4 +1,5 @@
 import {
+  buildProgressReportHtml,
   buildTwoUpProgressReportHtml,
   ProgressReportBrand,
   ProgressReportStudent,
@@ -76,11 +77,40 @@ describe('progress report HTML', () => {
 
   it('duplicates a single student into two labelled copies on one A4 page', () => {
     const output = buildTwoUpProgressReportHtml([student], 'direct', brand, { duplicateSingle: true });
-    expect(output.match(/class="report-card direct"/g)).toHaveLength(2);
+    expect(output.match(/class="report-card direct/g)).toHaveLength(2);
     expect(output).toContain('School copy');
     expect(output).toContain('Parent copy');
     expect(output).toContain('Tenant School');
     expect(output).toContain('@page { size: A4 portrait');
+    expect(output).toContain('class="tear-strip"');
+    expect(output).toContain('Tear here');
+  });
+
+  it('renders the ultra premium design with one report per page and larger typography', () => {
+    const output = buildProgressReportHtml(
+      [student, { ...student, id: 'student-2' }],
+      'direct',
+      brand,
+      'ultra-premium',
+    );
+    expect(output).toContain('body class="layout-ultra-premium"');
+    expect(output.match(/class="page"/g)).toHaveLength(2);
+    expect(output.match(/class="report-card direct"/g)).toHaveLength(2);
+    expect(output).not.toContain('class="tear-strip"');
+    expect(output).toContain('.layout-ultra-premium td { height: 8.4mm;');
+  });
+
+  it('puts school and parent copies on separate ultra premium pages', () => {
+    const output = buildProgressReportHtml(
+      [student],
+      'direct',
+      brand,
+      'ultra-premium',
+      { duplicateSingle: true },
+    );
+    expect(output.match(/class="page"/g)).toHaveLength(2);
+    expect(output).toContain('School copy');
+    expect(output).toContain('Parent copy');
   });
 
   it('renders the stored component columns', () => {

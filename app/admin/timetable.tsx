@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
 
@@ -182,6 +182,8 @@ const fmtCompact = (t: string) => {
   const h12 = hour % 12 || 12;
   return `${h12}:${m}`;
 };
+
+const firstRouteParam = (value?: string | string[]) => Array.isArray(value) ? value[0] : value;
 
 const getMins = (t: string) => {
   if (!t || !t.includes(':')) return 0;
@@ -379,6 +381,14 @@ function PremiumSelect({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TimetableManagement() {
+  const routeParams = useLocalSearchParams<{
+    classId?: string;
+    sectionId?: string;
+    subjectId?: string;
+    academicYearId?: string;
+    focusAssignment?: string;
+    focusToken?: string;
+  }>();
   const { isDark } = useTheme();
   const c = React.useMemo(() => makeColors(isDark), [isDark]);
   const styles = React.useMemo(() => getStyles(c), [c]);
@@ -409,6 +419,7 @@ export default function TimetableManagement() {
   const loadSeqRef = useRef(0);
   const mappingsByYearRef = useRef<Map<string, ClassSection[]>>(new Map());
   const focusCountRef = useRef(0);
+  const handledAssignmentFocusRef = useRef('');
 
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
@@ -527,11 +538,28 @@ export default function TimetableManagement() {
       setTimetableMode(cfg.timetable_mode === 'per_day' ? 'per_day' : 'uniform');
       viewDayRef.current = cfg.timetable_mode === 'per_day' ? selectedDay : undefined;
       setAcademicYears(allYears);
-      if (cls.length > 0) setSelectedClassId(prev => prev || cls[0].id);
-      if (sec.length > 0) setSelectedSectionId(prev => prev || sec[0].id);
-      // Auto-select current year
+      const requestedClassId = firstRouteParam(routeParams.classId);
+      const requestedSectionId = firstRouteParam(routeParams.sectionId);
+      const requestedYearId = firstRouteParam(routeParams.academicYearId);
+      if (cls.length > 0) {
+        setSelectedClassId(
+          requestedClassId && cls.some(item => item.id === requestedClassId)
+            ? requestedClassId
+            : cls[0].id
+        );
+      }
+      if (sec.length > 0) {
+        setSelectedSectionId(
+          requestedSectionId && sec.some(item => item.id === requestedSectionId)
+            ? requestedSectionId
+            : sec[0].id
+        );
+      }
+      // Honour an exam deep-link year; otherwise auto-select the current year.
       const current = allYears.find(y => y.is_current);
-      if (current) {
+      if (requestedYearId && allYears.some(y => y.id === requestedYearId)) {
+        setYearId(requestedYearId);
+      } else if (current) {
         setYearId(current.id);
       } else if (allYears.length > 0) {
         setYearId(allYears[0].id); // fallback to most recent
@@ -543,6 +571,33 @@ export default function TimetableManagement() {
       setPeriodsLoading(false);
     }
   };
+
+  // Also apply a new assignment link when this route instance is reused with
+  // different params instead of being remounted by the navigator.
+  useEffect(() => {
+    if (metaLoading || firstRouteParam(routeParams.focusAssignment) !== '1') return;
+    const requestedClassId = firstRouteParam(routeParams.classId);
+    const requestedSectionId = firstRouteParam(routeParams.sectionId);
+    const requestedYearId = firstRouteParam(routeParams.academicYearId);
+    if (requestedClassId && classes.some(item => item.id === requestedClassId)) {
+      setSelectedClassId(requestedClassId);
+    }
+    if (requestedSectionId && sections.some(item => item.id === requestedSectionId)) {
+      setSelectedSectionId(requestedSectionId);
+    }
+    if (requestedYearId && academicYears.some(item => item.id === requestedYearId)) {
+      setYearId(requestedYearId);
+    }
+  }, [
+    routeParams.focusAssignment,
+    routeParams.classId,
+    routeParams.sectionId,
+    routeParams.academicYearId,
+    metaLoading,
+    classes,
+    sections,
+    academicYears,
+  ]);
 
   // Close assign modal when filters change so stale period/subject state is not edited
   useEffect(() => {
@@ -672,7 +727,10 @@ export default function TimetableManagement() {
     applyModeChange('uniform', { confirm: true, sourceDay: collapseSourceDay });
   }, [applyModeChange, collapseSourceDay]);
 
-  const handlePeriodPressForSlot = (periodNumber: number) => {
+  const handlePeriodPressForSlot = useCallback((
+    periodNumber: number,
+    options?: { slot?: TimetableSlot; subjectId?: string; openTeacher?: boolean },
+  ) => {
     if (!classSectionId) {
       alertCompat(
         'Class-section mapping required',
@@ -680,21 +738,156 @@ export default function TimetableManagement() {
       );
       return;
     }
-    const existing = slots.find(s => s.period_number === periodNumber);
+    const existing = options?.slot ?? slots.find(s => s.period_number === periodNumber);
     const periodDef = periods.find(p => p.sort_order === periodNumber);
     setActiveSlotData({ period: periodNumber });
     setStartTime(existing?.start_time || periodDef?.start_time || '09:00:00');
     setEndTime(existing?.end_time || periodDef?.end_time || '10:00:00');
-    setSelectedSubjectId(existing?.subject_id || '');
-    if (periodNumber === 1 && !existing && classTeacherName) {
+    setSelectedSubjectId(existing?.subject_id || options?.subjectId || '');
+    if (periodNumber === 1 && !existing && classTeacherName && !options?.openTeacher) {
       const ct = staff.find(s => (s.display_name || s.first_name || '') === classTeacherName);
       setSelectedTeacherId(ct?.id || '');
     } else { setSelectedTeacherId(existing?.teacher_id || ''); }
     setSubjectQuery('');
     setTeacherQuery('');
-    setAssignTab('subject');
+    setAssignTab(options?.openTeacher ? 'teacher' : 'subject');
     setModalVisible(true);
-  };
+  }, [classSectionId, slots, periods, classTeacherName, staff]);
+
+  // Exam readiness links arrive with a class, section and subject. Once that
+  // timetable is loaded, prefer the matching subject slot when it has no
+  // teacher; otherwise open the first empty teaching period with the exam
+  // subject preselected. In per-day mode, search all weekdays first.
+  useEffect(() => {
+    const shouldFocus = firstRouteParam(routeParams.focusAssignment) === '1';
+    const routeClassId = firstRouteParam(routeParams.classId);
+    const routeSectionId = firstRouteParam(routeParams.sectionId);
+    const routeSubjectId = firstRouteParam(routeParams.subjectId);
+    const routeYearId = firstRouteParam(routeParams.academicYearId);
+    if (!shouldFocus || !routeClassId || !routeSectionId || !routeSubjectId || !routeYearId) return;
+    if (metaLoading || periodsLoading || slotsLoading || !classSectionId || periods.length === 0) return;
+    if (
+      selectedClassId !== routeClassId ||
+      selectedSectionId !== routeSectionId ||
+      yearId !== routeYearId
+    ) return;
+
+    const focusToken = firstRouteParam(routeParams.focusToken) || '';
+    const focusKey = `${routeClassId}:${routeSectionId}:${routeSubjectId}:${routeYearId}:${focusToken}`;
+    if (handledAssignmentFocusRef.current === focusKey) return;
+    handledAssignmentFocusRef.current = focusKey;
+
+    let cancelled = false;
+    const teachingPeriods = [...periods]
+      .filter(period => !period.is_break && !isBreakPeriod(period.name))
+      .sort((a, b) => a.sort_order - b.sort_order);
+
+    const findTarget = (candidateSlots: TimetableSlot[]) => {
+      const subjectSlot = candidateSlots.find(
+        slot => slot.subject_id === routeSubjectId && !slot.teacher_id
+      );
+      if (subjectSlot) return { period: subjectSlot.period_number, slot: subjectSlot };
+      const emptyPeriod = teachingPeriods.find(
+        period => !candidateSlots.some(slot => slot.period_number === period.sort_order)
+      );
+      return emptyPeriod ? { period: emptyPeriod.sort_order, slot: undefined } : null;
+    };
+
+    (async () => {
+      try {
+        let targetSlots = slots;
+        let targetDay = selectedDay;
+        let target = timetableMode === 'uniform' ? findTarget(targetSlots) : null;
+
+        if (timetableMode === 'per_day') {
+          const slotsByDay = await Promise.all(
+            TIMETABLE_DAYS.map(async day => ({
+              day,
+              slots: await TimetableService.getClassSlots(classSectionId, yearId, {
+                fresh: true,
+                dayOfWeek: day,
+              }),
+            }))
+          );
+          if (cancelled) return;
+
+          // An existing subject without a teacher is more useful than an empty
+          // slot, even when it lives on a different weekday.
+          let match = slotsByDay
+            .map(item => ({ ...item, target: item.slots.find(
+              slot => slot.subject_id === routeSubjectId && !slot.teacher_id
+            ) }))
+            .find(item => !!item.target);
+
+          if (!match) {
+            match = slotsByDay
+              .map(item => {
+                const found = findTarget(item.slots);
+                return { ...item, target: found?.slot, emptyPeriod: found?.period };
+              })
+              .find(item => !!item.emptyPeriod) as typeof match;
+          }
+
+          if (match) {
+            targetDay = match.day;
+            targetSlots = match.slots;
+            const matchingSubjectSlot = match.slots.find(
+              slot => slot.subject_id === routeSubjectId && !slot.teacher_id
+            );
+            target = matchingSubjectSlot
+              ? { period: matchingSubjectSlot.period_number, slot: matchingSubjectSlot }
+              : findTarget(match.slots);
+          }
+        }
+
+        if (cancelled) return;
+        if (!target) {
+          alertCompat(
+            'No available timetable slot',
+            'Every teaching period is already assigned. Clear a period or add another period before assigning this subject.'
+          );
+          return;
+        }
+
+        if (timetableMode === 'per_day') {
+          viewDayRef.current = targetDay;
+          setSelectedDay(targetDay);
+          setSlots(targetSlots);
+        }
+        handlePeriodPressForSlot(target.period, {
+          slot: target.slot,
+          subjectId: routeSubjectId,
+          openTeacher: true,
+        });
+      } catch (error: any) {
+        handledAssignmentFocusRef.current = '';
+        if (!cancelled) {
+          alertCompat('Could not open assignment', error?.message || 'Failed to load the selected timetable.');
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [
+    routeParams.focusAssignment,
+    routeParams.classId,
+    routeParams.sectionId,
+    routeParams.subjectId,
+    routeParams.academicYearId,
+    routeParams.focusToken,
+    metaLoading,
+    periodsLoading,
+    slotsLoading,
+    classSectionId,
+    periods,
+    selectedClassId,
+    selectedSectionId,
+    yearId,
+    slots,
+    selectedDay,
+    timetableMode,
+    handlePeriodPressForSlot,
+  ]);
 
   const handleSaveSlot = async () => {
     if (!classSectionId || !activeSlotData || !selectedSubjectId) {

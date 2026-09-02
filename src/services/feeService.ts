@@ -179,6 +179,7 @@ export interface PendingFeeFilterOptions {
     academic_year: { id: string; code: string };
     classes: { id: string; name: string }[];
     sections: { id: string; name: string }[];
+    fee_types: { id: string; name: string }[];
     villages: { id: string; name: string; route_name?: string; label: string }[];
 }
 
@@ -186,6 +187,7 @@ export interface PendingFeeExportFilters {
     academic_year_id?: string;
     class_id?: string;
     section_id?: string;
+    fee_type_id?: string;
     village_id?: string;
     overdue_only?: boolean;
 }
@@ -366,7 +368,7 @@ export const FeeService = {
         return api.get('/admin/finance-stats', params);
     },
 
-    /** Options for the Finance due-list export (classes, sections, transport villages). */
+    /** Options for the Finance due-list export (classes, sections, fee types, transport villages). */
     getPendingFeeFilterOptions: async (academicYearId?: string): Promise<PendingFeeFilterOptions> => {
         return api.get<PendingFeeFilterOptions>('/admin/pending-fees/filter-options', {
             academic_year_id: academicYearId,

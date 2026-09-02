@@ -142,12 +142,11 @@ function tableRows(rows: SubstitutionSlot[]): string {
   return rows.map((slot, index) => `
     <tr>
       <td class="serial">${index + 1}</td>
-      <td>
+      <td class="period-time">
         <strong>P${escapeHtml(slot.period_number)}</strong>
         <span class="minor">${escapeHtml(timeLabel(slot.start_time))} - ${escapeHtml(timeLabel(slot.end_time))}</span>
       </td>
       <td><strong>${escapeHtml(classLabel(slot))}</strong>${slot.room_no ? `<span class="minor">Room ${escapeHtml(slot.room_no)}</span>` : ''}</td>
-      <td>${escapeHtml(slot.subject_name)}</td>
       <td>${escapeHtml(slot.regular_teacher_name || 'Not assigned')}</td>
       <td><strong class="substitute">${escapeHtml(slot.substitute_teacher_name)}</strong></td>
       <td class="signature-cell"><span class="row-signature-line"></span></td>
@@ -182,7 +181,6 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
               <th class="serial">#</th>
               <th>Period / time</th>
               <th>Class</th>
-              <th>Subject</th>
               <th>Absent teacher</th>
               <th>Substitute teacher</th>
               <th>Signature</th>
@@ -201,7 +199,7 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(filename.replace(/\.pdf$/i, ''))}</title>
   <style>
-    @page { size: A4 landscape; margin: 12mm 12mm 15mm; }
+    @page { size: A4 portrait; margin: 10mm 10mm 13mm; }
     * { box-sizing: border-box; }
     body { margin: 0; color: #172033; background: #ffffff; font-family: Inter, Arial, Helvetica, sans-serif; font-size: 9.5px; line-height: 1.38; }
     .page { width: 100%; }
@@ -216,42 +214,45 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
     .document-type .kicker { color: #b45309; font-size: 8px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
     .document-type h1 { margin: 3px 0 0; color: #172554; font-size: 17px; line-height: 1.15; }
     .document-type p { margin: 4px 0 0; color: #64748b; font-size: 9px; }
-    .meta-strip { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 8px; margin: 14px 0 16px; }
-    .meta-card { padding: 9px 11px; border: 1px solid #dbe2ec; border-radius: 8px; background: #f8fafc; }
+    .meta-strip { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 5px; margin: 7px 0 8px; }
+    .meta-card { padding: 5px 7px; border: 1px solid #dbe2ec; border-radius: 6px; background: #f8fafc; }
     .meta-card:first-child { background: #172554; border-color: #172554; color: #ffffff; }
-    .meta-label { display: block; color: #64748b; font-size: 7px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .meta-label { display: block; color: #64748b; font-size: 6px; line-height: 1.15; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
     .meta-card:first-child .meta-label { color: #c7d2fe; }
-    .meta-value { display: block; margin-top: 3px; font-size: 12px; font-weight: 800; }
-    .report-group { margin: 0 0 15px; break-inside: avoid-page; page-break-inside: avoid; }
+    .meta-value { display: block; margin-top: 1px; font-size: 10px; line-height: 1.2; font-weight: 800; }
+    .report-group { margin: 0 0 10px; break-inside: avoid-page; page-break-inside: avoid; }
     .report-group--continuous { break-inside: auto; page-break-inside: auto; }
-    .group-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0 0 6px; padding: 0 1px; break-after: avoid; }
-    .group-heading h2 { margin: 0; color: #172554; font-size: 13px; }
-    .group-heading p { margin: 1px 0 0; color: #64748b; font-size: 8px; }
-    .group-heading > span { padding: 3px 7px; color: #3730a3; background: #eef2ff; border-radius: 99px; font-size: 8px; font-weight: 800; }
+    .group-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin: 0 0 3px; padding: 0 1px; break-after: avoid; }
+    .group-heading h2 { margin: 0; color: #172554; font-size: 11px; line-height: 1.15; }
+    .group-heading p { margin: 0; color: #64748b; font-size: 6.5px; line-height: 1.15; }
+    .group-heading > span { padding: 2px 6px; color: #3730a3; background: #eef2ff; border-radius: 99px; font-size: 6.5px; line-height: 1.15; font-weight: 800; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     thead { display: table-header-group; }
     tr { break-inside: avoid; page-break-inside: avoid; }
-    th { padding: 7px 6px; color: #ffffff; background: #27355c; border: 1px solid #27355c; text-align: left; font-size: 7.5px; letter-spacing: .35px; text-transform: uppercase; }
-    td { padding: 7px 6px; border: 1px solid #dbe2ec; vertical-align: top; overflow-wrap: anywhere; }
+    th { padding: 5px 5px; color: #ffffff; background: #27355c; border: 1px solid #27355c; text-align: left; font-size: 7.5px; letter-spacing: .35px; text-transform: uppercase; }
+    td { padding: 4px 5px; border: 1px solid #dbe2ec; vertical-align: middle; overflow-wrap: anywhere; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     th:nth-child(1), td:nth-child(1) { width: 4%; text-align: center; }
-    th:nth-child(2), td:nth-child(2) { width: 13%; }
-    th:nth-child(3), td:nth-child(3) { width: 10%; }
-    th:nth-child(4), td:nth-child(4) { width: 14%; }
-    th:nth-child(5), td:nth-child(5) { width: 19%; }
-    th:nth-child(6), td:nth-child(6) { width: 21%; }
-    th:nth-child(7), td:nth-child(7) { width: 19%; }
+    th:nth-child(2), td:nth-child(2) { width: 22%; }
+    th:nth-child(3), td:nth-child(3) { width: 11%; }
+    th:nth-child(4), td:nth-child(4) { width: 21%; }
+    th:nth-child(5), td:nth-child(5) { width: 23%; }
+    th:nth-child(6), td:nth-child(6) { width: 19%; }
     .minor { display: block; margin-top: 2px; color: #64748b; font-size: 7.5px; }
+    .period-time { white-space: nowrap; }
+    .period-time .minor { display: inline; margin: 0 0 0 5px; }
     .substitute { color: #047857; }
-    .signature-cell { height: 42px; vertical-align: middle; }
-    .row-signature-line { display: block; width: 88%; height: 18px; margin: 0 auto; border-bottom: 1px solid #94a3b8; }
+    .signature-cell { height: 30px; vertical-align: middle; }
+    .row-signature-line { display: block; width: 88%; height: 12px; margin: 0 auto; border-bottom: 1px solid #94a3b8; }
     .empty { margin-top: 18px; padding: 32px; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; text-align: center; }
     .empty strong { display: block; color: #172554; font-size: 14px; }
     .empty span { display: block; margin-top: 4px; color: #64748b; }
     .signatures { display: flex; justify-content: flex-end; gap: 36px; margin-top: 24px; break-inside: avoid; }
     .signature { width: 155px; padding-top: 24px; border-bottom: 1px solid #64748b; text-align: center; }
     .signature-label { margin-top: 4px; color: #475569; font-size: 8px; font-weight: 700; }
-    .footer { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 7px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 7px; }
+    .footer { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 14px; padding-top: 7px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 7px; }
+    .footer span:nth-child(2) { color: #64748b; font-weight: 700; text-align: center; }
+    .footer span:last-child { text-align: right; }
   </style>
 </head>
 <body>
@@ -284,6 +285,7 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
     </section>
     <footer class="footer">
       <span>Computer-generated substitution duty register | ${escapeHtml(schoolName)}</span>
+      <span>Powered by Nexsyrus SIMS</span>
       <span>Generated ${escapeHtml(generatedAt.toLocaleString('en-IN'))}</span>
     </footer>
   </main>
