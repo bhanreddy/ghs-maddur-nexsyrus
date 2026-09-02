@@ -29,6 +29,10 @@ import {
   SubstitutionService,
   SubstitutionSlot,
 } from '../../src/services/substitutionService';
+import {
+  downloadSubstitutionReportPdf,
+  SubstitutionReportMode,
+} from '../../src/utils/substitutionReportPdf';
 
 type BoardView = 'time' | 'class';
 
@@ -72,6 +76,9 @@ export default function DailySubstitutionsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
   const [teacherFilter, setTeacherFilter] = useState('');
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportMode, setReportMode] = useState<SubstitutionReportMode>('complete');
+  const [reportDownloading, setReportDownloading] = useState(false);
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [targetSlot, setTargetSlot] = useState<SubstitutionSlot | null>(null);
@@ -145,6 +152,24 @@ export default function DailySubstitutionsScreen() {
       }))
       .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
   }, [board?.periods, filteredSlots, view]);
+
+  const assignedSlots = useMemo(
+    () => (board?.slots || []).filter((slot) => Boolean(slot.substitution_id && slot.substitute_teacher_name)),
+    [board?.slots]
+  );
+
+  const downloadReport = async () => {
+    if (!board || assignedSlots.length === 0 || reportDownloading) return;
+    setReportDownloading(true);
+    try {
+      await downloadSubstitutionReportPdf(board, reportMode);
+      setReportVisible(false);
+    } catch (error: any) {
+      alertCompat('Could not create report', error?.message || 'Please try again.');
+    } finally {
+      setReportDownloading(false);
+    }
+  };
 
   const openAssignment = async (slot: SubstitutionSlot) => {
     if (!slot.regular_teacher_id) {
@@ -345,6 +370,27 @@ export default function DailySubstitutionsScreen() {
               />
             ))}
           </ScrollView>
+
+          <View style={styles.reportCallout}>
+            <View style={styles.reportCalloutIcon}>
+              <Ionicons name="document-text-outline" size={20} color={c.primary} />
+            </View>
+            <View style={styles.reportCalloutCopy}>
+              <Text style={styles.reportCalloutTitle}>Substitution duty register</Text>
+              <Text style={styles.reportCalloutText}>
+                Download all {assignedSlots.length} confirmed {assignedSlots.length === 1 ? 'assignment' : 'assignments'} as a branded PDF.
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setReportVisible(true)}
+              disabled={loading || assignedSlots.length === 0}
+              activeOpacity={0.82}
+              style={[styles.reportButton, (loading || assignedSlots.length === 0) && styles.reportButtonDisabled]}
+            >
+              <Ionicons name="download-outline" size={17} color="#FFFFFF" />
+              <Text style={styles.reportButtonText}>Download list</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading ? (
@@ -416,6 +462,18 @@ export default function DailySubstitutionsScreen() {
         isDark={isDark}
         c={c}
       />
+
+      <ReportSheet
+        visible={reportVisible}
+        mode={reportMode}
+        onModeChange={setReportMode}
+        assignedSlots={assignedSlots}
+        periods={board?.periods || []}
+        downloading={reportDownloading}
+        onDownload={downloadReport}
+        onClose={() => !reportDownloading && setReportVisible(false)}
+        c={c}
+      />
     </View>
   );
 }
@@ -477,6 +535,166 @@ function FilterChip({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+const REPORT_OPTIONS: {
+  value: SubstitutionReportMode;
+  title: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    value: 'complete',
+    title: 'Complete list',
+    description: 'Every assigned duty in chronological order',
+    icon: 'list-outline',
+  },
+  {
+    value: 'teacher',
+    title: 'Teacher wise',
+    description: 'Group duties under each substitute teacher',
+    icon: 'people-outline',
+  },
+  {
+    value: 'period',
+    title: 'Period wise',
+    description: 'Group duties by bell period and time',
+    icon: 'time-outline',
+  },
+  {
+    value: 'class',
+    title: 'Class wise',
+    description: 'Group duties by class and section',
+    icon: 'school-outline',
+  },
+];
+
+function ReportSheet({
+  visible,
+  mode,
+  onModeChange,
+  assignedSlots,
+  periods,
+  downloading,
+  onDownload,
+  onClose,
+  c,
+}: {
+  visible: boolean;
+  mode: SubstitutionReportMode;
+  onModeChange: (mode: SubstitutionReportMode) => void;
+  assignedSlots: SubstitutionSlot[];
+  periods: SubstitutionBoard['periods'];
+  downloading: boolean;
+  onDownload: () => void;
+  onClose: () => void;
+  c: ReturnType<typeof colors>;
+}) {
+  if (!visible) return null;
+  const styles = makeStyles(c);
+  const teacherCount = new Set(
+    assignedSlots.map((slot) => slot.substitute_teacher_id || slot.substitute_teacher_name)
+  ).size;
+  const assignedPeriodCount = new Set(assignedSlots.map((slot) => slot.period_number)).size;
+
+  return (
+    <Modal transparent visible animationType="none" onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose} />
+      <Animated.View
+        entering={SlideInDown.springify().damping(24).stiffness(260)}
+        exiting={SlideOutDown.duration(180)}
+        style={[styles.sheet, styles.reportSheet]}
+      >
+        <View style={styles.sheetHandle} />
+        <View style={styles.sheetHeader}>
+          <View style={styles.reportSheetHeading}>
+            <View style={styles.reportSheetIcon}>
+              <Ionicons name="document-text-outline" size={22} color={c.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sheetEyebrow}>BRANDED PDF REGISTER</Text>
+              <Text style={styles.sheetTitle}>Download substitutes list</Text>
+              <Text style={styles.sheetSubtitle}>Choose how the confirmed assignments should be arranged.</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={onClose} disabled={downloading} style={styles.sheetClose}>
+            <Ionicons name="close" size={19} color={c.text} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.reportSheetBody} showsVerticalScrollIndicator={false}>
+          <View style={styles.reportSummary}>
+            <ReportMetric value={assignedSlots.length} label="Assignments" c={c} />
+            <ReportMetric value={teacherCount} label="Substitutes" c={c} />
+            <ReportMetric value={assignedPeriodCount} label={`of ${periods.length} periods`} c={c} />
+          </View>
+
+          <View style={styles.reportOptions}>
+            {REPORT_OPTIONS.map((option) => {
+              const active = mode === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  onPress={() => onModeChange(option.value)}
+                  style={[
+                    styles.reportOption,
+                    active && { borderColor: c.primary, backgroundColor: c.primarySoft },
+                  ]}
+                >
+                  <View style={[styles.reportOptionIcon, active && { backgroundColor: c.primary }]}>
+                    <Ionicons name={option.icon} size={18} color={active ? '#FFFFFF' : c.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reportOptionTitle}>{option.title}</Text>
+                    <Text style={styles.reportOptionText}>{option.description}</Text>
+                  </View>
+                  <Ionicons
+                    name={active ? 'radio-button-on' : 'radio-button-off'}
+                    size={21}
+                    color={active ? c.primary : c.muted}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.reportBrandNote}>
+            <Ionicons name="shield-checkmark-outline" size={15} color={c.success} />
+            <Text style={styles.reportBrandNoteText}>
+              The school name and logo are added automatically from this app&apos;s environment settings.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={onDownload}
+            disabled={downloading || assignedSlots.length === 0}
+            activeOpacity={0.85}
+            style={{ opacity: downloading || assignedSlots.length === 0 ? 0.55 : 1 }}
+          >
+            <LinearGradient colors={['#312E81', '#4F46E5']} style={styles.confirmButton}>
+              {downloading ? (
+                <LogoLoader size={22} color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.confirmText}>Create premium PDF</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+function ReportMetric({ value, label, c }: { value: number; label: string; c: ReturnType<typeof colors> }) {
+  return (
+    <View style={[staticStyles.reportMetric, { borderColor: c.border, backgroundColor: c.cardAlt }]}>
+      <Text style={[staticStyles.reportMetricValue, { color: c.text }]}>{value}</Text>
+      <Text style={[staticStyles.reportMetricLabel, { color: c.muted }]}>{label}</Text>
+    </View>
   );
 }
 
@@ -766,6 +984,14 @@ function makeStyles(c: ReturnType<typeof colors>) {
     searchInput: { flex: 1, color: c.text, fontSize: 14, borderWidth: 0, paddingHorizontal: 0, backgroundColor: 'transparent', height: 46 },
     clearSearch: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.card },
     teacherChips: { gap: 8, paddingRight: 10 },
+    reportCallout: { marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderTopColor: c.border, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+    reportCalloutIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
+    reportCalloutCopy: { flex: 1, minWidth: 220 },
+    reportCalloutTitle: { color: c.text, fontSize: 13, fontWeight: '900' },
+    reportCalloutText: { color: c.subtext, fontSize: 10, lineHeight: 15, marginTop: 3 },
+    reportButton: { minHeight: 42, paddingHorizontal: 15, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: c.primary },
+    reportButtonDisabled: { opacity: 0.45 },
+    reportButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
     loadingState: { minHeight: 280, alignItems: 'center', justifyContent: 'center', gap: 14 },
     loadingText: { color: c.subtext, fontSize: 13, fontWeight: '600' },
     emptyState: { minHeight: 270, alignItems: 'center', justifyContent: 'center', padding: 30, backgroundColor: c.card, borderRadius: 24, borderWidth: 1, borderColor: c.border },
@@ -803,8 +1029,12 @@ function makeStyles(c: ReturnType<typeof colors>) {
     cancelButton: { width: 31, height: 31, borderRadius: 10, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center' },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,6,23,0.58)' },
     sheet: { position: 'absolute', bottom: 0, alignSelf: 'center', width: '100%', maxWidth: 820, maxHeight: '92%', backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: Platform.OS === 'ios' ? 34 : 24, borderWidth: 1, borderColor: c.border },
+    reportSheet: { maxWidth: 680 },
+    reportSheetBody: { flexShrink: 1 },
     sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginBottom: 18 },
     sheetHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 },
+    reportSheetHeading: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    reportSheetIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
     sheetEyebrow: { color: c.primary, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
     sheetTitle: { color: c.text, fontSize: 20, fontWeight: '900', marginTop: 4, letterSpacing: -0.5 },
     sheetSubtitle: { color: c.subtext, fontSize: 11, marginTop: 5 },
@@ -832,6 +1062,14 @@ function makeStyles(c: ReturnType<typeof colors>) {
     confirmButton: { minHeight: 50, borderRadius: 15, marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
     confirmText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
     expiryNote: { color: c.muted, fontSize: 9, textAlign: 'center', marginTop: 9 },
+    reportSummary: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+    reportOptions: { gap: 9 },
+    reportOption: { minHeight: 66, padding: 11, borderRadius: 15, borderWidth: 1.5, borderColor: c.border, backgroundColor: c.cardAlt, flexDirection: 'row', alignItems: 'center', gap: 11 },
+    reportOptionIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
+    reportOptionTitle: { color: c.text, fontSize: 12, fontWeight: '900' },
+    reportOptionText: { color: c.subtext, fontSize: 9, lineHeight: 13, marginTop: 2 },
+    reportBrandNote: { marginTop: 13, padding: 10, borderRadius: 12, backgroundColor: c.successSoft, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    reportBrandNoteText: { flex: 1, color: c.subtext, fontSize: 9, lineHeight: 13, fontWeight: '600' },
   });
 }
 
@@ -843,4 +1081,7 @@ const staticStyles = StyleSheet.create({
   segmentLabel: { fontSize: 11, fontWeight: '900' },
   filterChip: { height: 36, maxWidth: 190, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   filterChipText: { fontSize: 11, fontWeight: '800', maxWidth: 145 },
+  reportMetric: { flex: 1, minWidth: 0, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1 },
+  reportMetricValue: { fontSize: 16, fontWeight: '900' },
+  reportMetricLabel: { fontSize: 8, fontWeight: '800', marginTop: 2 },
 });
