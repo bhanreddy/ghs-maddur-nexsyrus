@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Samskruthe School Nawabpet",
-    "slug": "samskrutheschoolnawabpet",
+    "name": "Geetanjali High School Maddur",
+    "slug": "geetanjalihighschoolmaddur",
     "version": "3.1.2",
     "platforms": [
       "android",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.samskrutheschool",
+      "bundleIdentifier": "com.nexsyrussims.geetanjalihighschool",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -32,16 +32,15 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.samskrutheschool",
+      "package": "com.nexsyrussims.geetanjalihighschool",
       "jsEngine": "hermes",
-      "softwareKeyboardLayoutMode": "resize",
-      "versionCode": 1,
+      "versionCode": 5,
       "googleServicesFile": "./google-services.json",
       "enableShrinkResources": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-icon-foreground-v2.png",
+        "foregroundImage": "./assets/images/icon-v2.png",
         "backgroundColor": "#E6F4FE",
-        "monochromeImage": "./assets/images/android-icon-monochrome-v2.png"
+        "monochromeImage": "./assets/images/icon-v2.png"
       },
       "useNextNotificationsApi": true,
       "permissions": [
@@ -59,10 +58,10 @@
       ]
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon-v2.png"
     },
     "notification": {
-      "icon": "./assets/images/android-icon-monochrome-v2.png",
+      "icon": "./assets/images/icon-v2.png",
       "color": "#3535A8"
     },
     "plugins": [
@@ -83,7 +82,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "backgroundColor": "#FFFFFF",
           "resizeMode": "contain"
         }
@@ -101,7 +100,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/android-icon-monochrome-v2.png",
+          "icon": "./assets/images/icon.png",
           "color": "#3535A8",
           "sounds": [
             "./assets/sounds/attendance_absent_alert.wav",
@@ -134,7 +133,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "06802539-5f1f-4aa9-abd9-17350b5e65a7"
+        "projectId": "5e99bce0-6c29-4767-9f70-10ea0ea9582f"
       }
     },
     "owner": "nexsyrus"
