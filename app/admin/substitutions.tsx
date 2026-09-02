@@ -29,6 +29,7 @@ import {
   SubstitutionService,
   SubstitutionSlot,
 } from '../../src/services/substitutionService';
+import { SchoolService } from '../../src/services/schoolService';
 import {
   downloadSubstitutionReportPdf,
   SubstitutionReportMode,
@@ -162,7 +163,11 @@ export default function DailySubstitutionsScreen() {
     if (!board || assignedSlots.length === 0 || reportDownloading) return;
     setReportDownloading(true);
     try {
-      await downloadSubstitutionReportPdf(board, reportMode);
+      const schoolProfile = await SchoolService.getProfile().catch(() => null);
+      await downloadSubstitutionReportPdf(board, reportMode, {
+        schoolName: schoolProfile?.name,
+        logoUrl: schoolProfile?.logo_url,
+      });
       setReportVisible(false);
     } catch (error: any) {
       alertCompat('Could not create report', error?.message || 'Please try again.');

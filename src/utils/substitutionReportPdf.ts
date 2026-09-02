@@ -2,7 +2,9 @@ import { Platform } from 'react-native';
 import { SCHOOL_LOGO, SCHOOL_NAME } from '../constants/school';
 import { SubstitutionBoard, SubstitutionSlot } from '../services/substitutionService';
 import { printHtmlOnWeb } from './pdfGenerator';
-import { resolveApiAssetUrl, toBase64Uri } from './toBase64Uri';
+import { bundledAssetToBase64Uri, resolveApiAssetUrl, toBase64Uri } from './toBase64Uri';
+
+const DEFAULT_SCHOOL_LOGO = require('../../assets/images/icon.png') as number;
 
 export type SubstitutionReportMode = 'complete' | 'teacher' | 'period' | 'class';
 
@@ -12,6 +14,11 @@ export interface SubstitutionReportOptions {
   schoolName?: string;
   logoUri?: string | null;
   generatedAt?: Date;
+}
+
+export interface SubstitutionReportBranding {
+  schoolName?: string | null;
+  logoUrl?: string | null;
 }
 
 interface ReportGroup {
@@ -143,7 +150,7 @@ function tableRows(rows: SubstitutionSlot[]): string {
       <td>${escapeHtml(slot.subject_name)}</td>
       <td>${escapeHtml(slot.regular_teacher_name || 'Not assigned')}</td>
       <td><strong class="substitute">${escapeHtml(slot.substitute_teacher_name)}</strong></td>
-      <td class="reason">${escapeHtml(slot.reason || '-')}</td>
+      <td class="signature-cell"><span class="row-signature-line"></span></td>
     </tr>`).join('');
 }
 
@@ -178,7 +185,7 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
               <th>Subject</th>
               <th>Absent teacher</th>
               <th>Substitute teacher</th>
-              <th>Note / reason</th>
+              <th>Signature</th>
             </tr>
           </thead>
           <tbody>${tableRows(group.rows)}</tbody>
@@ -230,13 +237,14 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
     th:nth-child(1), td:nth-child(1) { width: 4%; text-align: center; }
     th:nth-child(2), td:nth-child(2) { width: 13%; }
     th:nth-child(3), td:nth-child(3) { width: 10%; }
-    th:nth-child(4), td:nth-child(4) { width: 13%; }
-    th:nth-child(5), td:nth-child(5) { width: 18%; }
-    th:nth-child(6), td:nth-child(6) { width: 19%; }
-    th:nth-child(7), td:nth-child(7) { width: 23%; }
+    th:nth-child(4), td:nth-child(4) { width: 14%; }
+    th:nth-child(5), td:nth-child(5) { width: 19%; }
+    th:nth-child(6), td:nth-child(6) { width: 21%; }
+    th:nth-child(7), td:nth-child(7) { width: 19%; }
     .minor { display: block; margin-top: 2px; color: #64748b; font-size: 7.5px; }
     .substitute { color: #047857; }
-    .reason { color: #475569; font-size: 8.5px; }
+    .signature-cell { height: 42px; vertical-align: middle; }
+    .row-signature-line { display: block; width: 88%; height: 18px; margin: 0 auto; border-bottom: 1px solid #94a3b8; }
     .empty { margin-top: 18px; padding: 32px; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; text-align: center; }
     .empty strong { display: block; color: #172554; font-size: 14px; }
     .empty span { display: block; margin-top: 4px; color: #64748b; }
@@ -287,20 +295,31 @@ export function getSubstitutionReportFileName(date: string, mode: SubstitutionRe
   return `substitutions-${safeFilePart(date)}-${safeFilePart(mode)}.pdf`;
 }
 
-async function resolveEnvironmentLogo(): Promise<string | null> {
-  const logoUrl = resolveApiAssetUrl(SCHOOL_LOGO);
-  return logoUrl ? toBase64Uri(logoUrl) : null;
+export async function resolveSubstitutionReportLogo(profileLogoUrl?: string | null): Promise<string | null> {
+  const candidates = [profileLogoUrl, SCHOOL_LOGO]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  for (const candidate of [...new Set(candidates)]) {
+    const logoUrl = resolveApiAssetUrl(candidate);
+    if (!logoUrl) continue;
+    const encoded = await toBase64Uri(logoUrl);
+    if (encoded) return encoded;
+  }
+
+  return bundledAssetToBase64Uri(DEFAULT_SCHOOL_LOGO, 'image/png');
 }
 
 export async function downloadSubstitutionReportPdf(
   board: SubstitutionBoard,
   mode: SubstitutionReportMode,
+  branding: SubstitutionReportBranding = {},
 ): Promise<string> {
-  const logoUri = await resolveEnvironmentLogo();
+  const logoUri = await resolveSubstitutionReportLogo(branding.logoUrl);
   const html = buildSubstitutionReportHtml({
     board,
     mode,
-    schoolName: SCHOOL_NAME,
+    schoolName: branding.schoolName || SCHOOL_NAME,
     logoUri,
   });
   const fileName = getSubstitutionReportFileName(board.date, mode);

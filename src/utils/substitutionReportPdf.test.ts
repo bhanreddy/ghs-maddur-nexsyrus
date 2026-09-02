@@ -1,7 +1,17 @@
 import { SubstitutionBoard } from '../services/substitutionService';
-import { buildSubstitutionReportHtml, getSubstitutionReportFileName } from './substitutionReportPdf';
+import {
+  buildSubstitutionReportHtml,
+  getSubstitutionReportFileName,
+  resolveSubstitutionReportLogo,
+} from './substitutionReportPdf';
+import { bundledAssetToBase64Uri, resolveApiAssetUrl, toBase64Uri } from './toBase64Uri';
 
 jest.mock('./pdfGenerator', () => ({ printHtmlOnWeb: jest.fn() }));
+jest.mock('./toBase64Uri', () => ({
+  resolveApiAssetUrl: jest.fn((value: string) => value),
+  toBase64Uri: jest.fn(async (value: string) => `data:image/png;base64,${value}`),
+  bundledAssetToBase64Uri: jest.fn(async () => 'data:image/png;base64,bundled-school-logo'),
+}));
 
 const board: SubstitutionBoard = {
   date: '2026-09-02',
@@ -80,6 +90,10 @@ describe('substitution report PDF', () => {
     expect(html).toContain('All assigned substitutions');
     expect(html).toContain('Mr. Arun');
     expect(html).toContain('Ms. Bina');
+    expect(html).toContain('<th>Signature</th>');
+    expect(html).toContain('class="signature-cell"');
+    expect(html).not.toContain('Note / reason');
+    expect(html).not.toContain('Training');
     expect(html).not.toContain('Hidden Unassigned Teacher');
     expect(html.indexOf('Mr. Arun')).toBeLessThan(html.indexOf('Ms. Bina'));
   });
@@ -100,5 +114,18 @@ describe('substitution report PDF', () => {
   it('uses a stable, descriptive filename', () => {
     expect(getSubstitutionReportFileName('2026-09-02', 'teacher'))
       .toBe('substitutions-2026-09-02-teacher.pdf');
+  });
+
+  it('embeds the school-profile logo when the environment logo is unavailable', async () => {
+    await expect(resolveSubstitutionReportLogo('https://cdn.example.com/school-logo.png'))
+      .resolves.toBe('data:image/png;base64,https://cdn.example.com/school-logo.png');
+    expect(resolveApiAssetUrl).toHaveBeenCalledWith('https://cdn.example.com/school-logo.png');
+    expect(toBase64Uri).toHaveBeenCalledWith('https://cdn.example.com/school-logo.png');
+  });
+
+  it('uses assets/images/icon.png when school_logo_url is empty', async () => {
+    await expect(resolveSubstitutionReportLogo(null))
+      .resolves.toBe('data:image/png;base64,bundled-school-logo');
+    expect(bundledAssetToBase64Uri).toHaveBeenCalledWith(expect.anything(), 'image/png');
   });
 });
