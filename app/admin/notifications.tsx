@@ -77,6 +77,17 @@ interface ClassTargetsResponse {
   notification_enabled?: boolean;
 }
 
+interface FeeTypeTarget {
+  id: string;
+  name: string;
+  code?: string | null;
+  kind: 'standard' | 'transport';
+}
+
+interface FeeTypesResponse {
+  fee_types: FeeTypeTarget[];
+}
+
 interface NotificationSetting {
   id: string;
   label: string;
@@ -527,6 +538,7 @@ function ConfirmBroadcastSheet({
   selectedClassNames,
   estimate,
   feePaidRange,
+  feeTypeName,
   onCancel,
   onConfirm,
   styles,
@@ -537,6 +549,7 @@ function ConfirmBroadcastSheet({
   selectedClassNames: string[];
   estimate: number;
   feePaidRange?: FeePaidRange;
+  feeTypeName?: string;
   onCancel: () => void;
   onConfirm: () => void;
   styles: ReturnType<typeof getStyles>;
@@ -591,6 +604,11 @@ function ConfirmBroadcastSheet({
               <View style={styles.sheetDivider} />
               {channel.id === 'FEE_REMINDER' && feePaidRange && (
                 <>
+                  <View style={styles.sheetTargetRow}>
+                    <Text style={styles.sheetTargetLabel}>Fee type</Text>
+                    <Text style={styles.sheetTargetValue}>{feeTypeName || 'All fee types'}</Text>
+                  </View>
+                  <View style={styles.sheetDivider} />
                   <View style={styles.sheetTargetRow}>
                     <Text style={styles.sheetTargetLabel}>Already paid</Text>
                     <Text style={styles.sheetTargetValue}>
@@ -894,6 +912,10 @@ export default function NotificationsTriggerPage() {
   const [feePaidRange, setFeePaidRange] = useState<FeePaidRange>({ min: 0, max: 100 });
   const [feeMinInput, setFeeMinInput] = useState('0');
   const [feeMaxInput, setFeeMaxInput] = useState('100');
+  const [feeTypes, setFeeTypes] = useState<FeeTypeTarget[]>([]);
+  const [feeTypesLoading, setFeeTypesLoading] = useState(true);
+  const [feeTypesError, setFeeTypesError] = useState<string | null>(null);
+  const [selectedFeeTypeId, setSelectedFeeTypeId] = useState<string | null>(null);
 
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [activeStatus, setActiveStatus] = useState<BroadcastStatus | null>(null);
@@ -927,15 +949,19 @@ export default function NotificationsTriggerPage() {
 
   const fetchClassTargets = useCallback(async (
     channel: TriggerType,
-    paidRange: FeePaidRange = { min: 0, max: 100 }
+    paidRange: FeePaidRange = { min: 0, max: 100 },
+    feeTypeId: string | null = null
   ) => {
     setTargetsLoadingByChannel((prev) => ({ ...prev, [channel]: true }));
     try {
       const rangeQuery = channel === 'FEE_REMINDER'
         ? `&fee_paid_min_percent=${paidRange.min}&fee_paid_max_percent=${paidRange.max}`
         : '';
+      const feeTypeQuery = channel === 'FEE_REMINDER' && feeTypeId
+        ? `&fee_type_id=${encodeURIComponent(feeTypeId)}`
+        : '';
       const res = await api.get<ClassTargetsResponse>(
-        `/admin/notifications/classes/targets?type=${encodeURIComponent(channel)}${rangeQuery}`
+        `/admin/notifications/classes/targets?type=${encodeURIComponent(channel)}${rangeQuery}${feeTypeQuery}`
       );
       setClassTargetsByChannel((prev) => ({ ...prev, [channel]: res.classes || [] }));
       setAllSchoolCountByChannel((prev) => ({
@@ -961,8 +987,28 @@ export default function NotificationsTriggerPage() {
   }, [selectedType, classTargetsByChannel, targetsLoadingByChannel, fetchClassTargets, feePaidRange]);
 
   useEffect(() => {
-    if (selectedType === 'FEE_REMINDER') fetchClassTargets(selectedType, feePaidRange);
-  }, [selectedType, feePaidRange, fetchClassTargets]);
+    if (selectedType === 'FEE_REMINDER') {
+      fetchClassTargets(selectedType, feePaidRange, selectedFeeTypeId);
+    }
+  }, [selectedType, feePaidRange, selectedFeeTypeId, fetchClassTargets]);
+
+  const fetchFeeTypes = useCallback(async () => {
+    setFeeTypesLoading(true);
+    setFeeTypesError(null);
+    try {
+      const response = await api.get<FeeTypesResponse>('/admin/notifications/fee-types');
+      setFeeTypes(response.fee_types || []);
+    } catch (error: any) {
+      setFeeTypes([]);
+      setFeeTypesError(error.message || 'Could not load fee types.');
+    } finally {
+      setFeeTypesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFeeTypes();
+  }, [fetchFeeTypes]);
 
   const fetchNotificationSettings = useCallback(async () => {
     setSettingsLoading(true);
@@ -1004,7 +1050,7 @@ export default function NotificationsTriggerPage() {
         return next;
       });
       if (selectedType === 'FEE_REMINDER' && affectedTypes.includes(selectedType)) {
-        fetchClassTargets(selectedType, feePaidRange);
+        fetchClassTargets(selectedType, feePaidRange, selectedFeeTypeId);
       }
     } catch (error: any) {
       setNotificationSettings((current) => current.map((item) => (
@@ -1014,7 +1060,7 @@ export default function NotificationsTriggerPage() {
     } finally {
       setUpdatingSettingId(null);
     }
-  }, [updatingSettingId, selectedType, fetchClassTargets, feePaidRange]);
+  }, [updatingSettingId, selectedType, fetchClassTargets, feePaidRange, selectedFeeTypeId]);
 
   const applyFeePaidRange = useCallback(() => {
     const min = Number(feeMinInput);
@@ -1106,6 +1152,7 @@ export default function NotificationsTriggerPage() {
           idempotency_key: string;
           fee_paid_min_percent?: number;
           fee_paid_max_percent?: number;
+          fee_type_id?: string;
         } = {
           type,
           idempotency_key: makeIdempotencyKey(),
@@ -1114,6 +1161,7 @@ export default function NotificationsTriggerPage() {
         if (type === 'FEE_REMINDER') {
           payload.fee_paid_min_percent = feePaidRange.min;
           payload.fee_paid_max_percent = feePaidRange.max;
+          if (selectedFeeTypeId) payload.fee_type_id = selectedFeeTypeId;
         }
 
         const result = await api.post<BroadcastResult>('/admin/notifications/broadcast', payload);
@@ -1136,7 +1184,7 @@ export default function NotificationsTriggerPage() {
         );
       }
     },
-    [openStatusModal, pollBroadcastStatus, feePaidRange]
+    [openStatusModal, pollBroadcastStatus, feePaidRange, selectedFeeTypeId]
   );
 
   const handleFireTrigger = useCallback(
@@ -1232,6 +1280,9 @@ export default function NotificationsTriggerPage() {
           .reduce((sum, c) => sum + c.recipient_count, 0)
     : 0;
 
+  const selectedFeeTypeName = selectedFeeTypeId
+    ? feeTypes.find((feeType) => feeType.id === selectedFeeTypeId)?.name || 'Selected fee type'
+    : 'All fee types';
   const selectedTrigger = TRIGGERS.find((trigger) => trigger.id === selectedType)!;
   const selectedNotificationEnabled = notificationSettings.find(
     (setting) => setting.id === TRIGGER_SETTING_CATEGORY[selectedType]
@@ -1371,6 +1422,66 @@ export default function NotificationsTriggerPage() {
 
               {selectedType === 'FEE_REMINDER' && (
                 <View style={styles.feeRangeCard}>
+                  <View style={styles.feeRangeHeading}>
+                    <View style={[styles.reviewIcon, { backgroundColor: selectedTrigger.tint }]}>
+                      <Ionicons name="receipt-outline" size={20} color={selectedTrigger.accent} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.feeRangeTitle}>Choose fee type</Text>
+                      <Text style={styles.panelHint}>The reminder and pending amount will only use this fee type.</Text>
+                    </View>
+                  </View>
+                  {feeTypesLoading ? (
+                    <View style={styles.feeTypesLoading}>
+                      <LogoLoader color={selectedTrigger.accent} size={18} />
+                    </View>
+                  ) : (
+                    <View style={styles.feeTypeRow}>
+                      <Pressable
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: selectedFeeTypeId === null }}
+                        onPress={() => { Haptics.selectionAsync(); setSelectedFeeTypeId(null); }}
+                        style={[
+                          styles.feeTypeChip,
+                          selectedFeeTypeId === null && {
+                            borderColor: selectedTrigger.accent,
+                            backgroundColor: selectedTrigger.tint,
+                          },
+                        ]}
+                      >
+                        <Ionicons name="layers-outline" size={15} color={selectedFeeTypeId === null ? selectedTrigger.accent : THEME_COLORS.textMuted} />
+                        <Text style={[styles.feeTypeChipText, selectedFeeTypeId === null && { color: selectedTrigger.accent }]}>All fee types</Text>
+                      </Pressable>
+                      {feeTypes.map((feeType) => {
+                        const selected = selectedFeeTypeId === feeType.id;
+                        return (
+                          <Pressable
+                            key={feeType.id}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected }}
+                            onPress={() => { Haptics.selectionAsync(); setSelectedFeeTypeId(feeType.id); }}
+                            style={[
+                              styles.feeTypeChip,
+                              selected && {
+                                borderColor: selectedTrigger.accent,
+                                backgroundColor: selectedTrigger.tint,
+                              },
+                            ]}
+                          >
+                            <Ionicons name={feeType.kind === 'transport' ? 'bus-outline' : 'pricetag-outline'} size={15} color={selected ? selectedTrigger.accent : THEME_COLORS.textMuted} />
+                            <Text style={[styles.feeTypeChipText, selected && { color: selectedTrigger.accent }]}>{feeType.name}</Text>
+                            {selected && <Ionicons name="checkmark-circle" size={16} color={selectedTrigger.accent} />}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+                  {feeTypesError && (
+                    <Pressable onPress={fetchFeeTypes} style={styles.feeTypesErrorRow}>
+                      <Text style={styles.feeTypesErrorText}>{feeTypesError} Tap to retry.</Text>
+                    </Pressable>
+                  )}
+                  <View style={styles.feeFilterDivider} />
                   <View style={styles.feeRangeHeading}>
                     <View style={[styles.reviewIcon, { backgroundColor: selectedTrigger.tint }]}>
                       <Ionicons name="options-outline" size={20} color={selectedTrigger.accent} />
@@ -1524,6 +1635,7 @@ export default function NotificationsTriggerPage() {
         selectedClassNames={confirmClassNames}
         estimate={confirmEstimate}
         feePaidRange={feePaidRange}
+        feeTypeName={selectedFeeTypeName}
         onCancel={() => setConfirmVisible(false)}
         onConfirm={handleConfirmSend}
         styles={styles}
@@ -1686,6 +1798,13 @@ const getStyles = (
     feeRangeCard: { marginTop: 18, borderRadius: 20, borderWidth: 1.5, borderColor: THEME_COLORS.border, backgroundColor: THEME_COLORS.surfaceHighlight, padding: 15 },
     feeRangeHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     feeRangeTitle: { fontSize: 14.5, fontWeight: '800', color: THEME_COLORS.text },
+    feeTypesLoading: { minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+    feeTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+    feeTypeChip: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 14, borderWidth: 1.5, borderColor: THEME_COLORS.borderStrong, backgroundColor: THEME_COLORS.surface, paddingHorizontal: 11, paddingVertical: 8 },
+    feeTypeChipText: { fontSize: 12, fontWeight: '700', color: THEME_COLORS.textMuted },
+    feeTypesErrorRow: { marginTop: 10, alignSelf: 'flex-start' },
+    feeTypesErrorText: { color: '#DC2626', fontSize: 11.5, fontWeight: '700' },
+    feeFilterDivider: { height: 1, backgroundColor: THEME_COLORS.borderStrong, marginVertical: 16 },
     feePresetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
     feePreset: { borderRadius: 14, borderWidth: 1, borderColor: THEME_COLORS.borderStrong, backgroundColor: THEME_COLORS.surface, paddingHorizontal: 11, paddingVertical: 8 },
     feePresetText: { fontSize: 11.5, fontWeight: '700', color: THEME_COLORS.textMuted },
