@@ -122,6 +122,24 @@ describe('progress report HTML', () => {
     expect(output).toContain('Slip test');
   });
 
+  it('renders an absent component result once as Absent', () => {
+    const absentStudent: ProgressReportStudent = {
+      ...student,
+      subjects: [{
+        ...student.subjects[1],
+        obtained: 0,
+        participationMarks: null,
+        writtenWorkMarks: null,
+        projectWorkMarks: null,
+        slipTestMarks: null,
+        isAbsent: true,
+      }],
+    };
+    const output = buildTwoUpProgressReportHtml([absentStudent], 'component', brand);
+    expect(output).toContain('colspan="6" class="absent-mark">Absent</td>');
+    expect(output).not.toContain('>AB<');
+  });
+
   it('embeds a provided school logo instead of initials', () => {
     const output = buildTwoUpProgressReportHtml(
       [student],

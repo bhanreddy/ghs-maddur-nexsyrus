@@ -1323,9 +1323,9 @@ function ReportPreview({
             <View key={`${subject.subject}-${index}`} style={[styles.previewTableRow, index % 2 === 1 && styles.previewTableRowAlt]}>
               <Text style={[styles.previewTd, styles.previewSubject]}>{subject.subject}</Text>
               {reportType === 'component' ? <>
-                <Text style={styles.previewTd}>{subject.participationMarks ?? '-'}</Text><Text style={styles.previewTd}>{subject.writtenWorkMarks ?? '-'}</Text><Text style={styles.previewTd}>{subject.projectWorkMarks ?? '-'}</Text><Text style={styles.previewTd}>{subject.slipTestMarks ?? '-'}</Text><Text style={[styles.previewTd, styles.previewTotal]}>{subject.obtained ?? '-'}</Text>
+                <Text style={styles.previewTd}>{subject.isAbsent ? '-' : subject.participationMarks ?? '-'}</Text><Text style={styles.previewTd}>{subject.isAbsent ? '-' : subject.writtenWorkMarks ?? '-'}</Text><Text style={styles.previewTd}>{subject.isAbsent ? '-' : subject.projectWorkMarks ?? '-'}</Text><Text style={styles.previewTd}>{subject.isAbsent ? '-' : subject.slipTestMarks ?? '-'}</Text><Text style={[styles.previewTd, styles.previewTotal]}>{subject.isAbsent ? 'Absent' : subject.obtained ?? '-'}</Text>
               </> : <>
-                <Text style={styles.previewTd}>{subject.consolidatedMaxMarks || subject.maxMarks}</Text><Text style={[styles.previewTd, styles.previewTotal]}>{subject.isAbsent ? 'AB' : subject.consolidatedMarksObtained ?? subject.obtained ?? '-'}</Text><Text style={styles.previewTd}>{subject.grade}</Text><Text style={[styles.previewTd, { flex: 2 }]}>{subject.remarks}</Text>
+                <Text style={styles.previewTd}>{subject.consolidatedMaxMarks || subject.maxMarks}</Text><Text style={[styles.previewTd, styles.previewTotal]}>{subject.isAbsent ? 'Absent' : subject.consolidatedMarksObtained ?? subject.obtained ?? '-'}</Text><Text style={styles.previewTd}>{subject.grade}</Text><Text style={[styles.previewTd, { flex: 2 }]}>{subject.remarks}</Text>
               </>}
             </View>
           ))}

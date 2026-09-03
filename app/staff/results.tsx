@@ -65,6 +65,7 @@ import {
   parseComponentMaximums,
   rankAssessmentScores,
   stringifyComponentMaximums,
+  updateComponentAssessmentInput,
 } from '../../src/utils/assessmentGrading';
 import { SchoolSettingsService } from '../../src/services/schoolSettingsService';
 
@@ -933,7 +934,9 @@ export default function UploadMarks() {
 
   const filledCount = useMemo(() => {
     if (assessmentSchema === 'component') {
-      return Object.values(currentDraft.componentByStudent).filter(isComponentAssessmentComplete).length;
+      return Object.values(currentDraft.componentByStudent).filter(
+        (entry) => isComponentAssessmentAbsent(entry) || isComponentAssessmentComplete(entry),
+      ).length;
     }
     return Object.values(currentDraft.consolidatedByStudent).filter((value) => value !== '').length;
   }, [assessmentSchema, currentDraft]);
@@ -965,7 +968,8 @@ export default function UploadMarks() {
   const studentRanks = useMemo(() => {
     const entered = students.flatMap((student) => {
       const isEntered = assessmentSchema === 'component'
-        ? isComponentAssessmentComplete(currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS)
+        ? isComponentAssessmentAbsent(currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS) ||
+          isComponentAssessmentComplete(currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS)
         : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
       return isEntered ? [{
         id: student.id,
@@ -1142,9 +1146,9 @@ export default function UploadMarks() {
             consolidatedByStudent[mark.student_id] = 'A';
             componentByStudent[mark.student_id] = {
               participation: 'A',
-              writtenWork: 'A',
-              projectWork: 'A',
-              slipTest: 'A',
+              writtenWork: '',
+              projectWork: '',
+              slipTest: '',
             };
           } else if (mark.consolidated_marks_obtained != null) {
             consolidatedByStudent[mark.student_id] = String(mark.consolidated_marks_obtained);
@@ -1299,19 +1303,11 @@ export default function UploadMarks() {
       ...draft,
       componentByStudent: {
         ...draft.componentByStudent,
-        [studentId]: isAbsentAssessmentInput(normalizedText)
-          ? {
-              participation: 'A',
-              writtenWork: 'A',
-              projectWork: 'A',
-              slipTest: 'A',
-            }
-          : {
-              ...(isComponentAssessmentAbsent(draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS)
-                ? EMPTY_COMPONENT_MARKS
-                : draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS),
-              [field]: normalizedText,
-            },
+        [studentId]: updateComponentAssessmentInput(
+          draft.componentByStudent[studentId] ?? EMPTY_COMPONENT_MARKS,
+          field,
+          normalizedText,
+        ),
       },
     }));
   };
@@ -1336,7 +1332,11 @@ export default function UploadMarks() {
   const handleSubmit = async () => {
     if (!selectedCategory || !selectedAssignment) return;
     const partialComponentEntry = assessmentSchema === 'component' && Object.values(currentDraft.componentByStudent)
-      .some((entry) => hasAnyComponentMark(entry) && !isComponentAssessmentComplete(entry));
+      .some((entry) =>
+        hasAnyComponentMark(entry) &&
+        !isComponentAssessmentAbsent(entry) &&
+        !isComponentAssessmentComplete(entry),
+      );
     if (partialComponentEntry) {
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       alertCompat('Incomplete components', 'Complete all four component fields for each student you started.');
@@ -1346,10 +1346,10 @@ export default function UploadMarks() {
     const filledMarks = students.flatMap((student) => {
       if (assessmentSchema === 'component') {
         const components = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
-        if (!isComponentAssessmentComplete(components)) return [];
         if (isComponentAssessmentAbsent(components)) {
           return [{ student_id: student.id, marks: null, is_absent: true }];
         }
+        if (!isComponentAssessmentComplete(components)) return [];
         const result = calculateComponentAssessment(components, componentMaximums);
         return [{
           student_id: student.id,
@@ -1643,12 +1643,12 @@ export default function UploadMarks() {
               ))}
             </View>
             <Text style={styles.schemaHint}>
-              Enter A in any mark field to mark a student absent. Grade, GPA and rank update automatically.
+              Enter A or AB in any mark field to mark a student absent. Grade, GPA and rank update automatically.
             </Text>
           </View>
         ) : (
           <Text style={styles.schemaHint}>
-            Enter the final score, or A if absent. Grade, GPA and rank update automatically.
+            Enter the final score, or A / AB if absent. Grade, GPA and rank update automatically.
           </Text>
         )}
       </View>
@@ -1664,7 +1664,7 @@ export default function UploadMarks() {
       ? isComponentAssessmentAbsent(componentMarks)
       : isAbsentAssessmentInput(currentDraft.consolidatedByStudent[student.id]);
     const entered = assessmentSchema === 'component'
-      ? isComponentAssessmentComplete(componentMarks)
+      ? isAbsent || isComponentAssessmentComplete(componentMarks)
       : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
     const componentResult = calculateComponentAssessment(componentMarks, componentMaximums);
 
@@ -1705,7 +1705,7 @@ export default function UploadMarks() {
                     styles.componentInput,
                     componentMarks[field] !== '' && styles.markInputFilled,
                   ]}
-                  placeholder="0.00 or A"
+                  placeholder="0.00 / A / AB"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="default"
                   inputMode="text"
@@ -1713,7 +1713,7 @@ export default function UploadMarks() {
                   maxLength={5}
                   value={componentMarks[field]}
                   selectTextOnFocus
-                  accessibilityHint="Enter a whole number, a decimal with up to two places, or A for absent"
+                  accessibilityHint="Enter a whole number, a decimal with up to two places, A, or AB for absent"
                   onChangeText={(text) => handleComponentMarkChange(student.id, field, text)}
                 />
               </View>
@@ -1724,7 +1724,7 @@ export default function UploadMarks() {
             <View style={styles.consolidatedCopy}>
               <Text style={styles.consolidatedLabel}>Marks Obtained</Text>
               <Text style={styles.consolidatedHint}>
-                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX} · decimals or A
+                Maximum {currentDraft.consolidatedMaxMarks || DEFAULT_CONSOLIDATED_MAX} · decimals, A or AB
               </Text>
             </View>
             <AppTextInput
@@ -1733,7 +1733,7 @@ export default function UploadMarks() {
                 styles.consolidatedInput,
                 currentDraft.consolidatedByStudent[student.id] && styles.markInputFilled,
               ]}
-              placeholder="0.00 or A"
+              placeholder="0.00 / A / AB"
               placeholderTextColor="#9CA3AF"
               keyboardType="default"
               inputMode="text"
@@ -1741,7 +1741,7 @@ export default function UploadMarks() {
               maxLength={6}
               value={currentDraft.consolidatedByStudent[student.id] ?? ''}
               selectTextOnFocus
-              accessibilityHint="Enter a whole number, a decimal with up to two places, or A for absent"
+              accessibilityHint="Enter a whole number, a decimal with up to two places, A, or AB for absent"
               onChangeText={(text) => handleConsolidatedMarkChange(student.id, text)}
             />
           </View>

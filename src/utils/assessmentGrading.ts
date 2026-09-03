@@ -58,6 +58,7 @@ export const COMPONENT_WEIGHTAGE = 20 / COMPONENT_TOTAL_MAX;
 export const DEFAULT_CONSOLIDATED_MAX = 25;
 export const COMPONENT_WEIGHTAGE_SCALE = 20;
 export const ABSENT_MARK = 'A';
+const ABSENT_MARKS = new Set([ABSENT_MARK, 'AB']);
 
 export const EMPTY_COMPONENT_MARKS: ComponentAssessmentInput = {
   participation: '',
@@ -231,11 +232,19 @@ export function normalizeAssessmentInput(value: string): string {
 }
 
 export function isAbsentAssessmentInput(value: string | null | undefined): boolean {
-  return typeof value === 'string' && value.trim().toUpperCase() === ABSENT_MARK;
+  return typeof value === 'string' && ABSENT_MARKS.has(value.trim().toUpperCase());
 }
 
 export function isComponentAssessmentAbsent(input: ComponentAssessmentInput): boolean {
-  return COMPONENT_FIELDS.every((field) => isAbsentAssessmentInput(input[field]));
+  return COMPONENT_FIELDS.some((field) => isAbsentAssessmentInput(input[field]));
+}
+
+export function updateComponentAssessmentInput(
+  input: ComponentAssessmentInput,
+  field: ComponentField,
+  value: string,
+): ComponentAssessmentInput {
+  return { ...input, [field]: value };
 }
 
 export function isComponentAssessmentComplete(input: ComponentAssessmentInput): boolean {

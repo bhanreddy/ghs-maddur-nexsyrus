@@ -8,6 +8,7 @@ import {
   isValidAssessmentInput,
   normalizeAssessmentInput,
   rankAssessmentScores,
+  updateComponentAssessmentInput,
 } from './assessmentGrading';
 
 describe('assessment grading', () => {
@@ -121,10 +122,14 @@ describe('assessment grading', () => {
     expect(normalizeAssessmentInput('7٫25')).toBe('7.25');
   });
 
-  it('accepts A as an absent mark, displays it uppercase, and calculates it as zero', () => {
+  it('accepts A and AB as absence marks', () => {
     expect(normalizeAssessmentInput('a')).toBe('A');
     expect(isValidAssessmentInput('A', 10)).toBe(true);
+    expect(isValidAssessmentInput('AB', 10)).toBe(true);
     expect(isAbsentAssessmentInput('a')).toBe(true);
+    expect(isAbsentAssessmentInput('Ab')).toBe(true);
+    expect(isAbsentAssessmentInput(' absent ')).toBe(false);
+    expect(isAbsentAssessmentInput('abc')).toBe(false);
     expect(calculateConsolidatedAssessment('A', 25).obtained).toBe(0);
     expect(calculateComponentAssessment({
       participation: 'A',
@@ -138,5 +143,34 @@ describe('assessment grading', () => {
       projectWork: 'A',
       slipTest: 'A',
     })).toBe(true);
+  });
+
+  it('marks a component assessment absent when only one component contains an absence mark', () => {
+    expect(isComponentAssessmentAbsent({
+      participation: '8',
+      writtenWork: '7',
+      projectWork: '6',
+      slipTest: 'Ab',
+    })).toBe(true);
+    expect(isComponentAssessmentAbsent({
+      participation: '8',
+      writtenWork: '7',
+      projectWork: '6',
+      slipTest: '',
+    })).toBe(false);
+  });
+
+  it('updates only the component field where an absence mark was entered', () => {
+    expect(updateComponentAssessmentInput({
+      participation: '8',
+      writtenWork: '7',
+      projectWork: '6',
+      slipTest: '',
+    }, 'slipTest', 'A')).toEqual({
+      participation: '8',
+      writtenWork: '7',
+      projectWork: '6',
+      slipTest: 'A',
+    });
   });
 });

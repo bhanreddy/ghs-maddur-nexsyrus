@@ -60,7 +60,7 @@ const html = (value: unknown) =>
     .replace(/"/g, '&quot;');
 
 const mark = (value: number | null | undefined, absent = false) => {
-  if (absent) return 'AB';
+  if (absent) return 'Absent';
   if (value == null || !Number.isFinite(Number(value))) return '-';
   const numeric = Number(value);
   return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
@@ -122,6 +122,13 @@ function subjectRows(student: ProgressReportStudent, reportType: ProgressReportT
 
   return subjects.slice(0, 10).map((subject, index) => {
     if (reportType === 'component') {
+      if (subject.isAbsent) {
+        return `<tr>
+          <td>${index + 1}</td>
+          <td class="subject">${html(subject.subject)}</td>
+          <td colspan="6" class="absent-mark">Absent</td>
+        </tr>`;
+      }
       return `<tr>
         <td>${index + 1}</td>
         <td class="subject">${html(subject.subject)}</td>
@@ -254,6 +261,7 @@ function stylesheet(brand: ProgressReportBrand) {
     .component th.subject, .component td.subject { width: 37mm; }
     .direct th.remarks, .direct td.remarks { width: 52mm; text-align: left; }
     td.total { color: ${brand.primary}; font-weight: 900; }
+    td.absent-mark { color: #b42318; font-weight: 900; letter-spacing: .15pt; }
     tfoot td { height: 4.8mm; background: #eef2f7; font-weight: 900; }
     .empty-row { height: 27mm; color: #8b96a8; font-style: italic; text-align: center; }
     .summary { display: grid; grid-template-columns: 1.2fr .85fr .75fr 1fr; margin-top: 1.6mm; border: .25mm solid #cbd5e1; border-radius: 1mm; overflow: hidden; }
