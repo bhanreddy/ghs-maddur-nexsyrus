@@ -27,13 +27,16 @@ import type { Theme } from '../../src/theme/themes';
 import {
   FinalCalculationPeriod,
   FinalCalculationsReport,
+  FormativeCalculationPeriod,
   ProgressCardAssistantReport,
   ProgressCardAssistantService,
   ProgressCardClassContext,
   ProgressCardExamOption,
   ProgressCardStudentOption,
+  WeightedCalculationPeriod,
 } from '../../src/services/progressCardAssistantService';
 import { gradeForPercentage, gpaForPercentage } from '../../src/utils/assessmentGrading';
+import type { ResultRankingMethod } from '../../src/utils/assessmentGrading';
 import { searchStudentsByPrefix } from '../../src/utils/studentPrefixSearch';
 
 const RANKING_LABELS = {
@@ -47,10 +50,19 @@ const displayDayCount = (value: number) => Number.isInteger(value) ? String(valu
 type ResultDisplayMode = 'percentage' | 'grading';
 const RESULT_DISPLAY_MODE_KEY = 'progressCardResultDisplayMode';
 const finalPeriodLabels: Record<FinalCalculationPeriod, string> = {
+  fa1: 'FA-1',
+  fa2: 'FA-2',
+  fa3: 'FA-3',
+  fa4: 'FA-4',
   summative_1: 'Summative I',
   summative_2: 'Summative II',
   annual: 'Annual Final',
 };
+const formativePeriods: FormativeCalculationPeriod[] = ['fa1', 'fa2', 'fa3', 'fa4'];
+const weightedPeriods: WeightedCalculationPeriod[] = ['summative_1', 'summative_2', 'annual'];
+const allResultPeriods: FinalCalculationPeriod[] = [...formativePeriods, ...weightedPeriods];
+const isFormativePeriod = (period: FinalCalculationPeriod): period is FormativeCalculationPeriod =>
+  formativePeriods.includes(period as FormativeCalculationPeriod);
 const escapeHtml = (value: unknown) => String(value ?? '')
   .replaceAll('&', '&amp;')
   .replaceAll('<', '&lt;')
@@ -64,28 +76,30 @@ function printableWorksheet(
 ): string {
   const grade = gradeForPercentage(report.summary.percentage);
   const resultHeading = displayMode === 'percentage' ? 'Percentage' : 'Grade / GPA';
+  const hasComponents = report.subjects.some((subject) => subject.assessment_schema === 'component');
+  const hasDirect = report.subjects.some((subject) => subject.assessment_schema === 'consolidated');
   const rows = report.subjects.map((subject, index) => `
     <tr class="${subject.entry_status === 'missing' ? 'missing' : ''}">
       <td>${index + 1}</td><td>${escapeHtml(subject.subject_name)}</td>
-      <td>${escapeHtml(subject.assessment_schema === 'component' ? 'Component' : 'Consolidated')}</td>
-      <td>${displayMark(subject.participation_marks)}</td>
-      <td>${displayMark(subject.written_work_marks)}</td>
-      <td>${displayMark(subject.project_work_marks)}</td>
-      <td>${displayMark(subject.slip_test_marks)}</td>
-      <td>${subject.assessment_schema === 'consolidated'
-        ? `${displayMark(subject.consolidated_marks_obtained)}/${subject.consolidated_max_marks}`
-        : '—'}</td>
+      <td>${escapeHtml(subject.assessment_schema === 'component' ? 'Component' : 'Direct')}</td>
+      ${hasComponents ? `<td>${subject.assessment_schema === 'component' ? `${displayMark(subject.participation_marks)}/${subject.component_maximums.participation}` : '—'}</td>
+      <td>${subject.assessment_schema === 'component' ? `${displayMark(subject.written_work_marks)}/${subject.component_maximums.written_work}` : '—'}</td>
+      <td>${subject.assessment_schema === 'component' ? `${displayMark(subject.project_work_marks)}/${subject.component_maximums.project_work}` : '—'}</td>
+      <td>${subject.assessment_schema === 'component' ? `${displayMark(subject.slip_test_marks)}/${subject.component_maximums.slip_test}` : '—'}</td>` : ''}
+      ${hasDirect ? `<td>${subject.assessment_schema === 'consolidated'
+        ? `${displayMark(subject.consolidated_marks_obtained ?? subject.marks_obtained)}/${subject.consolidated_max_marks}`
+        : '—'}</td>` : ''}
       <td>${displayMark(subject.marks_obtained)}/${subject.max_marks}</td>
-      <td>${displayMark(subject.weightage_20)}</td>
+      ${hasComponents ? `<td>${subject.assessment_schema === 'component' ? displayMark(subject.weightage_20) : '—'}</td>` : ''}
       <td>${subject.percentage == null ? '—' : displayMode === 'percentage'
         ? `${subject.percentage}%`
         : `${gradeForPercentage(subject.percentage)} / ${gpaForPercentage(subject.percentage)}`}</td>
     </tr>`).join('');
 
   const finalSection = finalCalculations ? `
-    <h2>Calculated Summative & Annual Results</h2>
+    <h2>FA, Summative & Annual Results</h2>
     <table><thead><tr><th>Result</th><th>Formula</th><th>Grand Total</th><th>${resultHeading}</th><th>Rank</th><th>Status</th></tr></thead><tbody>
-      ${(['summative_1', 'summative_2', 'annual'] as FinalCalculationPeriod[]).map((period) => {
+      ${allResultPeriods.map((period) => {
         const summary = finalCalculations.student.summaries[period];
         return `<tr><td>${finalPeriodLabels[period]}</td><td>${escapeHtml(finalCalculations.formulas[period])}</td>
           <td>${summary.total_obtained == null ? '—' : `${summary.total_obtained}/${summary.total_max}`}</td>
@@ -119,8 +133,9 @@ function printableWorksheet(
     <h1>${escapeHtml(report.exam.name)} — Progress Card Worksheet</h1>
     <div class="meta"><b>${escapeHtml(report.student.display_name)}</b> · Admission ${escapeHtml(report.student.admission_no)} ·
       Class ${escapeHtml(report.class_section.class_name)}-${escapeHtml(report.class_section.section_name)} · ${escapeHtml(report.class_section.academic_year)}</div>
-    <table><thead><tr><th>#</th><th>Subject</th><th>Schema</th><th>Participation /10</th><th>Written /10</th>
-      <th>Project /10</th><th>Slip /20</th><th>Direct</th><th>Total</th><th>20% Weight</th><th>${resultHeading}</th></tr></thead>
+    <table><thead><tr><th>#</th><th>Subject</th><th>Type</th>
+      ${hasComponents ? '<th>Participation</th><th>Written</th><th>Project</th><th>Slip Test</th>' : ''}
+      ${hasDirect ? '<th>Direct Marks</th>' : ''}<th>Total</th>${hasComponents ? '<th>20% Weight</th>' : ''}<th>${resultHeading}</th></tr></thead>
       <tbody>${rows}</tbody></table>
     <div class="summary">
       <div class="box">Grand Total<b>${report.summary.total_obtained}/${report.summary.total_max}</b></div>
@@ -146,12 +161,14 @@ export default function ProgressCardAssistantScreen() {
   const [selectedExam, setSelectedExam] = useState<ProgressCardExamOption | null>(null);
   const [report, setReport] = useState<ProgressCardAssistantReport | null>(null);
   const [finalCalculations, setFinalCalculations] = useState<FinalCalculationsReport | null>(null);
-  const [finalPeriod, setFinalPeriod] = useState<FinalCalculationPeriod>('summative_1');
+  const [finalPeriod, setFinalPeriod] = useState<FinalCalculationPeriod>('fa1');
   const [displayMode, setDisplayMode] = useState<ResultDisplayMode>('percentage');
+  const [rankingMethod, setRankingMethod] = useState<ResultRankingMethod>('competition');
   const [query, setQuery] = useState('');
   const [loadingContext, setLoadingContext] = useState(true);
   const [loadingReport, setLoadingReport] = useState(false);
   const [loadingFinal, setLoadingFinal] = useState(false);
+  const [exportingClass, setExportingClass] = useState(false);
   const [finalError, setFinalError] = useState('');
   const [error, setError] = useState('');
 
@@ -172,6 +189,7 @@ export default function ProgressCardAssistantScreen() {
         if (!active) return;
         setContext(data);
         setSelectedExam(data.exams[0] ?? null);
+        setRankingMethod(data.ranking_method);
       })
       .catch((requestError: any) => {
         if (active) setError(requestError?.message || 'Could not load your class.');
@@ -195,11 +213,12 @@ export default function ProgressCardAssistantScreen() {
   const loadReport = useCallback(async (
     student: ProgressCardStudentOption,
     exam: ProgressCardExamOption,
+    method: ResultRankingMethod = rankingMethod,
   ) => {
     setLoadingReport(true);
     setError('');
     try {
-      const data = await ProgressCardAssistantService.getStudentReport(student.id, exam.id, staffId);
+      const data = await ProgressCardAssistantService.getStudentReport(student.id, exam.id, staffId, method);
       setReport(data);
     } catch (requestError: any) {
       setReport(null);
@@ -207,7 +226,7 @@ export default function ProgressCardAssistantScreen() {
     } finally {
       setLoadingReport(false);
     }
-  }, [staffId]);
+  }, [rankingMethod, staffId]);
 
   const chooseStudent = useCallback((student: ProgressCardStudentOption) => {
     setSelectedStudent(student);
@@ -216,7 +235,7 @@ export default function ProgressCardAssistantScreen() {
     setLoadingFinal(true);
     setFinalError('');
     const requestSequence = ++finalRequestSequence.current;
-    ProgressCardAssistantService.getFinalCalculations(student.id, staffId)
+    ProgressCardAssistantService.getFinalCalculations(student.id, staffId, rankingMethod)
       .then((data) => { if (requestSequence === finalRequestSequence.current) setFinalCalculations(data); })
       .catch((requestError: any) => {
         if (requestSequence !== finalRequestSequence.current) return;
@@ -224,12 +243,51 @@ export default function ProgressCardAssistantScreen() {
         setFinalError(requestError?.message || 'Summative and annual source marks are not ready yet.');
       })
       .finally(() => { if (requestSequence === finalRequestSequence.current) setLoadingFinal(false); });
-  }, [loadReport, selectedExam, staffId]);
+  }, [loadReport, rankingMethod, selectedExam, staffId]);
 
   const chooseExam = useCallback((exam: ProgressCardExamOption) => {
     setSelectedExam(exam);
     if (selectedStudent) loadReport(selectedStudent, exam);
   }, [loadReport, selectedStudent]);
+
+  const changeRankingMethod = useCallback((method: ResultRankingMethod) => {
+    setRankingMethod(method);
+    if (!selectedStudent || !selectedExam) return;
+    void loadReport(selectedStudent, selectedExam, method);
+    setLoadingFinal(true);
+    setFinalError('');
+    const requestSequence = ++finalRequestSequence.current;
+    ProgressCardAssistantService.getFinalCalculations(selectedStudent.id, staffId, method)
+      .then((data) => { if (requestSequence === finalRequestSequence.current) setFinalCalculations(data); })
+      .catch((requestError: any) => {
+        if (requestSequence !== finalRequestSequence.current) return;
+        setFinalCalculations(null);
+        setFinalError(requestError?.message || 'Summative and annual source marks are not ready yet.');
+      })
+      .finally(() => { if (requestSequence === finalRequestSequence.current) setLoadingFinal(false); });
+  }, [loadReport, selectedExam, selectedStudent, staffId]);
+
+  const exportClassMarks = useCallback(async () => {
+    if (!selectedExam || !context?.class_section) return;
+    try {
+      setExportingClass(true);
+      await ProgressCardAssistantService.exportClassMarks(
+        selectedExam.id,
+        selectedExam.name,
+        `${context.class_section.class_name}-${context.class_section.section_name}`,
+        staffId,
+        rankingMethod,
+      );
+    } catch (requestError: any) {
+      alertCompat('Download failed', requestError?.message || 'Could not create the class marks workbook.');
+    } finally {
+      setExportingClass(false);
+    }
+  }, [context?.class_section, rankingMethod, selectedExam, staffId]);
+
+  const showComponentColumns = report?.subjects.some((subject) => subject.assessment_schema === 'component') ?? false;
+  const showDirectColumn = report?.subjects.some((subject) => subject.assessment_schema === 'consolidated') ?? false;
+  const detailLeadingWidth = 150 + 105 + (showComponentColumns ? 359 : 0) + (showDirectColumn ? 92 : 0);
 
   const copySummary = useCallback(async () => {
     if (!report) return;
@@ -344,6 +402,45 @@ export default function ProgressCardAssistantScreen() {
             ) : <Text style={styles.noMatch}>No assessments have been created for this class.</Text>}
           </View>
 
+          <View style={styles.rankingCard}>
+            <View style={styles.rankingHeader}>
+              <View style={styles.rankingCopy}>
+                <Text style={styles.rankingTitle}>Ranking algorithm</Text>
+                <Text style={styles.rankingHint}>Choose how ties are resolved for this report and Excel export.</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.excelAction, (!selectedExam || exportingClass) && styles.disabledAction]}
+                disabled={!selectedExam || exportingClass}
+                onPress={exportClassMarks}
+                activeOpacity={0.75}
+              >
+                {exportingClass
+                  ? <ActivityIndicator size="small" color="#047857" />
+                  : <Ionicons name="download-outline" size={17} color="#047857" />}
+                <Text style={styles.excelActionText}>{exportingClass ? 'Creating…' : 'Download class Excel'}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.rankingOptions}>
+              {(Object.keys(RANKING_LABELS) as ResultRankingMethod[]).map((method) => {
+                const active = rankingMethod === method;
+                return (
+                  <TouchableOpacity
+                    key={method}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => changeRankingMethod(method)}
+                    style={[styles.rankingOption, active && styles.rankingOptionActive]}
+                  >
+                    <View style={[styles.rankingRadio, active && styles.rankingRadioActive]}>
+                      {active && <View style={styles.rankingRadioDot} />}
+                    </View>
+                    <Text style={[styles.rankingOptionText, active && styles.rankingOptionTextActive]}>{RANKING_LABELS[method]}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {!!error && <View style={styles.errorBanner}><Ionicons name="alert-circle-outline" size={18} color="#DC2626" /><Text style={styles.errorText}>{error}</Text></View>}
           {loadingReport && <View style={styles.reportLoading}><ActivityIndicator color="#F97316" /><Text style={styles.stateText}>Calculating all subjects…</Text></View>}
 
@@ -401,8 +498,14 @@ export default function ProgressCardAssistantScreen() {
                   <View>
                     <View style={[styles.tableRow, styles.tableHeader]}>
                       {[
-                        ['Subject', 150], ['Schema', 105], ['Participation /10', 105], ['Written /10', 88],
-                        ['Project /10', 88], ['Slip /20', 78], ['Direct', 82], ['Total', 82], ['20% Weight', 88], [displayMode === 'percentage' ? 'Percentage' : 'Grade / GPA', 92],
+                        ['Subject', 150], ['Type', 105],
+                        ...(showComponentColumns ? [
+                          ['Participation', 105], ['Written', 88], ['Project', 88], ['Slip Test', 78],
+                        ] : []),
+                        ...(showDirectColumn ? [['Direct Marks', 92]] : []),
+                        ['Total', 82],
+                        ...(showComponentColumns ? [['20% Weight', 88]] : []),
+                        [displayMode === 'percentage' ? 'Percentage' : 'Grade / GPA', 92],
                       ].map(([label, width]) => <Text key={String(label)} style={[styles.headerCell, { width: Number(width) }]}>{label}</Text>)}
                     </View>
                     {report.subjects.map((subject, index) => {
@@ -410,20 +513,22 @@ export default function ProgressCardAssistantScreen() {
                       return <View key={subject.subject_id} style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt, subject.entry_status === 'missing' && styles.tableRowMissing]}>
                         <Text style={[styles.subjectCell, { width: 150 }]}>{subject.subject_name}</Text>
                         <View style={[styles.schemaCell, { width: 105 }]}><Text style={[styles.schemaBadge, component ? styles.componentBadge : styles.consolidatedBadge]}>{component ? 'Component' : 'Direct'}</Text></View>
-                        <Text style={[styles.dataCell, { width: 105 }]}>{component ? displayMark(subject.participation_marks) : '—'}</Text>
-                        <Text style={[styles.dataCell, { width: 88 }]}>{component ? displayMark(subject.written_work_marks) : '—'}</Text>
-                        <Text style={[styles.dataCell, { width: 88 }]}>{component ? displayMark(subject.project_work_marks) : '—'}</Text>
-                        <Text style={[styles.dataCell, { width: 78 }]}>{component ? displayMark(subject.slip_test_marks) : '—'}</Text>
-                        <Text style={[styles.dataCell, { width: 82 }]}>{component ? '—' : `${displayMark(subject.consolidated_marks_obtained)}/${subject.consolidated_max_marks}`}</Text>
+                        {showComponentColumns && <>
+                          <Text style={[styles.dataCell, { width: 105 }]}>{component ? `${displayMark(subject.participation_marks)}/${subject.component_maximums.participation}` : '—'}</Text>
+                          <Text style={[styles.dataCell, { width: 88 }]}>{component ? `${displayMark(subject.written_work_marks)}/${subject.component_maximums.written_work}` : '—'}</Text>
+                          <Text style={[styles.dataCell, { width: 88 }]}>{component ? `${displayMark(subject.project_work_marks)}/${subject.component_maximums.project_work}` : '—'}</Text>
+                          <Text style={[styles.dataCell, { width: 78 }]}>{component ? `${displayMark(subject.slip_test_marks)}/${subject.component_maximums.slip_test}` : '—'}</Text>
+                        </>}
+                        {showDirectColumn && <Text style={[styles.dataCell, { width: 92 }]}>{component ? '—' : `${displayMark(subject.consolidated_marks_obtained ?? subject.marks_obtained)}/${subject.consolidated_max_marks}`}</Text>}
                         <Text style={[styles.totalCell, { width: 82 }]}>{subject.entry_status === 'missing' ? 'Missing' : `${displayMark(subject.marks_obtained)}/${subject.max_marks}`}</Text>
-                        <Text style={[styles.dataCell, { width: 88 }]}>{component ? displayMark(subject.weightage_20) : '—'}</Text>
+                        {showComponentColumns && <Text style={[styles.dataCell, { width: 88 }]}>{component ? displayMark(subject.weightage_20) : '—'}</Text>}
                         <Text style={[styles.gradeCell, { width: 92 }]}>{subject.percentage == null ? '—' : displayMode === 'percentage' ? `${subject.percentage.toFixed(1)}%` : `${gradeForPercentage(subject.percentage)} / ${gpaForPercentage(subject.percentage)}`}</Text>
                       </View>;
                     })}
                     <View style={[styles.tableRow, styles.grandRow]}>
-                      <Text style={[styles.grandLabel, { width: 784 }]}>GRAND TOTAL</Text>
+                      <Text style={[styles.grandLabel, { width: detailLeadingWidth }]}>GRAND TOTAL</Text>
                       <Text style={[styles.grandValue, { width: 82 }]}>{report.summary.total_obtained}/{report.summary.total_max}</Text>
-                      <Text style={[styles.grandValue, { width: 180 }]}>{displayMode === 'percentage' ? `${report.summary.percentage.toFixed(2)}%` : `${gradeForPercentage(report.summary.percentage)} · GPA ${gpaForPercentage(report.summary.percentage)}`}</Text>
+                      <Text style={[styles.grandValue, { width: (showComponentColumns ? 88 : 0) + 92 }]}>{displayMode === 'percentage' ? `${report.summary.percentage.toFixed(2)}%` : `${gradeForPercentage(report.summary.percentage)} · GPA ${gpaForPercentage(report.summary.percentage)}`}</Text>
                     </View>
                   </View>
                 </ScrollView>
@@ -432,15 +537,21 @@ export default function ProgressCardAssistantScreen() {
               <View style={styles.finalCard}>
                 <View style={styles.finalHeader}>
                   <View style={styles.finalHeaderIcon}><Ionicons name="calculator-outline" size={21} color="#FFFFFF" /></View>
-                  <View style={{ flex: 1 }}><Text style={styles.finalTitle}>Summative & Annual calculations</Text><Text style={styles.finalHint}>Calculated automatically from FA-1…FA-4 and SA-1…SA-2 source marks.</Text></View>
+                  <View style={{ flex: 1 }}><Text style={styles.finalTitle}>FA, Summative & Annual results</Text><Text style={styles.finalHint}>Review uploaded FA marks and calculated SA/Annual results in one place.</Text></View>
                 </View>
 
                 <View style={styles.finalTabs}>
-                  {(Object.keys(finalPeriodLabels) as FinalCalculationPeriod[]).map((period) => <TouchableOpacity key={period} onPress={() => setFinalPeriod(period)} style={[styles.finalTab, finalPeriod === period && styles.finalTabActive]}><Text style={[styles.finalTabText, finalPeriod === period && styles.finalTabTextActive]}>{finalPeriodLabels[period]}</Text></TouchableOpacity>)}
+                  <View style={styles.finalTabRow}>
+                    {formativePeriods.map((period) => <TouchableOpacity key={period} onPress={() => setFinalPeriod(period)} style={[styles.finalTab, finalPeriod === period && styles.finalTabActive]}><Text style={[styles.finalTabText, finalPeriod === period && styles.finalTabTextActive]}>{finalPeriodLabels[period]}</Text></TouchableOpacity>)}
+                  </View>
+                  <View style={styles.finalTabRow}>
+                    {weightedPeriods.map((period) => <TouchableOpacity key={period} onPress={() => setFinalPeriod(period)} style={[styles.finalTab, finalPeriod === period && styles.finalTabActive]}><Text style={[styles.finalTabText, finalPeriod === period && styles.finalTabTextActive]}>{finalPeriodLabels[period]}</Text></TouchableOpacity>)}
+                  </View>
                 </View>
 
-                {loadingFinal ? <View style={styles.finalLoading}><ActivityIndicator color="#7C3AED" /><Text style={styles.stateText}>Calculating weighted results…</Text></View> : finalCalculations ? (() => {
+                {loadingFinal ? <View style={styles.finalLoading}><ActivityIndicator color="#7C3AED" /><Text style={styles.stateText}>Loading FA and calculated results…</Text></View> : finalCalculations ? (() => {
                   const summary = finalCalculations.student.summaries[finalPeriod];
+                  const isFormative = isFormativePeriod(finalPeriod);
                   const isAnnual = finalPeriod === 'annual';
                   return <>
                     <View style={styles.formulaBanner}><Ionicons name="information-circle-outline" size={17} color="#7C3AED" /><Text style={styles.formulaText}>{finalCalculations.formulas[finalPeriod]}</Text></View>
@@ -456,14 +567,30 @@ export default function ProgressCardAssistantScreen() {
                     <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.tableScroll}>
                       <View>
                         <View style={[styles.tableRow, styles.tableHeader]}>
-                          {[
+                          {(isFormative ? [
+                            ['Subject', 170], ['Marks', 105], ['Maximum', 105],
+                            [displayMode === 'percentage' ? 'Percentage' : 'Grade / GPA', 115], ['Status', 100],
+                          ] : [
                             ['Subject', 150],
                             [isAnnual ? '4 FAs /20' : finalPeriod === 'summative_1' ? 'FA1+FA2 /20' : 'FA3+FA4 /20', 115],
                             [isAnnual ? 'SA1+SA2 /80' : finalPeriod === 'summative_1' ? 'SA1 Exam /80' : 'SA2 Exam /80', 120],
                             ['Total /100', 100], [displayMode === 'percentage' ? 'Percentage' : 'Grade / GPA', 100], ['Status', 90],
-                          ].map(([label, cellWidth]) => <Text key={String(label)} style={[styles.headerCell, { width: Number(cellWidth) }]}>{label}</Text>)}
+                          ]).map(([label, cellWidth]) => <Text key={String(label)} style={[styles.headerCell, { width: Number(cellWidth) }]}>{label}</Text>)}
                         </View>
-                        {finalCalculations.student.subjects.map((subject, index) => {
+                        {isFormative ? finalCalculations.student.subjects.map((subject, index) => {
+                          const source = subject.sources[finalPeriod];
+                          const percentage = source.status === 'missing' || !source.maximum
+                            ? null
+                            : ((source.score ?? 0) / source.maximum) * 100;
+                          const statusLabel = source.status === 'graded' ? 'Uploaded' : source.status === 'absent' ? 'Absent' : 'Missing';
+                          return <View key={subject.subject_id} style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt, source.status === 'missing' && styles.tableRowMissing]}>
+                            <Text style={[styles.subjectCell, { width: 170 }]}>{subject.subject_name}</Text>
+                            <Text style={[styles.totalCell, { width: 105 }]}>{displayMark(source.score)}</Text>
+                            <Text style={[styles.dataCell, { width: 105 }]}>{displayMark(source.maximum)}</Text>
+                            <Text style={[styles.gradeCell, { width: 115 }]}>{percentage == null ? '—' : displayMode === 'percentage' ? `${percentage.toFixed(1)}%` : `${gradeForPercentage(percentage)} / ${gpaForPercentage(percentage)}`}</Text>
+                            <Text style={[styles.finalStatusCell, { width: 100 }, source.status === 'graded' ? styles.finalComplete : styles.finalIncomplete]}>{statusLabel}</Text>
+                          </View>;
+                        }) : finalCalculations.student.subjects.map((subject, index) => {
                           const result = subject[finalPeriod];
                           const first = result.formative_contribution;
                           const second = isAnnual ? result.summative_contribution : result.exam_contribution;
@@ -479,7 +606,7 @@ export default function ProgressCardAssistantScreen() {
                       </View>
                     </ScrollView>
                   </>;
-                })() : <View style={styles.finalLoading}><Ionicons name="hourglass-outline" size={24} color="#B45309" /><Text style={styles.stateText}>{finalError || 'Select a student to calculate final results.'}</Text></View>}
+                })() : <View style={styles.finalLoading}><Ionicons name="hourglass-outline" size={24} color="#B45309" /><Text style={styles.stateText}>{finalError || 'Select a student to load FA and calculated results.'}</Text></View>}
               </View>
 
               <View style={styles.attendanceCard}>
@@ -546,6 +673,15 @@ const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   examCard: { borderRadius: 20, padding: 15, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
   examChips: { gap: 9, paddingTop: 12, paddingBottom: 2 }, examChip: { borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: isDark ? 'rgba(255,255,255,.04)' : '#F8FAFC' },
   examChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }, examChipText: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '800' }, examChipTextActive: { color: '#FFFFFF' },
+  rankingCard: { borderRadius: 20, padding: 15, gap: 12, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
+  rankingHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  rankingCopy: { flex: 1, minWidth: 210 }, rankingTitle: { color: theme.colors.textStrong, fontSize: 15, fontWeight: '900' }, rankingHint: { color: theme.colors.textSecondary, fontSize: 10.5, lineHeight: 15, marginTop: 3 },
+  rankingOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  rankingOption: { flexGrow: 1, flexBasis: '30%', minWidth: 190, minHeight: 48, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 13, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: isDark ? 'rgba(255,255,255,.025)' : '#F8FAFC' },
+  rankingOptionActive: { borderColor: '#7C3AED', backgroundColor: isDark ? 'rgba(124,58,237,.13)' : '#F5F3FF' },
+  rankingRadio: { width: 17, height: 17, borderRadius: 9, borderWidth: 1.5, borderColor: theme.colors.textTertiary, alignItems: 'center', justifyContent: 'center' }, rankingRadioActive: { borderColor: '#7C3AED' }, rankingRadioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7C3AED' },
+  rankingOptionText: { flex: 1, color: theme.colors.textSecondary, fontSize: 10.5, fontWeight: '700', lineHeight: 14 }, rankingOptionTextActive: { color: isDark ? '#DDD6FE' : '#5B21B6' },
+  excelAction: { minHeight: 42, paddingHorizontal: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: isDark ? 'rgba(52,211,153,.3)' : '#A7F3D0', backgroundColor: isDark ? 'rgba(16,185,129,.1)' : '#ECFDF5' }, excelActionText: { color: '#047857', fontSize: 11.5, fontWeight: '900' }, disabledAction: { opacity: 0.5 },
   errorBanner: { borderRadius: 15, padding: 13, flexDirection: 'row', gap: 9, alignItems: 'center', backgroundColor: isDark ? 'rgba(220,38,38,.14)' : '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }, errorText: { flex: 1, color: '#DC2626', fontSize: 12, fontWeight: '700' },
   reportLoading: { minHeight: 100, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: theme.colors.card },
   selectedCard: { borderRadius: 20, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
@@ -566,7 +702,7 @@ const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   tableRowAlt: { backgroundColor: isDark ? 'rgba(255,255,255,.025)' : '#FAFAF9' }, tableRowMissing: { backgroundColor: isDark ? 'rgba(245,158,11,.08)' : '#FFF7ED' },
   grandRow: { minHeight: 52, backgroundColor: isDark ? '#312E81' : '#EEF2FF' }, grandLabel: { padding: 11, color: isDark ? '#C7D2FE' : '#3730A3', fontSize: 12, fontWeight: '900', textAlignVertical: 'center' }, grandValue: { padding: 11, color: isDark ? '#C7D2FE' : '#3730A3', fontSize: 12, fontWeight: '900', textAlign: 'center', textAlignVertical: 'center' },
   finalCard: { borderRadius: 22, overflow: 'hidden', backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border }, finalHeader: { padding: 15, flexDirection: 'row', alignItems: 'center', gap: 11, borderBottomWidth: 1, borderBottomColor: theme.colors.border }, finalHeaderIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7C3AED' }, finalTitle: { color: theme.colors.textStrong, fontSize: 16, fontWeight: '900' }, finalHint: { color: theme.colors.textSecondary, fontSize: 10.5, lineHeight: 15, marginTop: 3 },
-  finalTabs: { flexDirection: 'row', padding: 10, gap: 7, backgroundColor: isDark ? 'rgba(255,255,255,.025)' : '#FAFAFC' }, finalTab: { flex: 1, minHeight: 40, paddingHorizontal: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border }, finalTabActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }, finalTabText: { color: theme.colors.textSecondary, fontSize: 10.5, fontWeight: '900', textAlign: 'center' }, finalTabTextActive: { color: '#FFFFFF' },
+  finalTabs: { padding: 10, gap: 7, backgroundColor: isDark ? 'rgba(255,255,255,.025)' : '#FAFAFC' }, finalTabRow: { flexDirection: 'row', gap: 7 }, finalTab: { flex: 1, minHeight: 40, paddingHorizontal: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border }, finalTabActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }, finalTabText: { color: theme.colors.textSecondary, fontSize: 10.5, fontWeight: '900', textAlign: 'center' }, finalTabTextActive: { color: '#FFFFFF' },
   finalLoading: { minHeight: 110, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 9 }, formulaBanner: { margin: 12, marginBottom: 4, padding: 11, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: isDark ? 'rgba(124,58,237,.12)' : '#F5F3FF' }, formulaText: { flex: 1, color: isDark ? '#DDD6FE' : '#5B21B6', fontSize: 11, fontWeight: '700' },
   finalSummaryRow: { padding: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, finalSummaryItem: { flexGrow: 1, flexBasis: '21%', minWidth: 105, padding: 11, borderRadius: 13, backgroundColor: isDark ? 'rgba(255,255,255,.04)' : '#F8FAFC' }, finalSummaryLabel: { color: theme.colors.textTertiary, fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase' }, finalSummaryValue: { color: theme.colors.textStrong, fontSize: 14, fontWeight: '900', marginTop: 5 }, finalStatusCell: { padding: 10, fontSize: 10.5, fontWeight: '900', textAlign: 'center', textAlignVertical: 'center' }, finalComplete: { color: '#059669' }, finalIncomplete: { color: '#B45309' },
   attendanceCard: { borderRadius: 20, padding: 16, gap: 14, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },

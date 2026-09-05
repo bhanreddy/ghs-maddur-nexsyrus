@@ -931,6 +931,7 @@ export default function AccountsDashboard() {
     { id: 'transport_fees', title: 'Transport Fees', description: 'Stop-based bus fee management', icon: 'bus', color: ['#0E7490', '#06B6D4'] as [string, string], route: '/accounts/transport-fees', library: Ionicons },
     { id: 'hostel_students', title: 'Hostel Students', description: 'Assign, move or vacate students', icon: 'bed', color: ['#312E81', '#6366F1'] as [string, string], route: '/accounts/hostel', library: Ionicons, permission: 'hostel.allocate' },
     { id: 'invoices', title: 'Invoices', description: 'Generate & track invoices', icon: 'document-text', color: ['#1D4ED8', '#3B82F6'] as [string, string], route: '/accounts/invoices', library: Ionicons },
+    { id: 'marks_export', title: 'Marks Export', description: 'Download all classes and sections', icon: 'download-outline', color: ['#1D4ED8', '#2563EB'] as [string, string], route: '/accounts/marks', library: Ionicons },
     { id: 'certificates', title: 'Certificates', description: 'Issue TC & Bonafide certificates', icon: 'ribbon', color: ['#1E40AF', '#06B6D4'] as [string, string], route: '/accounts/certificate-generator', library: Ionicons, permission: 'certificates.issue' },
   ].filter((action) => !action.permission || hasPermission(action.permission)), [hasPermission]);
 

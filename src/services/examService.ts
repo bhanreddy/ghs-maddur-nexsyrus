@@ -15,6 +15,8 @@ export type ExamWeekday =
 
 export interface ExamResultReadinessSummary {
     ready: boolean;
+    publishable: boolean;
+    partial: boolean;
     papers_total: number;
     papers_complete: number;
     expected_entries: number;
@@ -266,6 +268,14 @@ export const ExamTimetableService = {
 
     setResultsPublished: async (examId: string, published: boolean): Promise<void> => {
         return api.post(`/results/exams/${examId}/results/publish`, { published }, { silent: true });
+    },
+
+    exportMissingMarks: async (examId: string, examName: string): Promise<void> => {
+        const safeName = examName.replace(/[^A-Za-z0-9_-]+/g, '-');
+        return api.downloadFile(
+            `/results/exams/${examId}/missing-marks/export`,
+            `${safeName || 'exam'}-unuploaded-marks.xlsx`,
+        );
     },
 
     // ── Student / parent ────────────────────────────────────────────────

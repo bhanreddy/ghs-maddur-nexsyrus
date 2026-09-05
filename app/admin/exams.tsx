@@ -304,6 +304,7 @@ export default function AdminExams() {
   const [exams, setExams] = useState<ExamListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishingExamId, setPublishingExamId] = useState<string | null>(null);
+  const [exportingMissingMarks, setExportingMissingMarks] = useState(false);
   const [hallTicketExam, setHallTicketExam] = useState<ExamListItem | null>(null);
   const [signatureVisible, setSignatureVisible] = useState(false);
 
@@ -441,12 +442,11 @@ export default function AdminExams() {
     if (!detail) return;
     const publishing = !detail.exam.results_published;
     const readiness = detail.result_readiness;
-    if (publishing && !readiness.ready) {
+    const publishable = readiness.publishable ?? readiness.entered_entries > 0;
+    if (publishing && !publishable) {
       const message = readiness.papers_total === 0
-        ? 'Teachers can enter marks for this exam from Results without creating or publishing a timetable. Publishing becomes available after marks entry starts and every student has a result.'
-        : readiness.expected_entries === 0
-          ? 'No active student results are expected yet. Check the selected classes and active enrollments before publishing.'
-          : `${readiness.missing_entries} mark ${readiness.missing_entries === 1 ? 'entry is' : 'entries are'} still missing. Results can be published after every teacher finishes entry.`;
+        ? 'Teachers can enter marks for this exam from Results without creating or publishing a timetable. Publishing becomes available as soon as the first mark is saved.'
+        : 'Enter at least one student mark before publishing results.';
       alertCompat(
         readiness.papers_total === 0 ? 'Results are ready for mark entry' : 'Marks are still incomplete',
         message
@@ -473,9 +473,12 @@ export default function AdminExams() {
     };
 
     if (publishing) {
+      const partialWarning = readiness.missing_entries > 0
+        ? ` ${readiness.missing_entries} entries are still missing; each student will see only the subjects already entered.`
+        : '';
       alertCompat(
         'Publish results?',
-        `All ${readiness.entered_entries} mark entries are complete. Parents and students will be notified and can see the results immediately.`,
+        `${readiness.entered_entries} mark entries will be published.${partialWarning} Parents and students with saved marks will be notified immediately.`,
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Publish results', onPress: doIt },
@@ -493,6 +496,18 @@ export default function AdminExams() {
     }
   }, [detail, refreshDetail]);
 
+  const handleExportMissingMarks = useCallback(async () => {
+    if (!detail || detail.result_readiness.missing_entries === 0) return;
+    try {
+      setExportingMissingMarks(true);
+      await ExamTimetableService.exportMissingMarks(detail.exam.id, detail.exam.name);
+    } catch (err: any) {
+      alertCompat('Download failed', err?.message || 'Could not create the unuploaded marks workbook.');
+    } finally {
+      setExportingMissingMarks(false);
+    }
+  }, [detail]);
+
   const handleListResultAction = useCallback((exam: ExamListItem) => {
     const readiness = exam.result_readiness;
 
@@ -500,14 +515,19 @@ export default function AdminExams() {
       void openDetail(exam.id);
       return;
     }
-    if (readiness?.papers_total === 0) {
+    if (!readiness) {
+      void openDetail(exam.id);
+      return;
+    }
+    if (readiness.papers_total === 0) {
       alertCompat(
         'Results do not need a timetable',
-        'Teachers can select this exam in Staff → Results and enter marks immediately. Once every student has a result, you can publish here—even if the timetable was never generated or published.'
+        'Teachers can select this exam in Staff → Results and enter marks immediately. Once the first mark is saved, you can publish here—even if the timetable was never generated or published.'
       );
       return;
     }
-    if (!readiness?.ready) {
+    const publishable = readiness.publishable ?? readiness.entered_entries > 0;
+    if (!publishable) {
       void openDetail(exam.id);
       return;
     }
@@ -536,8 +556,10 @@ export default function AdminExams() {
     };
 
     alertCompat(
-      'Publish exam results?',
-      `All ${readiness.entered_entries} mark entries are complete. Students and parents will be notified and can view the results immediately.`,
+      readiness.ready ? 'Publish exam results?' : 'Publish partial results?',
+      readiness.ready
+        ? `All ${readiness.entered_entries} mark entries are complete. Students and parents will be notified and can view the results immediately.`
+        : `${readiness.entered_entries} marks are ready and ${readiness.missing_entries} are still missing. Students will see only their entered subjects, and affected families will be notified.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Publish results', onPress: () => { void publish(); } },
@@ -601,11 +623,13 @@ export default function AdminExams() {
             detail={detail}
             allocations={allocations}
             saving={saving}
+            exportingMissingMarks={exportingMissingMarks}
             onBack={closeDetail}
             onGenerate={() => setGenVisible(true)}
             onEditPaper={setEditPaper}
             onPublishToggle={handlePublishToggle}
             onResultPublishToggle={handleResultPublishToggle}
+            onExportMissingMarks={handleExportMissingMarks}
             onAssignTeacher={(paper, section) => {
               router.push({
                 pathname: '/admin/timetable',
@@ -865,6 +889,7 @@ const ExamCard = React.memo(function ExamCard({
   const resultSubjectCount = readiness?.papers_total ?? exam.papers_count ?? 0;
   const hasResultSubjects = resultSubjectCount > 0;
   const resultsReady = !!readiness?.ready && !resultsPublished;
+  const resultsPublishable = !resultsPublished && (readiness?.publishable ?? (readiness?.entered_entries || 0) > 0);
   const hasMarkProgress = (readiness?.expected_entries || 0) > 0;
   const completion = hasMarkProgress
     ? Math.min(100, Math.round(((readiness?.entered_entries || 0) / (readiness?.expected_entries || 1)) * 100))
@@ -879,6 +904,8 @@ const ExamCard = React.memo(function ExamCard({
     ? 'Results published'
     : resultsReady
       ? 'Results ready to publish'
+      : resultsPublishable
+        ? 'Partial results available'
       : hasMarkProgress
         ? 'Marks entry in progress'
         : hasResultSubjects
@@ -888,6 +915,8 @@ const ExamCard = React.memo(function ExamCard({
     ? 'Visible to students and parents'
     : resultsReady
       ? `All ${readiness?.entered_entries || 0} entries complete`
+      : resultsPublishable
+        ? `${readiness?.entered_entries || 0} entered · ${readiness?.missing_entries || 0} still missing`
       : hasMarkProgress
         ? `${readiness?.entered_entries || 0} of ${readiness?.expected_entries || 0} entered · ${readiness?.missing_entries || 0} remaining`
         : hasResultSubjects
@@ -895,21 +924,21 @@ const ExamCard = React.memo(function ExamCard({
           : 'Marks can be entered without a timetable';
   const resultColor = resultsPublished
     ? theme.colors.success
-    : resultsReady
+    : resultsPublishable
       ? theme.colors.primary
       : hasMarkProgress
         ? theme.colors.warning
         : theme.colors.textTertiary;
   const resultIcon = resultsPublished
     ? 'checkmark-circle'
-    : resultsReady
+    : resultsPublishable
       ? 'megaphone-outline'
       : hasMarkProgress
         ? 'time-outline'
         : 'school-outline';
   const resultActionLabel = publishing
     ? 'Publishing…'
-    : resultsReady
+    : resultsPublishable
       ? 'Publish results'
       : resultsPublished
         ? 'View'
@@ -1005,7 +1034,7 @@ const ExamCard = React.memo(function ExamCard({
         <TouchableOpacity
           style={[
             styles.resultQuickAction,
-            resultsReady && styles.resultQuickActionPrimary,
+            resultsPublishable && styles.resultQuickActionPrimary,
             publishing && styles.disabledBtn,
           ]}
           activeOpacity={0.78}
@@ -1016,10 +1045,10 @@ const ExamCard = React.memo(function ExamCard({
         >
           {publishing ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : resultsReady ? (
+          ) : resultsPublishable ? (
             <Ionicons name="megaphone-outline" size={14} color="#FFFFFF" />
           ) : null}
-          <Text style={[styles.resultQuickActionText, resultsReady && styles.resultQuickActionTextPrimary]}>
+          <Text style={[styles.resultQuickActionText, resultsPublishable && styles.resultQuickActionTextPrimary]}>
             {resultActionLabel}
           </Text>
         </TouchableOpacity>
@@ -1710,11 +1739,13 @@ function ExamDetailView({
   detail,
   allocations,
   saving,
+  exportingMissingMarks,
   onBack,
   onGenerate,
   onEditPaper,
   onPublishToggle,
   onResultPublishToggle,
+  onExportMissingMarks,
   onAssignTeacher,
   onQuickAllocate,
   onCustomizeAllocate,
@@ -1729,11 +1760,13 @@ function ExamDetailView({
   detail: ExamTimetableDetail;
   allocations: ExamRoomAllocation[];
   saving: boolean;
+  exportingMissingMarks: boolean;
   onBack: () => void;
   onGenerate: () => void;
   onEditPaper: (p: ExamPaper) => void;
   onPublishToggle: () => void;
   onResultPublishToggle: () => void;
+  onExportMissingMarks: () => void;
   onAssignTeacher: (paper: ExamResultReadinessPaper, section: ExamResultReadinessSection) => void;
   onQuickAllocate: () => void;
   onCustomizeAllocate: () => void;
@@ -1750,6 +1783,7 @@ function ExamDetailView({
   const published = !!exam.timetable_published;
   const resultsPublished = !!exam.results_published;
   const resultReadiness = detail.result_readiness;
+  const resultsPublishable = resultReadiness.publishable ?? resultReadiness.entered_entries > 0;
   const incompleteResultPapers = resultReadiness.papers.filter((paper) => !paper.complete);
   const missingTeachers = scheduledPapers.filter((p) => p.has_teacher === false).length;
   const hasSeating = allocations.length > 0;
@@ -2359,7 +2393,7 @@ function ExamDetailView({
                 {
                   backgroundColor: resultsPublished
                     ? `${theme.colors.success}16`
-                    : resultReadiness.ready
+                    : resultsPublishable
                       ? `${theme.colors.primary}14`
                       : `${theme.colors.warning}16`,
                 },
@@ -2371,7 +2405,7 @@ function ExamDetailView({
                 color={
                   resultsPublished
                     ? theme.colors.success
-                    : resultReadiness.ready
+                    : resultsPublishable
                       ? theme.colors.primary
                       : theme.colors.warning
                 }
@@ -2383,6 +2417,8 @@ function ExamDetailView({
                   ? 'Results published'
                   : resultReadiness.ready
                     ? 'Results ready to publish'
+                    : resultsPublishable
+                      ? 'Partial results ready to publish'
                     : resultReadiness.papers_total === 0
                       ? 'Results not started'
                       : 'Waiting for teachers'}
@@ -2396,7 +2432,7 @@ function ExamDetailView({
                       ? 'No active student results are expected for the selected classes.'
                     : `${resultReadiness.entered_entries} of ${resultReadiness.expected_entries} mark entries complete`}
               </Text>
-              {!resultsPublished && resultReadiness.missing_entries > 0 && (
+              {resultReadiness.missing_entries > 0 && (
                 <View style={styles.resultMissingWrap}>
                   <TouchableOpacity
                     style={styles.resultMissingHeader}
@@ -2411,6 +2447,20 @@ function ExamDetailView({
                       size={14}
                       color={theme.colors.warning}
                     />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.resultExportBtn, exportingMissingMarks && styles.disabledBtn]}
+                    activeOpacity={0.75}
+                    disabled={exportingMissingMarks}
+                    onPress={onExportMissingMarks}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Download staff with unuploaded marks for ${exam.name}`}
+                  >
+                    {exportingMissingMarks
+                      ? <ActivityIndicator size="small" color={theme.colors.primary} />
+                      : <Ionicons name="download-outline" size={16} color={theme.colors.primary} />}
+                    <Text style={[styles.resultExportText, { color: theme.colors.primary }]}>Download unuploaded marks Excel</Text>
                   </TouchableOpacity>
 
                   {resultGapsOpen && incompleteResultPapers.map((paper) => {
@@ -2506,16 +2556,16 @@ function ExamDetailView({
               <TouchableOpacity
                 style={[
                   styles.resultPublishBtn,
-                  { backgroundColor: resultReadiness.ready ? theme.colors.primary : theme.colors.border },
+                  { backgroundColor: resultsPublishable ? theme.colors.primary : theme.colors.border },
                   saving && styles.disabledBtn,
                 ]}
-                disabled={saving || !resultReadiness.ready}
+                disabled={saving || !resultsPublishable}
                 activeOpacity={0.8}
                 onPress={onResultPublishToggle}
               >
                 <Ionicons name="megaphone-outline" size={15} color="#FFFFFF" />
                 <Text style={styles.resultPublishBtnText}>
-                  {resultReadiness.ready ? 'Publish results' : 'Not ready'}
+                  {resultReadiness.ready ? 'Publish results' : resultsPublishable ? 'Publish partial' : 'Not ready'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -5667,6 +5717,20 @@ const getStyles = (theme: Theme, isDark: boolean) =>
       justifyContent: 'space-between',
       gap: 8,
     },
+    resultExportBtn: {
+      minHeight: 40,
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 11,
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.background,
+    },
+    resultExportText: { fontSize: 11.5, fontWeight: '800' },
     resultMissingText: { flex: 1, fontSize: 11.5, fontWeight: '700' },
     resultPaperBlock: {
       borderWidth: 1,

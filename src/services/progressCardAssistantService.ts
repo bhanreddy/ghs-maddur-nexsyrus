@@ -42,6 +42,12 @@ export interface ProgressCardSubjectResult {
   written_work_marks: number | null;
   project_work_marks: number | null;
   slip_test_marks: number | null;
+  component_maximums: {
+    participation: number;
+    written_work: number;
+    project_work: number;
+    slip_test: number;
+  };
   component_total: number | null;
   weightage_20: number | null;
   percentage: number | null;
@@ -77,7 +83,9 @@ export interface ProgressCardAssistantReport {
   };
 }
 
-export type FinalCalculationPeriod = 'summative_1' | 'summative_2' | 'annual';
+export type FormativeCalculationPeriod = 'fa1' | 'fa2' | 'fa3' | 'fa4';
+export type WeightedCalculationPeriod = 'summative_1' | 'summative_2' | 'annual';
+export type FinalCalculationPeriod = FormativeCalculationPeriod | WeightedCalculationPeriod;
 
 export interface FinalSourceMark {
   status: 'graded' | 'missing' | 'absent';
@@ -140,20 +148,48 @@ export const ProgressCardAssistantService = {
     studentId: string,
     examId: string,
     staffId?: string,
+    rankingMethod?: ResultRankingMethod,
   ): Promise<ProgressCardAssistantReport> =>
     api.get(
       `/results/progress-card-assistant/student/${studentId}`,
-      { exam_id: examId, ...(staffId ? { staff_id: staffId } : {}) },
+      {
+        exam_id: examId,
+        ...(staffId ? { staff_id: staffId } : {}),
+        ...(rankingMethod ? { ranking_method: rankingMethod } : {}),
+      },
       { silent: true },
     ),
 
   getFinalCalculations: (
     studentId: string,
     staffId?: string,
+    rankingMethod?: ResultRankingMethod,
   ): Promise<FinalCalculationsReport> =>
     api.get(
       `/results/progress-card-assistant/student/${studentId}/final-calculations`,
-      staffParams(staffId),
+      {
+        ...(staffParams(staffId) || {}),
+        ...(rankingMethod ? { ranking_method: rankingMethod } : {}),
+      },
       { silent: true },
     ),
+
+  exportClassMarks: async (
+    examId: string,
+    examName: string,
+    className: string,
+    staffId?: string,
+    rankingMethod?: ResultRankingMethod,
+  ): Promise<void> => {
+    const params = new URLSearchParams({
+      ...(staffId ? { staff_id: staffId } : {}),
+      ...(rankingMethod ? { ranking_method: rankingMethod } : {}),
+    });
+    const safeExam = examName.replace(/[^A-Za-z0-9_-]+/g, '-');
+    const safeClass = className.replace(/[^A-Za-z0-9_-]+/g, '-');
+    return api.downloadFile(
+      `/results/progress-card-assistant/exams/${examId}/export?${params.toString()}`,
+      `${safeExam || 'exam'}-${safeClass || 'class'}-marks.xlsx`,
+    );
+  },
 };
