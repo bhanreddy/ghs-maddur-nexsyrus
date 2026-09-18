@@ -54,54 +54,54 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
     ...defaultLightTheme,
     colors: {
       ...defaultLightTheme.colors,
-      // Primary brand color – Deep Navy Blue (from logo)
-      primary: '#113053',
-      primaryLight: '#1D69A6',
-      primaryDark: '#0C223C',
-      // Secondary color – Slate Blue (from logo)
-      secondary: '#889BAC',
-      // Accent color – Amber Gold (from logo)
-      accent: '#F09822',
-      // Backgrounds – subtle blue-tinted cool gray
-      background: '#F4F6F9',
+      // Primary brand color – Deep maroon (logo outer ring)
+      primary: '#5D101D',
+      primaryLight: '#8B2635',
+      primaryDark: '#3D0A14',
+      // Secondary color – Royal blue (logo book spine)
+      secondary: '#0071BC',
+      // Accent color – Gold (logo inner ring)
+      accent: '#D4AF37',
+      // Backgrounds – warm maroon-tinted neutrals
+      background: '#FFFBF8',
       surface: '#FFFFFF',
       card: '#FFFFFF',
-      // Text colors – deep slate navy palette
-      textPrimary: '#112233',
-      textStrong: '#091420',
-      textSecondary: '#475D73',
-      textMuted: '#8092A6',
-      text: '#112233',
-      textTertiary: '#8092A6',
-      // Borders – blue-tinted gray
-      border: '#D1DCE5',
-      borderLight: '#E9EFF4',
-      // Semantic colors
-      danger: '#EF4444',
-      success: '#10B981',
-      warning: '#F59E0B',
-      info: '#1D69A6',
-      notification: '#EF4444',
-      // Navigation – soft blue-gray pill tints
-      navPill: '#EBF2F7',
-      navIconActive: '#113053',
-      navIconInactive: '#8092A6',
+      // Text colors – navy and maroon palette
+      textPrimary: '#002366',
+      textStrong: '#1A0A0E',
+      textSecondary: '#4A3035',
+      textMuted: '#6B4A52',
+      text: '#002366',
+      textTertiary: '#6B4A52',
+      // Borders – maroon-tinted
+      border: '#E8D6CE',
+      borderLight: '#F5EBE6',
+      // Semantic colors (from logo book graphic & arc text)
+      danger: '#D11D1D',
+      success: '#39B54A',
+      warning: '#FBB040',
+      info: '#0071BC',
+      notification: '#D11D1D',
+      // Navigation – maroon pill tints
+      navPill: '#FFF0E8',
+      navIconActive: '#5D101D',
+      navIconInactive: '#6B4A52',
       // Header/Footer backgrounds (with transparency for glass effect)
-      headerBg: 'rgba(244, 246, 249, 0.88)',
+      headerBg: 'rgba(255,251,248, 0.88)',
       footerBg: 'rgba(255,255,255, 0.92)',
       // Alert colors
-      alertBg: '#FEFCE8',
-      alertBorder: '#FEF08A',
-      alertIcon: '#EAB308',
-      alertText: '#854D0E',
+      alertBg: '#FFF5F0',
+      alertBorder: '#E8C4B8',
+      alertIcon: '#5D101D',
+      alertText: '#3D0A14',
       alertBgDanger: '#FEF2F2',
       alertBorderDanger: '#FECACA',
-      alertIconDanger: '#EF4444',
+      alertIconDanger: '#D11D1D',
       alertTextDanger: '#991B1B',
-      alertBgInfo: '#EDF7FC',
-      alertBorderInfo: '#B3DFEF',
-      alertIconInfo: '#1D69A6',
-      alertTextInfo: '#0A5F8A',
+      alertBgInfo: '#EFF6FF',
+      alertBorderInfo: '#BFDBFE',
+      alertIconInfo: '#0071BC',
+      alertTextInfo: '#002366',
     },
     typography: {
       fontFamily: 'System',
@@ -165,54 +165,54 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
     ...defaultDarkTheme,
     colors: {
       ...defaultDarkTheme.colors,
-      // Primary – slate blue for dark mode legibility
-      primary: '#889BAC',
-      primaryLight: '#A6B7C7',
-      primaryDark: '#4F657B',
-      // Secondary – light gold
-      secondary: '#F2BF71',
-      // Accent – amber gold
-      accent: '#F09822',
-      // Dark backgrounds – deep navy-tinted tones
-      background: '#09111C',
-      surface: '#111C2B',
-      card: '#111C2B',
+      // Primary – lighter maroon/gold for dark mode legibility
+      primary: '#C45A6A',
+      primaryLight: '#D4AF37',
+      primaryDark: '#8B2635',
+      // Secondary – sky blue (logo book)
+      secondary: '#29ABE2',
+      // Accent – gold for dark backgrounds
+      accent: '#E8C547',
+      // Dark backgrounds – deep maroon-ink tones
+      background: '#1A0A0E',
+      surface: '#2D1018',
+      card: '#2D1018',
       // Light text for dark backgrounds
-      textPrimary: '#E1E7EE',
-      textStrong: '#F1F4F8',
-      textSecondary: '#8B9EAF',
-      textMuted: '#576C7E',
-      text: '#E1E7EE',
-      textTertiary: '#576C7E',
-      // Darker borders – deep navy border
-      border: '#1E2D3F',
-      borderLight: '#2C3F54',
+      textPrimary: '#F5EBE6',
+      textStrong: '#FFFFFF',
+      textSecondary: '#D4B8B0',
+      textMuted: '#9C8A8F',
+      text: '#F5EBE6',
+      textTertiary: '#9C8A8F',
+      // Darker borders – maroon-ink
+      border: '#4A2030',
+      borderLight: '#5D2A3A',
       // Lighter semantic colors for dark mode
       danger: '#F87171',
-      success: '#34D399',
-      warning: '#FBBF24',
-      info: '#1D69A6',
+      success: '#4ADE80',
+      warning: '#FBB040',
+      info: '#29ABE2',
       notification: '#F87171',
-      // Navigation – slate blue tint
-      navPill: 'rgba(136, 155, 172, 0.15)',
-      navIconActive: '#889BAC',
-      navIconInactive: '#415366',
-      // Header/Footer with dark navy glass effect
-      headerBg: 'rgba(9, 17, 28, 0.88)',
-      footerBg: 'rgba(17, 28, 43, 0.92)',
+      // Navigation – maroon tint
+      navPill: 'rgba(93,16,29, 0.25)',
+      navIconActive: '#E8C547',
+      navIconInactive: '#9C8A8F',
+      // Header/Footer with dark maroon glass effect
+      headerBg: 'rgba(26,10,14, 0.88)',
+      footerBg: 'rgba(45,16,24, 0.92)',
       // Alert colors (dark mode)
-      alertBg: 'rgba(234,179,8, 0.1)',
-      alertBorder: 'rgba(234,179,8, 0.2)',
-      alertIcon: '#FBBF24',
-      alertText: '#FEF08A',
-      alertBgDanger: 'rgba(239,68,68, 0.1)',
-      alertBorderDanger: 'rgba(239,68,68, 0.2)',
+      alertBg: 'rgba(93,16,29, 0.15)',
+      alertBorder: 'rgba(212,175,55, 0.25)',
+      alertIcon: '#E8C547',
+      alertText: '#F5EBE6',
+      alertBgDanger: 'rgba(248,113,113, 0.1)',
+      alertBorderDanger: 'rgba(248,113,113, 0.2)',
       alertIconDanger: '#F87171',
       alertTextDanger: '#FECACA',
-      alertBgInfo: 'rgba(29, 105, 166, 0.12)',
-      alertBorderInfo: 'rgba(29, 105, 166, 0.25)',
-      alertIconInfo: '#1D69A6',
-      alertTextInfo: '#B3DFEF',
+      alertBgInfo: 'rgba(41,171,226, 0.12)',
+      alertBorderInfo: 'rgba(41,171,226, 0.25)',
+      alertIconInfo: '#29ABE2',
+      alertTextInfo: '#BFDBFE',
     },
     typography: {
       fontFamily: 'System',
@@ -276,26 +276,26 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
 
 export const SCHOOL_CONFIG = {
   // The official name of the school displayed in headers and reports
-  name: "Samskruthe School Nawabpet",
+  name: "New Master Minds E/M School Gokafasalwad",
 
   // Short line under the school name on the header ribbon (gold text)
-  tagline: "Enlighting young minds",
+  tagline: "Step in with Confidence and Step out with Success",
 
   // Motto / core values shown in the first info column of the ribbon (letterhead)
-  motto: "Education is not Business, it is a Mission",
+  motto: "Be Confident, Do Confidently",
 
   // The school logo used in headers and reports
   // Ensure the image exists in assets/images/
   logo: require('../../assets/images/icon.png'),
 
   // Optional: School Address for reports
-  address: "Samskruthe School ,Nawabpet.,Nawabpet,Dist Vikarabad., Telangana-501111",
+  address: "Maddur Road , Gokafasalwad(V) , Doulthabad(M) , Vikarabad(Dist), Telangana 509336",
 
   // Optional: Contact info for reports
-  contact: "9000700973",
+  contact: "6281041195",
 
   // Optional: School email for letterhead / reports
-  email: "pjrsamskruthe@gmail.com",
+  email: "newmastermindsenglishmediumsch@gmail.com",
 
   // Website or Email
   website: "www.nexsyrus.com",
@@ -307,33 +307,36 @@ export const SCHOOL_CONFIG = {
     contactUrl: 'https://api.whatsapp.com/send?phone=917892654731&text=Hi%2C%20I%20want%20to%20build%20a%20website%20for%20my%20school.',
   },
 
-  // CBSE Affiliation No (if applicable)
-  cbseAffiliationNo: "NA",
+  // CBSE Affiliation No (if applicable). Leave empty (not "NA") to omit from certificates.
+  cbseAffiliationNo: "",
 
   // School Code (if applicable)
-  schoolCode: "SSNAWABPET",
+  schoolCode: "NMS",
 
   /**
-   * Full recognition / affiliation sentence for certificates & PDFs.
-   * Leave blank to show only `recognitionNo` as "RC No. …", or both combined.
+   * Optional letterhead recognition text for certificates / PDFs.
+   * Example: "Recognised by Govt. of T.S." or "(Recognised by Govt. of T.S.)"
+   * Leave empty to omit the recognition line entirely — never fall back to "NA".
    */
-  recognitionLine: "Recognised by Govt. of Telangana",
+  recognitionLine: "Recognised by Govt. of T.S.",
 
   /**
    * Optional RC / recognition number for bonafide & TC letterheads.
    * Example: "1234/DEO/VKB/2020". Leave empty to omit — never shown as "NA".
    */
-  recognitionNo: "",
+  recognitionNo: "213/46/2021",
 
   /**
    * Colour theme for ribbon / letterhead chrome (SchoolRibbon, etc.).
-   * Adjust `ribbonGradient` stops for your brand; `accent` drives gold trim and taglines.
+   * Extracted from the logo: maroon outer ring, gold trim, navy arc text.
    */
   theme: {
-    /** Stripes, tagline text, soft dividers – amber gold from logo */
-    accent: '#F09822',
-    /** Four-stop diagonal ribbon – deep navy to royal/slate blue */
-    ribbonGradient: ['#113053', '#163E6A', '#1D69A6', '#4F657B'] as const,
+    /** Gold stripes, dividers, and trim (logo inner ring) */
+    accent: '#D4AF37',
+    /** Tagline text – warm gold */
+    ribbonTagline: '#FFE082',
+    /** Four-stop diagonal ribbon – maroon ring with navy depth (logo outer ring) */
+    ribbonGradient: ['#2D0810', '#5D101D', '#7B1A2C', '#002366'] as const,
     /** Optional stops for expo-linear-gradient (length must match ribbonGradient) */
     ribbonGradientLocations: [0, 0.30, 0.65, 1] as const,
     /** Main title on the ribbon */

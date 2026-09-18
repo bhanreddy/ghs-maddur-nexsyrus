@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Samskruthe School Nawabpet",
-    "slug": "samskrutheschoolnawabpet",
+    "name": "New Master Minds E/M School Gokafasalwad",
+    "slug": "newmastermindsschoolgokafasalwad",
     "version": "5.1.8",
     "platforms": [
       "android",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.samskrutheschool",
+      "bundleIdentifier": "com.nexsyrussims.nmsgokafasalwad",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.samskrutheschool",
+      "package": "com.nexsyrussims.nmsgokafasalwad",
       "jsEngine": "hermes",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
@@ -39,7 +39,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-v2.png",
         "backgroundColor": "#E6F4FE",
-        "monochromeImage": "./assets/images/icon.png"
+        "monochromeImage": "./assets/images/icon-v2.png"
       },
       "useNextNotificationsApi": true,
       "permissions": [
@@ -50,6 +50,9 @@
         "WAKE_LOCK",
         "RECEIVE_BOOT_COMPLETED"
       ]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
     },
     "notification": {
       "icon": "./assets/images/icon.png",
@@ -115,9 +118,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "06802539-5f1f-4aa9-abd9-17350b5e65a7"
+        "projectId": "e51574e5-1701-4e8c-828d-32ca5f3fe8ea"
       }
     },
-    "owner": "nexsyrus"
+    "owner": "nexsyrus1"
   }
 }
