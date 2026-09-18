@@ -2,25 +2,25 @@ import { ViewStyle } from "react-native";
 
 export const ADMIN_THEME = {
     colors: {
-        primary: '#5D101D', // Maroon – logo outer ring
-        secondary: '#D4AF37', // Gold – logo inner ring
-        success: '#39B54A', // Logo book green
-        warning: '#FBB040', // Logo book orange
-        danger: '#D11D1D', // Logo top arc red
-        info: '#0071BC', // Logo book royal blue
+        primary: '#002448', // Deep Navy (logo circle)
+        secondary: '#CFA141', // Gold (logo lettering)
+        success: '#10B981', // Emerald
+        warning: '#F59E0B', // Amber
+        danger: '#EF4444', // Rose
+        info: '#003D6B', // Navy blue
         background: {
-            app: '#FFFBF8', // Warm off-white with maroon undertone
+            app: '#F5F7FA', // Navy-tinted neutral
             surface: '#FFFFFF',
-            subtle: '#FFF5F0',
+            subtle: '#EEF2F7',
         },
         text: {
-            primary: '#002366', // Navy – logo bottom arc text
-            secondary: '#4A3035', // Muted maroon-brown
-            muted: '#6B4A52', // Light maroon-gray
+            primary: '#062341', // Navy
+            secondary: '#3D5166', // Muted navy
+            muted: '#6B7D8F', // Soft slate
             inverse: '#FFFFFF',
         },
-        border: '#E8D6CE', // Warm border – maroon tinted
-        icon: '#5D101D', // Maroon for active icons
+        border: '#D4DEE8', // Navy-tinted border
+        icon: '#3D5166',
     },
     spacing: {
         xs: 4,
@@ -53,7 +53,7 @@ export const ADMIN_THEME = {
             elevation: 4,
         } as ViewStyle,
         lg: {
-            shadowColor: "#5D101D", // Maroon colored shadow for brand emphasis
+            shadowColor: "#002448", // Colored shadow for emphasis
             shadowOffset: { width: 0, height: 10 },
             shadowOpacity: 0.15,
             shadowRadius: 20,

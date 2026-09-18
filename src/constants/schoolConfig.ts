@@ -25,14 +25,14 @@ import { defaultDarkTheme, defaultLightTheme } from '../theme/types';
 export function schoolColorWithAlpha(hex: string | undefined | null, alpha: number): string {
   'worklet';
   if (hex == null || typeof hex !== 'string') {
-    return `rgba(212,175,55,${alpha})`;
+    return `rgba(207,161,65,${alpha})`;
   }
   let h = hex.trim().replace('#', '');
   if (h.length === 3) {
     h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   }
   if (!/^[0-9a-fA-F]{6}$/.test(h)) {
-    return `rgba(212,175,55,${alpha})`;
+    return `rgba(207,161,65,${alpha})`;
   }
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
@@ -54,54 +54,54 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
     ...defaultLightTheme,
     colors: {
       ...defaultLightTheme.colors,
-      // Primary brand color – Deep maroon (logo outer ring)
-      primary: '#5D101D',
-      primaryLight: '#8B2635',
-      primaryDark: '#3D0A14',
-      // Secondary color – Royal blue (logo book spine)
-      secondary: '#0071BC',
-      // Accent color – Gold (logo inner ring)
-      accent: '#D4AF37',
-      // Backgrounds – warm maroon-tinted neutrals
-      background: '#FFFBF8',
+      // Primary brand color – Deep Navy (from logo circle background)
+      primary: '#002448',
+      primaryLight: '#003060',
+      primaryDark: '#001832',
+      // Secondary color – Gold (from logo text, border & icons)
+      secondary: '#CFA141',
+      // Accent color – Gold trim (logo ring & lettering)
+      accent: '#CFA141',
+      // Backgrounds – subtle navy-tinted neutrals
+      background: '#F5F7FA',
       surface: '#FFFFFF',
       card: '#FFFFFF',
-      // Text colors – navy and maroon palette
-      textPrimary: '#002366',
-      textStrong: '#1A0A0E',
-      textSecondary: '#4A3035',
-      textMuted: '#6B4A52',
-      text: '#002366',
-      textTertiary: '#6B4A52',
-      // Borders – maroon-tinted
-      border: '#E8D6CE',
-      borderLight: '#F5EBE6',
-      // Semantic colors (from logo book graphic & arc text)
-      danger: '#D11D1D',
-      success: '#39B54A',
-      warning: '#FBB040',
-      info: '#0071BC',
-      notification: '#D11D1D',
-      // Navigation – maroon pill tints
-      navPill: '#FFF0E8',
-      navIconActive: '#5D101D',
-      navIconInactive: '#6B4A52',
+      // Text colors – navy-slate palette
+      textPrimary: '#062341',
+      textStrong: '#001832',
+      textSecondary: '#3D5166',
+      textMuted: '#6B7D8F',
+      text: '#062341',
+      textTertiary: '#6B7D8F',
+      // Borders – navy-tinted
+      border: '#D4DEE8',
+      borderLight: '#E8EEF4',
+      // Semantic colors
+      danger: '#EF4444',
+      success: '#10B981',
+      warning: '#F59E0B',
+      info: '#003D6B',
+      notification: '#EF4444',
+      // Navigation – navy pill tints
+      navPill: '#EEF2F7',
+      navIconActive: '#002448',
+      navIconInactive: '#8A96A3',
       // Header/Footer backgrounds (with transparency for glass effect)
-      headerBg: 'rgba(255,251,248, 0.88)',
+      headerBg: 'rgba(245,247,250, 0.88)',
       footerBg: 'rgba(255,255,255, 0.92)',
       // Alert colors
-      alertBg: '#FFF5F0',
-      alertBorder: '#E8C4B8',
-      alertIcon: '#5D101D',
-      alertText: '#3D0A14',
+      alertBg: '#FEFCE8',
+      alertBorder: '#FEF08A',
+      alertIcon: '#EAB308',
+      alertText: '#854D0E',
       alertBgDanger: '#FEF2F2',
       alertBorderDanger: '#FECACA',
-      alertIconDanger: '#D11D1D',
+      alertIconDanger: '#EF4444',
       alertTextDanger: '#991B1B',
-      alertBgInfo: '#EFF6FF',
-      alertBorderInfo: '#BFDBFE',
-      alertIconInfo: '#0071BC',
-      alertTextInfo: '#002366',
+      alertBgInfo: '#EEF4FA',
+      alertBorderInfo: '#B8CDE0',
+      alertIconInfo: '#003D6B',
+      alertTextInfo: '#002448',
     },
     typography: {
       fontFamily: 'System',
@@ -165,54 +165,54 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
     ...defaultDarkTheme,
     colors: {
       ...defaultDarkTheme.colors,
-      // Primary – lighter maroon/gold for dark mode legibility
-      primary: '#C45A6A',
-      primaryLight: '#D4AF37',
-      primaryDark: '#8B2635',
-      // Secondary – sky blue (logo book)
-      secondary: '#29ABE2',
-      // Accent – gold for dark backgrounds
-      accent: '#E8C547',
-      // Dark backgrounds – deep maroon-ink tones
-      background: '#1A0A0E',
-      surface: '#2D1018',
-      card: '#2D1018',
+      // Primary – gold for dark mode legibility on navy surfaces
+      primary: '#CFA141',
+      primaryLight: '#E0B84D',
+      primaryDark: '#B8892E',
+      // Secondary – muted steel blue
+      secondary: '#6B8FAF',
+      // Accent – lighter gold trim
+      accent: '#E0B84D',
+      // Dark backgrounds – deep navy tones (from logo)
+      background: '#000E1A',
+      surface: '#001832',
+      card: '#062341',
       // Light text for dark backgrounds
-      textPrimary: '#F5EBE6',
-      textStrong: '#FFFFFF',
-      textSecondary: '#D4B8B0',
-      textMuted: '#9C8A8F',
-      text: '#F5EBE6',
-      textTertiary: '#9C8A8F',
-      // Darker borders – maroon-ink
-      border: '#4A2030',
-      borderLight: '#5D2A3A',
+      textPrimary: '#E8EDF2',
+      textStrong: '#F5F7FA',
+      textSecondary: '#9AAFC2',
+      textMuted: '#6B8399',
+      text: '#E8EDF2',
+      textTertiary: '#6B8399',
+      // Darker borders – navy-ink
+      border: '#1A3450',
+      borderLight: '#243D58',
       // Lighter semantic colors for dark mode
       danger: '#F87171',
-      success: '#4ADE80',
-      warning: '#FBB040',
-      info: '#29ABE2',
+      success: '#34D399',
+      warning: '#FBBF24',
+      info: '#6B8FAF',
       notification: '#F87171',
-      // Navigation – maroon tint
-      navPill: 'rgba(93,16,29, 0.25)',
-      navIconActive: '#E8C547',
-      navIconInactive: '#9C8A8F',
-      // Header/Footer with dark maroon glass effect
-      headerBg: 'rgba(26,10,14, 0.88)',
-      footerBg: 'rgba(45,16,24, 0.92)',
+      // Navigation – gold tint on navy
+      navPill: 'rgba(207,161,65, 0.12)',
+      navIconActive: '#CFA141',
+      navIconInactive: '#4A6278',
+      // Header/Footer with dark navy glass effect
+      headerBg: 'rgba(0,14,26, 0.88)',
+      footerBg: 'rgba(6,35,65, 0.92)',
       // Alert colors (dark mode)
-      alertBg: 'rgba(93,16,29, 0.15)',
-      alertBorder: 'rgba(212,175,55, 0.25)',
-      alertIcon: '#E8C547',
-      alertText: '#F5EBE6',
-      alertBgDanger: 'rgba(248,113,113, 0.1)',
-      alertBorderDanger: 'rgba(248,113,113, 0.2)',
+      alertBg: 'rgba(234,179,8, 0.1)',
+      alertBorder: 'rgba(234,179,8, 0.2)',
+      alertIcon: '#FBBF24',
+      alertText: '#FEF08A',
+      alertBgDanger: 'rgba(239,68,68, 0.1)',
+      alertBorderDanger: 'rgba(239,68,68, 0.2)',
       alertIconDanger: '#F87171',
       alertTextDanger: '#FECACA',
-      alertBgInfo: 'rgba(41,171,226, 0.12)',
-      alertBorderInfo: 'rgba(41,171,226, 0.25)',
-      alertIconInfo: '#29ABE2',
-      alertTextInfo: '#BFDBFE',
+      alertBgInfo: 'rgba(107,143,175, 0.12)',
+      alertBorderInfo: 'rgba(107,143,175, 0.25)',
+      alertIconInfo: '#6B8FAF',
+      alertTextInfo: '#B8CDE0',
     },
     typography: {
       fontFamily: 'System',
@@ -276,26 +276,26 @@ export const schoolTheme: { light: SchoolTheme; dark: SchoolTheme } = {
 
 export const SCHOOL_CONFIG = {
   // The official name of the school displayed in headers and reports
-  name: "New Master Minds E/M School Gokafasalwad",
+  name: "Chaitanya Vidyaniketan School Nancharla",
 
   // Short line under the school name on the header ribbon (gold text)
-  tagline: "Step in with Confidence and Step out with Success",
+  tagline: "Where learning never ends",
 
   // Motto / core values shown in the first info column of the ribbon (letterhead)
-  motto: "Be Confident, Do Confidently",
+  motto: "Knowledge is path to success",
 
   // The school logo used in headers and reports
   // Ensure the image exists in assets/images/
   logo: require('../../assets/images/icon.png'),
 
   // Optional: School Address for reports
-  address: "Maddur Road , Gokafasalwad(V) , Doulthabad(M) , Vikarabad(Dist), Telangana 509336",
+  address: "Chaitanya Vidyaniketan School ,Nancharla , Nancharla, Dist Mahabubnagar, Telangana-501111",
 
   // Optional: Contact info for reports
-  contact: "6281041195",
+  contact: "9492275900",
 
   // Optional: School email for letterhead / reports
-  email: "newmastermindsenglishmediumsch@gmail.com",
+  email: "chaitanyavidyanithan@gmail.com",
 
   // Website or Email
   website: "www.nexsyrus.com",
@@ -307,42 +307,41 @@ export const SCHOOL_CONFIG = {
     contactUrl: 'https://api.whatsapp.com/send?phone=917892654731&text=Hi%2C%20I%20want%20to%20build%20a%20website%20for%20my%20school.',
   },
 
-  // CBSE Affiliation No (if applicable). Leave empty (not "NA") to omit from certificates.
-  cbseAffiliationNo: "",
+  // CBSE Affiliation No (if applicable)
+  cbseAffiliationNo: "NA",
 
   // School Code (if applicable)
-  schoolCode: "NMS",
+  schoolCode: "CVS",
 
   /**
-   * Optional letterhead recognition text for certificates / PDFs.
-   * Example: "Recognised by Govt. of T.S." or "(Recognised by Govt. of T.S.)"
-   * Leave empty to omit the recognition line entirely — never fall back to "NA".
+   * Full recognition / affiliation sentence for certificates & PDFs.
+   * Leave blank to show only `recognitionNo` as "RC No. …", or both combined.
    */
-  recognitionLine: "Recognised by Govt. of T.S.",
+  recognitionLine: "",
 
   /**
    * Optional RC / recognition number for bonafide & TC letterheads.
    * Example: "1234/DEO/VKB/2020". Leave empty to omit — never shown as "NA".
    */
-  recognitionNo: "213/46/2021",
+  recognitionNo: "",
 
   /**
    * Colour theme for ribbon / letterhead chrome (SchoolRibbon, etc.).
-   * Extracted from the logo: maroon outer ring, gold trim, navy arc text.
+   * Adjust `ribbonGradient` stops for your brand; `accent` drives gold trim; `ribbonTagline` sets tagline text.
    */
   theme: {
-    /** Gold stripes, dividers, and trim (logo inner ring) */
-    accent: '#D4AF37',
-    /** Tagline text – warm gold */
-    ribbonTagline: '#FFE082',
-    /** Four-stop diagonal ribbon – maroon ring with navy depth (logo outer ring) */
-    ribbonGradient: ['#2D0810', '#5D101D', '#7B1A2C', '#002366'] as const,
+    /** Stripes and soft dividers – gold from logo lettering */
+    accent: '#CFA141',
+    /** Four-stop diagonal ribbon – deep navy (logo circle background) */
+    ribbonGradient: ['#001832', '#002448', '#003060', '#002848'] as const,
     /** Optional stops for expo-linear-gradient (length must match ribbonGradient) */
     ribbonGradientLocations: [0, 0.30, 0.65, 1] as const,
-    /** Main title on the ribbon */
-    ribbonTitle: '#FFFFFF',
+    /** Main title on the ribbon – gold lettering like the logo */
+    ribbonTitle: '#CFA141',
+    /** Tagline under the school name on the ribbon */
+    ribbonTagline: '#FFFFFF',
     /** Scrolling marquee dot separator */
-    marqueeSeparator: 'rgba(255,255,255,0.85)',
+    marqueeSeparator: 'rgba(207,161,65,0.85)',
     /** Letterhead / info column body */
     ribbonBody: 'rgba(255,255,255,0.92)',
     ribbonBodyMuted: 'rgba(255,255,255,0.9)',
