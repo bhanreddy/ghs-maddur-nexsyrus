@@ -4,7 +4,7 @@ import { api } from './apiClient';
 // and session time. Admin generates papers from parameters, edits them, then
 // publishes; student/teacher reads only ever return published timetables.
 
-export type ExamScheduleMode = 'aligned' | 'per_class';
+export type ExamScheduleMode = 'aligned' | 'per_class' | 'per_section';
 export type ExamWeekday =
     | 'monday'
     | 'tuesday'
@@ -50,6 +50,7 @@ export interface ExamSyllabusItem {
 export interface ExamPaper {
     id: string;
     class_id: string;
+    class_section_id?: string | null;
     subject_id: string;
     exam_date: string | null;
     start_time: string | null; // "09:30:00"
@@ -57,6 +58,7 @@ export interface ExamPaper {
     max_marks: number;
     passing_marks: number;
     class_name: string;
+    section_name?: string | null;
     subject_name: string;
     subject_name_te?: string | null;
     has_marks: boolean;
@@ -137,6 +139,7 @@ export interface ExamSession {
 
 export interface ExamGenerateParams {
     class_ids: string[];
+    class_section_ids?: string[];
     start_date: string;
     end_date: string;
     start_time?: string | null;
@@ -200,6 +203,8 @@ export interface ExamScheduleSlot {
     subject_name_te?: string | null;
     /** teacher read only */
     class_name?: string;
+    class_section_id?: string | null;
+    section_name?: string | null;
     /** teacher read only — true when this paper is the teacher's own subject */
     is_my_subject?: boolean;
     syllabus?: ExamSyllabusItem[] | null;
@@ -224,10 +229,12 @@ export const ExamTimetableService = {
 
     getClassSubjects: async (
         classIds: string[],
-        academicYearId?: string
+        academicYearId?: string,
+        classSectionIds?: string[]
     ): Promise<ClassSubjectOption[]> => {
         return api.get<ClassSubjectOption[]>('/results/exam-timetable/class-subjects', {
-            class_ids: classIds.join(','),
+            ...(classIds && classIds.length > 0 ? { class_ids: classIds.join(',') } : {}),
+            ...(classSectionIds && classSectionIds.length > 0 ? { class_section_ids: classSectionIds.join(',') } : {}),
             ...(academicYearId ? { academic_year_id: academicYearId } : {}),
         });
     },
@@ -252,6 +259,7 @@ export const ExamTimetableService = {
         data: {
             subject_id: string;
             class_id: string;
+            class_section_id?: string | null;
             exam_date?: string;
             start_time?: string;
             end_time?: string;

@@ -1,3 +1,6 @@
+import * as Crypto from 'expo-crypto';
+import { useTransportPolling } from '../../src/hooks/useTransportPolling';
+import DriverTrackingHealth from '../../src/components/DriverTrackingHealth';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, RefreshControl, Platform } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -143,6 +146,7 @@ export default function DriverDashboard() {
   // Trip state
   const [activeTripId, setActiveTripId] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
+  const startRequestRef = useRef<{selection:string;id:string}|null>(null);
   const [tripStartedAt, setTripStartedAt] = useState<Date | null>(null);
   const [elapsedMin, setElapsedMin] = useState(0);
 
@@ -247,7 +251,6 @@ export default function DriverDashboard() {
       // maintenance while this device was backgrounded. Stop any persisted
       // native location task as soon as the dashboard confirms there is no
       // active trip.
-      stopLocationTracking();
       setActiveTripId(null);
       setIsTracking(false);
       setTripStartedAt(null);
@@ -308,15 +311,23 @@ export default function DriverDashboard() {
         undefined,
         { silent: true },
       );
+      if (!['active', 'in_progress'].includes(data.trip?.status)) {
+        setIsTracking(false); setActiveTripId(null);
+      }
       setStops(data.stops.map((s: any) => ({
         id: s.id, stop_id: s.stop_id, stop_name: s.stop_name,
         stop_order: s.stop_order, status: s.status,
         latitude: s.latitude, longitude: s.longitude,
-        student_count: Number(s.student_count) || 0,
+        student_count: Number(s.student_count ?? s.assigned_students) || 0,
         arrival_time: s.arrival_time, departure_time: s.departure_time
       })));
     } catch { }
   };
+
+  useTransportPolling(async () => {
+    if (activeTripId) await fetchTripStatus(activeTripId);
+    else await refetchBusData();
+  }, 10000);
 
   /* ─── Calibration status (Phase A badge) ─── */
   useEffect(() => {
@@ -333,15 +344,14 @@ export default function DriverDashboard() {
   }, [selectedRoute?.id, tripLeg, isTracking]);
 
   /** GPS fix payload for stop marks — only when fresh enough to trust. */
-  const freshFixBody = () => {
-    const fix = lastFixRef.current;
-    if (!fix || Date.now() - fix.ts > FIX_MAX_AGE_MS) return {};
-    return {
-      latitude: fix.latitude,
-      longitude: fix.longitude,
-      accuracy: fix.accuracy,
-      is_mocked: fix.mocked,
-    };
+  const freshFixBody = async () => {
+    if (Platform.OS === 'web') return {};
+    try {
+      const fix = await Location.getLastKnownPositionAsync({ maxAge: 30000, requiredAccuracy: 50 });
+      if (!fix || Date.now() - fix.timestamp > 30000) return {};
+      return { latitude: fix.coords.latitude, longitude: fix.coords.longitude, accuracy: fix.coords.accuracy,
+        is_mocked: fix.mocked === true, recorded_at: new Date(fix.timestamp).toISOString() };
+    } catch { return {}; }
   };
 
   /* ─── Timer for elapsed time ─── */
@@ -364,17 +374,21 @@ export default function DriverDashboard() {
     setActionLoading(true);
     try {
       const tripDirection = resolveTripDirectionParam(selectedRoute, tripLeg);
+      const selection = `${selectedRoute.id}:${tripDirection}`;
+      if (startRequestRef.current?.selection !== selection) startRequestRef.current = { selection, id: Crypto.randomUUID() };
       const data = await api.post<any>('/transport/trips/start', {
+        request_id: startRequestRef.current.id,
         route_id: selectedRoute.id,
         bus_id: selectedBus.id,
         trip_direction: tripDirection,
       });
+      startRequestRef.current = null;
       setActiveTripId(data.trip.id);
       setIsTracking(true);
       setTripStartedAt(new Date());
       setElapsedMin(0);
       await fetchTripStatus(data.trip.id);
-      startLocationTracking(selectedBus.id);
+      await startLocationTracking(selectedBus.id, true);
     } catch {
       alertCompat(t('driver_ui.error'), t('driver_ui.failed_to_start_trip'));
     } finally { setActionLoading(false); }
@@ -412,7 +426,7 @@ export default function DriverDashboard() {
     try {
       // Manual mark + fresh GPS fix = a calibration sample (Phase A).
       await api.post<any>(`/transport/trips/${activeTripId}/stops/${stopId}/arrive`, {
-        ...freshFixBody(),
+        ...await freshFixBody(),
         source: 'manual',
       });
       await fetchTripStatus(activeTripId!);
@@ -450,168 +464,16 @@ export default function DriverDashboard() {
     );
   };
 
-  /* ─── Geofence auto-advance (hands-free) ───
-     One long-lived GPS callback drives the whole stop sequence with zero driver
-     taps: entering the arrive radius marks a stop 'arrived'; leaving the larger
-     exit radius marks it 'completed' — the bus pulling away IS the driver's
-     confirmation that boarding is done. Kept in a render-refreshed ref so the
-     callback always sees current trip/stop state. Manual buttons stay as
-     overrides for GPS drift. */
-  const autoAdvanceRef = useRef<(lat: number, lng: number) => void>(() => {});
-  autoAdvanceRef.current = (lat: number, lng: number) => {
-    if (!activeTripId) return;
-
-    // 1. Complete the stop we're at, once the bus has pulled away from it.
-    const arrived = stops.find((st) => st.status === 'arrived');
-    if (arrived && arrived.latitude != null && arrived.longitude != null) {
-      const pulledAway =
-        distanceKm(lat, lng, Number(arrived.latitude), Number(arrived.longitude)) >= AUTO_COMPLETE_EXIT_RADIUS_KM;
-      const retryKey = `complete:${arrived.stop_id}`;
-      const canRetry = (autoRetryAfterRef.current.get(retryKey) || 0) <= Date.now();
-      if (pulledAway && canRetry && !autoCompletedStopsRef.current.has(arrived.stop_id)) {
-        autoCompletedStopsRef.current.add(arrived.stop_id);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        api.post<any>(
-          `/transport/trips/${activeTripId}/stops/${arrived.stop_id}/complete`,
-          undefined,
-          { silent: true },
-        )
-          .then(() => {
-            autoRetryAfterRef.current.delete(retryKey);
-            return fetchTripStatus(activeTripId);
-          })
-          .catch(() => {
-            autoCompletedStopsRef.current.delete(arrived.stop_id);
-            autoRetryAfterRef.current.set(retryKey, Date.now() + AUTO_TRANSITION_RETRY_MS);
-          });
-        return; // one transition per GPS fix keeps stop ordering strict
-      }
-    }
-
-    // 2. Arrive at the next pending stop as the bus reaches it.
-    const next = stops.find((st) => st.status === 'pending');
-    if (!next || next.latitude == null || next.longitude == null) return;
-    const retryKey = `arrive:${next.stop_id}`;
-    if ((autoRetryAfterRef.current.get(retryKey) || 0) > Date.now()) return;
-    if (autoArrivedStopsRef.current.has(next.stop_id)) return;
-    if (distanceKm(lat, lng, Number(next.latitude), Number(next.longitude)) > AUTO_ARRIVE_RADIUS_KM) return;
-    autoArrivedStopsRef.current.add(next.stop_id);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Device-geofence mark: provenance is 'geofence', so the server excludes
-    // it from geo calibration (it can fire up to 150m before the stop).
-    api.post<any>(`/transport/trips/${activeTripId}/stops/${next.stop_id}/arrive`, {
-      latitude: lat, longitude: lng, source: 'geofence',
-    }, { silent: true })
-      .then(() => {
-        autoRetryAfterRef.current.delete(retryKey);
-        return fetchTripStatus(activeTripId);
-      })
-      .catch(() => {
-        autoArrivedStopsRef.current.delete(next.stop_id);
-        autoRetryAfterRef.current.set(retryKey, Date.now() + AUTO_TRANSITION_RETRY_MS);
-      });
-  };
-
-  /* ─── GPS Tracking ───
-     Position streaming to the backend lives in the background task
-     (driverLocationTask), which survives screen-off and app-background via a
-     foreground service. The foreground watch below only feeds the on-screen
-     speedometer and the geofence auto-arrive. */
-  const startLocationTracking = async (busId: string) => {
-    // Web is not the driver's real platform: browser geolocation is unreliable,
-    // expo-location's web watch cleanup throws, and background tracking is
-    // native-only. Trips remain fully manageable on web without GPS.
+  const startLocationTracking = async (busId: string, requestPermission = false) => {
     if (Platform.OS === 'web') return;
-
-    let permGranted = false;
     try {
-      permGranted = await requestDriverLocationPermissions({ requestBackground: true });
-    } catch {
-      // Permission API unavailable — treat as denied, don't crash trip start.
-    }
-    if (!permGranted) {
-      setLocationSharingPaused(true);
-      return alertCompat(
-        t('driver_ui.location_sharing_paused'),
-        t('driver_ui.location_permission_instructions'),
-      );
-    }
-
-    let backgroundOk = true;
-    try {
+      const granted = requestPermission ? await requestDriverLocationPermissions({ requestBackground: true }) : (await Location.getForegroundPermissionsAsync()).granted;
+      if (!granted) { setLocationSharingPaused(true); return; }
       await startDriverLocationUpdates(busId);
       setLocationSharingPaused(false);
-    } catch {
-      // Background updates unavailable (e.g. old build) — fall back to
-      // posting from the foreground watch so tracking still works.
-      backgroundOk = false;
-    }
-
-    const attachForegroundWatch = async (intervalMs: number) => {
-      if (locationSubRef.current) return;
-      foregroundIntervalRef.current = intervalMs;
-      try {
-        locationSubRef.current = await Location.watchPositionAsync(
-          {
-            accuracy: intervalMs <= 5000 ? Location.Accuracy.High : Location.Accuracy.Balanced,
-            timeInterval: intervalMs,
-            distanceInterval: intervalMs <= 5000 ? 10 : 50,
-          },
-          (loc) => {
-            const spd = loc.coords.speed && loc.coords.speed > 0 ? loc.coords.speed * 3.6 : 0;
-            setSpeed(spd);
-            lastFixRef.current = {
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
-              accuracy: loc.coords.accuracy ?? null,
-              mocked: loc.mocked || false,
-              ts: Date.now(),
-            };
-            if (!backgroundOk) void postBusLocation(busId, loc);
-            autoAdvanceRef.current(loc.coords.latitude, loc.coords.longitude);
-
-            // Expo re-registers the existing background task with new options;
-            // Android's foreground service remains attached. Mirror the same
-            // cadence in this UI watch so it does not keep GPS artificially fast.
-            void adaptDriverLocationSampling(loc).then((nextInterval) => {
-              if (nextInterval === foregroundIntervalRef.current || foregroundRestartingRef.current) return;
-              foregroundRestartingRef.current = true;
-              try { locationSubRef.current?.remove(); } catch { /* no-op */ }
-              locationSubRef.current = null;
-              void attachForegroundWatch(nextInterval).finally(() => {
-                foregroundRestartingRef.current = false;
-              });
-            }).catch(() => { /* background stream remains on its last safe mode */ });
-          }
-        );
-      } catch {
-        // Foreground watch unavailable — the background task still streams.
-      }
-    };
-    await attachForegroundWatch(5000);
-
-    if (!heartbeatRef.current) {
-      heartbeatRef.current = setInterval(async () => {
-        try {
-          await api.post(`/transport/buses/${busId}/heartbeat`, undefined, { silent: true });
-        } catch { }
-      }, HEARTBEAT_INTERVAL);
-    }
+    } catch { setLocationSharingPaused(true); }
   };
-
-  const stopLocationTracking = () => {
-    void stopDriverLocationUpdates();
-    if (locationSubRef.current) {
-      try { locationSubRef.current.remove(); } catch { /* web cleanup no-op */ }
-      locationSubRef.current = null;
-    }
-    if (heartbeatRef.current) { clearInterval(heartbeatRef.current); heartbeatRef.current = null; }
-    autoArrivedStopsRef.current.clear();
-    autoCompletedStopsRef.current.clear();
-    autoRetryAfterRef.current.clear();
-  };
-
-  useEffect(() => () => { stopLocationTracking(); if (timerRef.current) clearInterval(timerRef.current); }, []);
+  const stopLocationTracking = () => { void stopDriverLocationUpdates(); };
 
   /* ─── Derived state ─── */
   const currentStop = stops.find((s) => s.status === 'pending' || s.status === 'arrived');
@@ -652,6 +514,7 @@ export default function DriverDashboard() {
     <ScreenLayout>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1A" />
       <StudentHeader title={t('driver_ui.route', 'My Route')} menuUserType="driver" showBackButton={false} />
+      <DriverTrackingHealth />
       <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}

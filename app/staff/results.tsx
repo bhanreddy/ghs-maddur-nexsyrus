@@ -1875,7 +1875,7 @@ export default function UploadMarks() {
           onPress: async () => {
             try {
               setUploading(true);
-              await ResultService.upload({
+              const uploadResult = await ResultService.upload({
                 class_section_id: selectedAssignment.class_section_id,
                 exam_category: selectedCategory.key,
                 sub_exam: selectedSubExam,
@@ -1895,11 +1895,21 @@ export default function UploadMarks() {
                 results: filledMarks
               });
               if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              void AccessibilityInfo.announceForAccessibility(`${filledMarks.length} results uploaded successfully.`);
-              alertCompat('Success', 'Marks uploaded successfully!');
-            } catch {
+              void AccessibilityInfo.announceForAccessibility(
+                `${uploadResult.uploaded_count} results uploaded successfully.`
+              );
+              if (uploadResult.failed_count > 0) {
+                const firstFailure = uploadResult.results.find((result) => result.error)?.error;
+                alertCompat(
+                  'Partially uploaded',
+                  `${uploadResult.uploaded_count} mark(s) saved and ${uploadResult.failed_count} failed.${firstFailure ? ` ${firstFailure}` : ''}`
+                );
+              } else {
+                alertCompat('Success', 'Marks uploaded successfully!');
+              }
+            } catch (error: any) {
               if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              alertCompat('Error', 'Failed to upload marks');
+              alertCompat('Could not upload marks', error?.message || 'Failed to upload marks');
             } finally {
               setUploading(false);
             }

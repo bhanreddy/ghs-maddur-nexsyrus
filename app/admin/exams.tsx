@@ -2151,7 +2151,9 @@ function ExamDetailView({
                           {t_field(paper.subject_name, paper.subject_name_te)}
                         </Text>
                         <View style={styles.classChip}>
-                          <Text style={styles.classChipText}>{paper.class_name}</Text>
+                          <Text style={styles.classChipText}>
+                            {paper.section_name ? `${paper.class_name} · ${paper.section_name}` : paper.class_name}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.paperMetaRow}>
@@ -2796,6 +2798,9 @@ function GenerateModal({
   const { width: viewportWidth } = useWindowDimensions();
   const compactLayout = viewportWidth < 560;
   const [classIds, setClassIds] = useState<string[]>([]);
+  const [classSectionIds, setClassSectionIds] = useState<string[]>([]);
+  const [availableSections, setAvailableSections] = useState<ClassSection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sessions, setSessions] = useState<ExamSessionDraft[]>([
@@ -2825,6 +2830,41 @@ function GenerateModal({
   const initialSubjectIds = React.useRef<string[] | null>(null);
   const prevOptionIds = React.useRef<Set<string>>(new Set());
 
+  // Load available sections for the exam's academic year
+  useEffect(() => {
+    if (!visible || !academicYearId) return;
+    let active = true;
+    setSectionsLoading(true);
+    ClassService.getClassSections(academicYearId)
+      .then((data) => {
+        if (!active) return;
+        setAvailableSections(data);
+        const validSectionIds = new Set(data.map((section) => section.id));
+        setClassSectionIds((previous) => previous.filter((id) => validSectionIds.has(id)));
+      })
+      .catch(() => {
+        if (active) setAvailableSections([]);
+      })
+      .finally(() => {
+        if (active) setSectionsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [visible, academicYearId]);
+
+  const sectionsByClass = useMemo(() => {
+    const map = new Map<string, ClassSection[]>();
+    for (const cs of availableSections) {
+      if (!map.has(cs.class_id)) map.set(cs.class_id, []);
+      map.get(cs.class_id)!.push(cs);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.section_name.localeCompare(b.section_name));
+    }
+    return map;
+  }, [availableSections]);
+
   // Pre-fill from the last generation so "regenerate with tweaks" is painless.
   useEffect(() => {
     if (!visible) return;
@@ -2834,6 +2874,7 @@ function GenerateModal({
     if (initialParams) {
       const availableClassIds = new Set(classes.map((item) => item.id));
       setClassIds((initialParams.class_ids || []).filter((id) => availableClassIds.has(id)));
+      setClassSectionIds(initialParams.class_section_ids || []);
       setStartDate(initialParams.start_date || '');
       setEndDate(initialParams.end_date || '');
       const savedSessions = (initialParams.sessions || []).map(toSessionDraft);
@@ -2867,7 +2908,13 @@ function GenerateModal({
       setExcludedDates(initialParams.excluded_dates || []);
       setGapDays(initialParams.gap_days || 0);
       setMaxConsecutiveDays(initialParams.max_consecutive_days || 0);
-      setMode(initialParams.mode === 'per_class' ? 'per_class' : 'aligned');
+      setMode(
+        initialParams.mode === 'per_section'
+          ? 'per_section'
+          : initialParams.mode === 'per_class'
+            ? 'per_class'
+            : 'aligned'
+      );
       setMaxMarks(String(initialParams.max_marks ?? 100));
       setPassingMarks(String(initialParams.passing_marks ?? 35));
       setSubjectMarks(
@@ -2886,6 +2933,7 @@ function GenerateModal({
         : null;
     } else {
       setClassIds([]);
+      setClassSectionIds([]);
       setStartDate('');
       setEndDate('');
       setSessions([toSessionDraft(DEFAULT_SESSION_TIMES[0])]);
@@ -2905,13 +2953,14 @@ function GenerateModal({
     }
   }, [visible, initialParams, classes]);
 
-  // Refresh the subject list whenever the class selection changes.
+  // Refresh the subject list whenever the class or section selection changes.
   // Rules: saved selection order wins on first load; a subject the admin
   // deselected stays deselected; subjects that become newly available (from
-  // adding a class) join the selection at the end.
+  // adding a class/section) join the selection at the end.
   useEffect(() => {
     if (!visible) return;
-    if (classIds.length === 0) {
+    const hasTargets = mode === 'per_section' ? classSectionIds.length > 0 : classIds.length > 0;
+    if (!hasTargets) {
       setSubjectOptions([]);
       setSubjectSel([]);
       setSubjectLoadError('');
@@ -2923,7 +2972,11 @@ function GenerateModal({
       try {
         setSubjectsLoading(true);
         setSubjectLoadError('');
-        const options = await ExamTimetableService.getClassSubjects(classIds, academicYearId);
+        const options = await ExamTimetableService.getClassSubjects(
+          classIds,
+          academicYearId,
+          mode === 'per_section' ? classSectionIds : undefined
+        );
         if (cancelled) return;
         setSubjectOptions(options);
         const available = options.map((o) => o.id);
@@ -2957,10 +3010,99 @@ function GenerateModal({
     return () => {
       cancelled = true;
     };
-  }, [visible, academicYearId, classIds, subjectReloadKey]);
+  }, [visible, academicYearId, classIds, classSectionIds, mode, subjectReloadKey]);
+
+  const toggleSection = (sectionId: string, parentClassId: string) => {
+    setClassSectionIds((prev) => {
+      const nextSections = prev.includes(sectionId)
+        ? prev.filter((id) => id !== sectionId)
+        : [...prev, sectionId];
+
+      const classSecs = sectionsByClass.get(parentClassId) || [];
+      const hasAnySelected = classSecs.some((cs) => nextSections.includes(cs.id));
+      setClassIds((cIds) => {
+        if (hasAnySelected && !cIds.includes(parentClassId)) {
+          return [...cIds, parentClassId];
+        }
+        if (!hasAnySelected && cIds.includes(parentClassId)) {
+          return cIds.filter((c) => c !== parentClassId);
+        }
+        return cIds;
+      });
+
+      return nextSections;
+    });
+  };
 
   const toggleClass = (id: string) => {
-    setClassIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+    if (mode === 'per_section') {
+      const classSecs = sectionsByClass.get(id) || [];
+      const secIds = classSecs.map((cs) => cs.id);
+      const allClassSecsSelected = secIds.length > 0 && secIds.every((sId) => classSectionIds.includes(sId));
+
+      if (allClassSecsSelected) {
+        setClassSectionIds((prev) => prev.filter((sId) => !secIds.includes(sId)));
+        setClassIds((prev) => prev.filter((c) => c !== id));
+      } else {
+        setClassSectionIds((prev) => Array.from(new Set([...prev, ...secIds])));
+        setClassIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      }
+      return;
+    }
+
+    setClassIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id];
+      const classSecs = sectionsByClass.get(id) || [];
+      const secIds = classSecs.map((cs) => cs.id);
+      if (next.includes(id)) {
+        setClassSectionIds((sPrev) => Array.from(new Set([...sPrev, ...secIds])));
+      } else {
+        setClassSectionIds((sPrev) => sPrev.filter((sId) => !secIds.includes(sId)));
+      }
+      return next;
+    });
+  };
+
+  const handleModeChange = (newMode: ExamScheduleMode) => {
+    setMode(newMode);
+    if (newMode === 'per_section') {
+      if (classSectionIds.length === 0 && classIds.length > 0) {
+        const toSelect: string[] = [];
+        for (const cid of classIds) {
+          const secs = sectionsByClass.get(cid) || [];
+          for (const s of secs) toSelect.push(s.id);
+        }
+        if (toSelect.length > 0) {
+          setClassSectionIds(toSelect);
+        }
+      }
+    }
+  };
+
+  const allSectionsSelected =
+    availableSections.length > 0 &&
+    availableSections.every((cs) => classSectionIds.includes(cs.id));
+  const allClassesSelected =
+    classes.length > 0 && classes.every((c) => classIds.includes(c.id));
+
+  const toggleAll = () => {
+    if (mode === 'per_section') {
+      if (allSectionsSelected) {
+        setClassSectionIds([]);
+        setClassIds([]);
+      } else {
+        setClassSectionIds(availableSections.map((cs) => cs.id));
+        setClassIds(classes.map((c) => c.id));
+      }
+    } else {
+      if (allClassesSelected) {
+        setClassIds([]);
+        setClassSectionIds([]);
+      } else {
+        setClassIds(classes.map((c) => c.id));
+        setClassSectionIds(availableSections.map((cs) => cs.id));
+      }
+    }
   };
 
   const toggleSubject = (id: string) => {
@@ -3075,7 +3217,11 @@ function GenerateModal({
     requiredDateCount > usableDateCount;
 
   const submit = async () => {
-    if (classIds.length === 0) {
+    if (mode === 'per_section' && classSectionIds.length === 0) {
+      alertCompat('Select sections', 'Pick at least one section for this exam.');
+      return;
+    }
+    if (mode !== 'per_section' && classIds.length === 0) {
       alertCompat('Select classes', 'Pick at least one class for this exam.');
       return;
     }
@@ -3165,6 +3311,7 @@ function GenerateModal({
     }
     const params: ExamGenerateParams = {
       class_ids: classIds,
+      class_section_ids: mode === 'per_section' ? classSectionIds : undefined,
       start_date: startDate,
       end_date: endDate,
       sessions: sessions.map((s) => ({
@@ -3213,13 +3360,12 @@ function GenerateModal({
     accentColor: theme.colors.primary,
     iconColor: theme.colors.textSecondary,
   };
-  const allClassesSelected =
-    classes.length > 0 && classes.every((item) => classIds.includes(item.id));
   const generateDisabled =
     busy ||
     subjectsLoading ||
+    (mode === 'per_section' && sectionsLoading) ||
     !!subjectLoadError ||
-    classIds.length === 0 ||
+    (mode === 'per_section' ? classSectionIds.length === 0 : classIds.length === 0) ||
     subjectSel.length === 0 ||
     allowedWeekdays.length === 0 ||
     dateCapacityShort;
@@ -3244,35 +3390,151 @@ function GenerateModal({
           </View>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.fieldLabel}>Classes</Text>
+            <Text style={styles.fieldLabel}>Schedule model</Text>
+            <View style={[styles.segment, compactLayout && styles.columnStack]}>
+              {(
+                [
+                  ['aligned', 'Aligned', 'Shared subjects run together across classes'],
+                  ['per_class', 'Per class', 'Each class gets its own compact sequence'],
+                  ['per_section', 'Per section', 'Each class section gets its own compact exam sequence'],
+                ] as const
+              ).map(([value, label, hint]) => {
+                const active = mode === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[styles.segmentItem, active && styles.segmentItemActive]}
+                    onPress={() => handleModeChange(value)}
+                    activeOpacity={0.8}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                  >
+                    <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{label}</Text>
+                    <Text style={[styles.segmentHint, active && styles.segmentHintActive]}>{hint}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.subjectHeaderRow}>
+              <Text style={styles.fieldLabel}>
+                {mode === 'per_section' ? 'Classes & Sections' : 'Classes'}
+              </Text>
+              {mode === 'per_section' && (
+                <Text style={styles.inlineActionText}>
+                  {classSectionIds.length} section{classSectionIds.length === 1 ? '' : 's'} selected
+                </Text>
+              )}
+            </View>
+
             <View style={styles.chipWrap}>
               <TouchableOpacity
-                style={[styles.chip, allClassesSelected && styles.chipActive]}
-                onPress={() =>
-                  setClassIds(allClassesSelected ? [] : classes.map((c) => c.id))
-                }
+                style={[
+                  styles.chip,
+                  (mode === 'per_section' ? allSectionsSelected : allClassesSelected) && styles.chipActive,
+                ]}
+                onPress={toggleAll}
                 activeOpacity={0.7}
               >
                 <Text
-                  style={[styles.chipText, allClassesSelected && styles.chipTextActive]}
+                  style={[
+                    styles.chipText,
+                    (mode === 'per_section' ? allSectionsSelected : allClassesSelected) && styles.chipTextActive,
+                  ]}
                 >
                   All
                 </Text>
               </TouchableOpacity>
               {classes.map((c) => {
-                const active = classIds.includes(c.id);
+                const classSecs = sectionsByClass.get(c.id) || [];
+                const active = mode === 'per_section'
+                  ? classSecs.length > 0 && classSecs.every((cs) => classSectionIds.includes(cs.id))
+                  : classIds.includes(c.id);
+                const partiallyActive = mode === 'per_section' && !active && classSecs.some((cs) => classSectionIds.includes(cs.id));
                 return (
                   <TouchableOpacity
                     key={c.id}
-                    style={[styles.chip, active && styles.chipActive]}
+                    style={[
+                      styles.chip,
+                      active && styles.chipActive,
+                      partiallyActive && { borderColor: theme.colors.primary, borderWidth: 1.5 },
+                    ]}
                     onPress={() => toggleClass(c.id)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.name}</Text>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextActive,
+                        partiallyActive && { color: theme.colors.primary, fontWeight: '700' },
+                      ]}
+                    >
+                      {c.name}
+                      {partiallyActive && ` (${classSecs.filter((s) => classSectionIds.includes(s.id)).length}/${classSecs.length})`}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
+
+            {mode === 'per_section' && sectionsLoading && (
+              <View style={styles.inlineStatusCard}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.helperText}>Loading sections…</Text>
+              </View>
+            )}
+
+            {mode === 'per_section' && !sectionsLoading && classes.length > 0 && (
+              <View style={{ marginTop: 12, marginBottom: 8 }}>
+                {classes.filter((c) => (sectionsByClass.get(c.id) || []).length > 0).map((c) => {
+                  const classSecs = sectionsByClass.get(c.id) || [];
+                  const allSelected = classSecs.every((cs) => classSectionIds.includes(cs.id));
+                  return (
+                    <View
+                      key={`sec-group-${c.id}`}
+                      style={{
+                        marginBottom: 10,
+                        padding: 10,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>{c.name}</Text>
+                        <TouchableOpacity onPress={() => toggleClass(c.id)}>
+                          <Text style={{ fontSize: 11, color: theme.colors.primary, fontWeight: '600' }}>
+                            {allSelected ? 'Deselect all' : 'Select all'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {classSecs.map((cs) => {
+                          const isSecSelected = classSectionIds.includes(cs.id);
+                          return (
+                            <TouchableOpacity
+                              key={cs.id}
+                              style={[
+                                styles.chip,
+                                { paddingHorizontal: 12, paddingVertical: 5 },
+                                isSecSelected && styles.chipActive,
+                              ]}
+                              onPress={() => toggleSection(cs.id, c.id)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={[styles.chipText, isSecSelected && styles.chipTextActive]}>
+                                Section {cs.section_name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
 
             <View style={styles.subjectHeaderRow}>
               <Text style={[styles.fieldLabel, { marginTop: 0, marginBottom: 0 }]}>
@@ -3294,8 +3556,10 @@ function GenerateModal({
                 </View>
               )}
             </View>
-            {classIds.length === 0 ? (
-              <Text style={styles.helperText}>Select classes to load their subjects.</Text>
+            {(mode === 'per_section' ? classSectionIds.length === 0 : classIds.length === 0) ? (
+              <Text style={styles.helperText}>
+                {mode === 'per_section' ? 'Select sections to load their subjects.' : 'Select classes to load their subjects.'}
+              </Text>
             ) : subjectsLoading ? (
               <View style={styles.inlineStatusCard}>
                 <ActivityIndicator size="small" color={theme.colors.primary} />
@@ -3618,27 +3882,6 @@ function GenerateModal({
             )}
 
             <Text style={styles.fieldLabel}>Scheduling rules</Text>
-            <View style={styles.segment}>
-              {(
-                [
-                  ['aligned', 'Aligned', 'Shared subjects run together across classes'],
-                  ['per_class', 'Per class', 'Each class gets its own compact sequence'],
-                ] as const
-              ).map(([value, label, hint]) => {
-                const active = mode === value;
-                return (
-                  <TouchableOpacity
-                    key={value}
-                    style={[styles.segmentItem, active && styles.segmentItemActive]}
-                    onPress={() => setMode(value)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{label}</Text>
-                    <Text style={[styles.segmentHint, active && styles.segmentHintActive]}>{hint}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
             <View style={[styles.ruleGrid, compactLayout && styles.columnStack]}>
               <View style={[styles.ruleCard, compactLayout && styles.ruleCardCompact]}>
                 <Text style={styles.ruleTitle}>Rest days after every exam date</Text>
@@ -3804,6 +4047,11 @@ function GenerateModal({
                     Per-class mode may use fewer dates when classes teach different subjects.
                   </Text>
                 )}
+                {mode === 'per_section' && (
+                  <Text style={styles.previewHint}>
+                    Per-section mode schedules each section in its own compact sequence across {classSectionIds.length} section(s).
+                  </Text>
+                )}
               </View>
             </View>
           </ScrollView>
@@ -3906,24 +4154,28 @@ function EditPaperModal({
   };
 
   const remove = () => {
-    alertCompat('Remove this paper?', `${paper.subject_name} — ${paper.class_name}`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setBusy(true);
-            await ExamTimetableService.deletePaper(paper.id);
-            onSaved();
-          } catch (err: any) {
-            alertCompat('Could not remove', err?.message || 'Delete failed');
-          } finally {
-            setBusy(false);
-          }
+    alertCompat(
+      'Remove this paper?',
+      `${paper.subject_name} — ${paper.section_name ? `${paper.class_name} (${paper.section_name})` : paper.class_name}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setBusy(true);
+              await ExamTimetableService.deletePaper(paper.id);
+              onSaved();
+            } catch (err: any) {
+              alertCompat('Could not remove', err?.message || 'Delete failed');
+            } finally {
+              setBusy(false);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   return (
@@ -3938,7 +4190,9 @@ function EditPaperModal({
               <Text style={styles.modalTitle} numberOfLines={1}>
                 {paper.subject_name}
               </Text>
-              <Text style={styles.examCardSub}>{paper.class_name}</Text>
+              <Text style={styles.examCardSub}>
+                {paper.section_name ? `${paper.class_name} · Section ${paper.section_name}` : paper.class_name}
+              </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={22} color={theme.colors.textSecondary} />

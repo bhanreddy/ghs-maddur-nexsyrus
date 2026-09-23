@@ -28,7 +28,7 @@ import { alertCompat } from '../../utils/crossPlatformAlert';
 import { resolveApiAssetUrl } from '../../utils/toBase64Uri';
 import { useAccountsWebChrome } from '../../contexts/AccountsWebChromeContext';
 import { StudentLoginQrApi, fetchAllLoginQrStudents } from './studentQrApi';
-import { LOGIN_QR_CARDS_PER_PAGE, printStudentQrPdf, saveStudentQrPdf } from './qrPdfGenerator';
+import { LOGIN_QR_CARDS_PER_PAGE, printStudentQrPdf, saveStudentQrPdf, studentQrPngDataUrl } from './qrPdfGenerator';
 import type {
   IssuedLoginQr,
   LoginQrMetadata,
@@ -146,17 +146,21 @@ function PreviewModal({ credential, school, academicYear, onClose, onRegenerated
   };
 
   const downloadPng = () => run('Saving QR image…', async () => {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      if (!qrRef.current) return reject(new Error('QR preview is not ready.'));
-      qrRef.current.toDataURL(resolve);
-    });
     const filename = `${credential.student.name.replace(/[^a-z0-9]+/gi, '-')}_Class-${credential.student.className || ''}-${credential.student.sectionName || ''}_Login-QR.png`;
     if (Platform.OS === 'web') {
       const anchor = document.createElement('a');
-      anchor.href = `data:image/png;base64,${base64}`;
+      anchor.href = await studentQrPngDataUrl(credential.qrPayload);
       anchor.download = filename;
-      anchor.click();
+      document.body.appendChild(anchor);
+      try { anchor.click(); } finally { anchor.remove(); }
     } else {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        if (!qrRef.current) return reject(new Error('QR preview is not ready.'));
+        const timeout = setTimeout(() => reject(new Error('QR image export timed out. Please try again.')), 10000);
+        try {
+          qrRef.current.toDataURL((data) => { clearTimeout(timeout); resolve(data); });
+        } catch (error) { clearTimeout(timeout); reject(error); }
+      });
       const uri = `${FileSystem.cacheDirectory}${filename}`;
       await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Save Student Login QR' });
@@ -201,7 +205,7 @@ function PreviewModal({ credential, school, academicYear, onClose, onRegenerated
               <Text style={styles.previewSchool}>{brand.name}</Text>
               <Text style={styles.previewScanHint}>Open SchoolIMS, then scan to sign in</Text>
               <View style={styles.qrPreviewWrap}>
-                <QRCode value={credential.qrPayload} size={216} ecl="M" quietZone={16} />
+                <QRCode value={credential.qrPayload} size={216} ecl="M" quietZone={24} />
               </View>
               <View style={styles.previewValidity}>
                 <View style={[styles.createdChip, credential.created ? styles.createdChipNew : styles.createdChipExisting]}>
@@ -266,9 +270,9 @@ function PreviewModal({ credential, school, academicYear, onClose, onRegenerated
             </View>
           </ScrollView>
 
-          <View pointerEvents="none" style={styles.hiResQr}>
-            <QRCode getRef={(ref) => { qrRef.current = ref; }} value={credential.qrPayload} size={1024} ecl="M" quietZone={48} />
-          </View>
+          {Platform.OS !== 'web' ? <View pointerEvents="none" style={styles.hiResQr}>
+            <QRCode getRef={(ref) => { qrRef.current = ref; }} value={credential.qrPayload} size={1024} ecl="M" quietZone={128} />
+          </View> : null}
           {busy ? (
             <View style={styles.busyOverlay}>
               <ActivityIndicator size="large" color="#7C3AED" />
@@ -369,22 +373,33 @@ export default function StudentQrManagementScreen() {
   const issueForStudents = async (targets: LoginQrStudent[]): Promise<IssuedLoginQr[]> => {
     const ready = targets.filter((student) => student.login_configured);
     if (!ready.length) throw new Error('Select at least one student with a configured login.');
-    const missing = ready.filter((student) => !issued.has(student.id));
+    // The server reuses valid credentials and replaces expired ones. Local cache
+    // cannot tell whether another administrator replaced a QR or reset a password.
     const collected: IssuedLoginQr[] = [];
     let failed = 0;
-    for (let index = 0; index < missing.length; index += 200) {
-      const result = await StudentLoginQrApi.bulk(missing.slice(index, index + 200).map((student) => student.id));
+    for (let index = 0; index < ready.length; index += 200) {
+      const result = await StudentLoginQrApi.bulk(ready.slice(index, index + 200).map((student) => student.id));
+      const serviceFailure = result.failures.find((failure) => !['LOGIN_NOT_CONFIGURED', 'STUDENT_NOT_FOUND'].includes(failure.code));
+      if (serviceFailure) {
+        throw new Error(serviceFailure.code === 'LOGIN_QR_NOT_CONFIGURED'
+          ? 'Login QR generation is not configured on the server. Contact your system administrator.'
+          : serviceFailure.code === 'LOGIN_QR_KEY_ROTATED'
+            ? 'The school QR key changed. Open View QR for the affected student to replace their QR.'
+            : 'The server could not generate the QR cards. Please try again.');
+      }
       storeIssued(result.credentials);
       collected.push(...result.credentials);
       failed += result.failures.length;
     }
     if (failed) alertCompat('Some QR codes were skipped', `${failed} student login${failed === 1 ? ' is' : 's are'} not configured or no longer active.`);
-    return ready.map((student) => issued.get(student.id) || collected.find((credential) => credential.student.id === student.id)).filter((value): value is IssuedLoginQr => Boolean(value));
+    if (!collected.length) throw new Error('No QR codes were generated. Check that the selected students have active logins.');
+    return collected;
   };
 
   const resolvePrintableStudents = async (): Promise<LoginQrStudent[]> => {
     if (selected.size) {
-      const pool = selected.size > students.length ? await fetchAllLoginQrStudents(currentFilters) : students;
+      const pool = [...selected].some((id) => !students.some((student) => student.id === id))
+        ? await fetchAllLoginQrStudents(currentFilters) : students;
       return pool.filter((student) => selected.has(student.id) && student.login_configured);
     }
     if (classId && sectionId) {
@@ -394,18 +409,28 @@ export default function StudentQrManagementScreen() {
   };
 
   const generateOne = async (student: LoginQrStudent) => {
-    const cached = issued.get(student.id);
-    if (cached) {
-      setPreview(cached);
-      return;
-    }
     setOpeningId(student.id);
     try {
       const credential = await StudentLoginQrApi.generate(student.id);
       storeIssued([credential]);
       setPreview(credential);
     } catch (caught) {
-      alertCompat('QR unavailable', caught instanceof Error ? caught.message : 'Could not generate this QR.');
+      if ((caught as { code?: string })?.code === 'LOGIN_QR_KEY_ROTATED') {
+        alertCompat('Replace this login QR?', 'The school QR key changed. Replace this QR so it works with the current server. Previously printed copies will stop working.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Replace QR', style: 'destructive', onPress: async () => {
+            setOpeningId(student.id);
+            try {
+              const credential = await StudentLoginQrApi.regenerate(student.id);
+              storeIssued([credential]);
+              setPreview(credential);
+            } catch (error) { alertCompat('QR unavailable', error instanceof Error ? error.message : 'Could not replace this QR.'); }
+            finally { setOpeningId(null); }
+          } },
+        ]);
+      } else {
+        alertCompat('QR unavailable', caught instanceof Error ? caught.message : 'Could not generate this QR.');
+      }
     } finally {
       setOpeningId(null);
     }

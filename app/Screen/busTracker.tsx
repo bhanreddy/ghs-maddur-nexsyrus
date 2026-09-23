@@ -1,3 +1,4 @@
+import { useTransportPolling } from '../../src/hooks/useTransportPolling';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
@@ -95,7 +96,7 @@ type BusPayload = {
     status?: string | null;
     reached_at?: string | null;
   }[];
-  current_stop?: { id: string; name: string; stop_order: number } | null;
+  current_stop?: { id: string; name: string; stop_order: number; status?: string } | null;
   stops_until_boarding?: number | null;
 };
 
@@ -209,6 +210,7 @@ export default function StudentBusTrackerScreen() {
   const [data, setData] = useState<BusPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [liveError, setLiveError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
   const [live, setLive] = useState<LivePayload | null>(null);
@@ -258,54 +260,14 @@ export default function StudentBusTrackerScreen() {
     try {
       const res = await api.get<LivePayload>('/transport/my-bus/live');
       setLive(res);
+      setLiveError(false);
     } catch {
-      // Keep last known live state; the checkpoint timeline stays the truth.
+      setLiveError(true);
+      // Retain the last observation and age it locally while reconnecting.
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-      return () => {
-        if (pollRef.current) clearInterval(pollRef.current);
-        if (livePollRef.current) clearInterval(livePollRef.current);
-      };
-    }, [load]),
-  );
-
-  // A tracker left open in the background must not display yesterday's GPS
-  // position or checkpoint state when the parent returns to the app.
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        load(true);
-        loadLive();
-      }
-    });
-    return () => subscription.remove();
-  }, [load, loadLive]);
-
-  useEffect(() => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    const ui = data?.trip?.ui_status || data?.trip?.status;
-    if (tripStatusIsActive(ui)) {
-      pollRef.current = setInterval(() => load(true), 20000);
-    }
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [data?.trip?.ui_status, data?.trip?.status, load]);
-
-  // Light live-location poll (few hundred bytes) only while a trip is running.
-  useEffect(() => {
-    if (livePollRef.current) clearInterval(livePollRef.current);
-    const ui = data?.trip?.ui_status || data?.trip?.status;
-    if (tripStatusIsActive(ui)) {
-      loadLive();
-      livePollRef.current = setInterval(loadLive, 10000);
-    } else {
-      setLive(null);
-    }
-    return () => { if (livePollRef.current) clearInterval(livePollRef.current); };
-  }, [data?.trip?.ui_status, data?.trip?.status, loadLive]);
+  useTransportPolling(async () => { await load(true); await loadLive(); }, 10000);
 
   // Keep the freshness label accurate between 10-second live-location polls.
   useEffect(() => {
@@ -453,7 +415,7 @@ export default function StudentBusTrackerScreen() {
   const boardingStopId = data.boarding_stop_id;
   const until = data.stops_until_boarding;
   const atYourStop =
-    isLive && boardingStopId != null && data.current_stop?.id === boardingStopId;
+    isLive && boardingStopId != null && data.current_stop?.id === boardingStopId && data.current_stop?.status === 'arrived';
 
   const statusLabel = isLive
     ? t('busTracker.status_in_progress')
@@ -488,9 +450,9 @@ export default function StudentBusTrackerScreen() {
     : null;
 
   // Smoothed ETA point + learned confidence range (Phase C).
-  const etaPoint = loc ? smoothEta ?? liveData?.eta_minutes ?? null : null;
-  const etaLow = liveData?.eta_low_minutes ?? null;
-  const etaHigh = liveData?.eta_high_minutes ?? null;
+  const etaPoint = loc && locFresh ? smoothEta ?? liveData?.eta_minutes ?? null : null;
+  const etaLow = locFresh ? liveData?.eta_low_minutes ?? null : null;
+  const etaHigh = locFresh ? liveData?.eta_high_minutes ?? null : null;
   const etaHasRange = etaLow != null && etaHigh != null && etaHigh > etaLow;
   const etaConfLabel = liveData?.eta_confidence === 'high'
     ? t('busTracker.eta_live_estimate')
@@ -576,6 +538,7 @@ export default function StudentBusTrackerScreen() {
         }
       />
 
+      {(loadError || liveError) && <Text accessibilityLiveRegion="polite" style={{ padding: 12, color: '#92400E' }}>Connection interrupted. Showing the last received update.</Text>}
       <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
@@ -702,7 +665,7 @@ export default function StudentBusTrackerScreen() {
                   : null}
                 boardingStopId={boardingStopId}
                 isFresh={(showLive && locFresh) || routeSimulationActive}
-                etaMinutes={showLive ? liveData?.eta_minutes : null}
+                etaMinutes={showLive && locFresh ? liveData?.eta_minutes : null}
                 mode={showLive ? 'live' : 'preview'}
                 simulationProgress={routeSimulationActive ? simulationProgress : null}
                 simulationStopCount={stops.length}

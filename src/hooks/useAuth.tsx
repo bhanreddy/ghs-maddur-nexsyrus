@@ -1,3 +1,4 @@
+import { stopDriverLocationUpdates, reconcileDriverTracking } from '../services/driverLocationTask';
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { supabase } from '../services/supabaseConfig';
@@ -109,6 +110,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isStudent = isStudentRole(role);
   const schoolId = user ? SCHOOL_ID : null;
 
+  useEffect(() => {
+    if (!authChecked) return;
+    if (role !== 'driver') { void stopDriverLocationUpdates().catch(() => {}); return; }
+    const reconcile = () => { void reconcileDriverTracking().catch(() => {}); };
+    reconcile();
+    const timer = setInterval(reconcile, 30000);
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') reconcile(); });
+    return () => { clearInterval(timer); subscription.remove(); };
+  }, [authChecked, user?.userId, role]);
+
   // Load per-school feature flags once auth is ready (useFeatures also fetches on mount).
   useEffect(() => {
     if (!session?.supabaseSession?.access_token || !isStudent) return;
@@ -116,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session?.supabaseSession?.access_token, isStudent]);
 
   const signOut = async () => {
+    await stopDriverLocationUpdates();
     console.log('[AUTH_OUT]', 'manual_logout', new Date().toISOString());
     // Mark this as a deliberate logout so the onAuthStateChange SIGNED_OUT
     // handler is allowed to clear state. Reset shortly after the supabase
@@ -201,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // removal. Active-user caches are still purged so the signed-out login screen
   // cannot retain privileged data.
   const signOutKeepAccount = async () => {
+    await stopDriverLocationUpdates();
     const signingOutUserId = sessionRef.current?.validatedUser?.userId ?? null;
     clearFingerprintTickets();
     resetFeatures().catch(() => {});
@@ -485,6 +498,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // producing expected cross-role 4xx (e.g. 404 "Staff profile not found").
     // Suppress the blocking error dialogs for those until navigation settles.
     suppressTransientApiAlerts();
+    await stopDriverLocationUpdates();
     const result = await AuthService.switchAccount(userId);
     if (result.session) {
       try {
@@ -550,6 +564,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const switchPortalContext = async (contextId: string): Promise<PortalContextsPayload> => {
     suppressTransientApiAlerts();
+    await stopDriverLocationUpdates();
     const payload = await switchPortalContextApi(contextId);
     setPortalContexts(payload);
     if (payload.activeContext) {

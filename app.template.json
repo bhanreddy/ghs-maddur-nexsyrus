@@ -23,7 +23,8 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "fetch",
-          "remote-notification"
+          "remote-notification",
+          "location"
         ]
       },
       "entitlements": {
@@ -100,6 +101,15 @@
             "useFrameworks": "static",
             "deploymentTarget": "15.1"
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow this driver device to share bus location during an active trip, including while the app is in the background.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],

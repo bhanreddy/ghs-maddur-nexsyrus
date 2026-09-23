@@ -148,6 +148,12 @@ function canRecoverAuthForEndpoint(endpoint: string): boolean {
 }
 
 const MAX_TRANSIENT_READ_RETRIES = 4;
+const MAX_WEB_NETWORK_READ_RETRIES = 1;
+// A gateway timeout has already consumed about 20 seconds. Retrying it four
+// times turns one dashboard load into a two-minute retry storm, so allow only
+// one immediate retry and defer longer Retry-After windows to the query hooks.
+const MAX_GATEWAY_READ_RETRIES = 1;
+const MAX_INLINE_RETRY_AFTER_MS = 5000;
 
 // These 503s mean a feature is not wired up yet. Retrying them only spams the
 // backend; the response will not change until env/config is updated.
@@ -206,6 +212,7 @@ export class APIError extends Error {
 
 // Generic API request function
 export interface APIOptions extends RequestInit {
+  transportIdentity?: { authUserId: string; contextId: string | null };
   silent?: boolean;
   /**
    * Kept for call-site compatibility. Active portal context is now attached to
@@ -289,7 +296,7 @@ async function apiRequestInner<T>(
   endpoint: string,
   options: APIOptions = {})
   : Promise<T> {
-  const { silent: rawSilent, sendActiveContext, _isRetry, _retryCount = 0, _multipart, timeoutMs = 60000, _staffPortalId, omitAuth = false, ...fetchOptions } = options;
+  const { transportIdentity, silent: rawSilent, sendActiveContext, _isRetry, _retryCount = 0, _multipart, timeoutMs = 60000, _staffPortalId, omitAuth = false, ...fetchOptions } = options;
   // Suppress blocking error dialogs for transient cross-role failures while an
   // account/portal switch is settling (the request still runs and still throws).
   const silent = rawSilent || transientAlertsSuppressed();
@@ -307,6 +314,9 @@ async function apiRequestInner<T>(
     session = (
       await attemptSessionRecovery(session ? 'expired' : 'missing')
     ) ?? session;
+  }
+  if (transportIdentity && (session?.user.id !== transportIdentity.authUserId || await getActiveContextId() !== transportIdentity.contextId)) {
+    throw new Error('Tracking identity changed');
   }
   const token = session?.access_token ?? null;
 
@@ -402,6 +412,7 @@ async function apiRequestInner<T>(
   const url = `${API_BASE_URL}${finalEndpoint}`;
 
   try {
+    if (transportIdentity && (await getActiveContextId() !== transportIdentity.contextId || (await supabase.auth.getSession()).data.session?.user.id !== transportIdentity.authUserId)) throw new Error('Tracking identity changed');
     const response = await fetch(url, {
       ...fetchOptions,
       body: finalBody,
@@ -492,10 +503,21 @@ async function apiRequestInner<T>(
       // instead of surfacing as a hard error popup.
       if (response.status === 503 || response.status === 502 || response.status === 504) {
         const isConfigUnavailable = NON_TRANSIENT_UNAVAILABLE_CODES.has(errorData.code);
-        if (!isConfigUnavailable && method === 'GET' && _retryCount < MAX_TRANSIENT_READ_RETRIES) {
+        const retryAfterHeader = response.headers.get('Retry-After');
+        const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : NaN;
+        const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? retryAfterSeconds * 1000
+          : transientRetryDelay(_retryCount);
+        const canRetryInline = retryAfterMs <= MAX_INLINE_RETRY_AFTER_MS;
+        if (
+          !isConfigUnavailable &&
+          canRetryInline &&
+          method === 'GET' &&
+          _retryCount < MAX_GATEWAY_READ_RETRIES
+        ) {
           await new Promise((r) => setTimeout(
             r,
-            transientRetryDelay(_retryCount)
+            retryAfterMs
           ));
           return await apiRequestInner<T>(endpoint, {
             ...options,
@@ -605,17 +627,8 @@ async function apiRequestInner<T>(
       throw error;
     }
 
-    if (method === 'GET' && _retryCount < MAX_TRANSIENT_READ_RETRIES) {
-      await waitForNetworkRestore();
-      await new Promise((resolve) =>
-        setTimeout(resolve, transientRetryDelay(_retryCount))
-      );
-      return apiRequestInner<T>(endpoint, {
-        ...options,
-        _retryCount: _retryCount + 1,
-      });
-    }
-
+    // The request already consumed its full timeout budget. Let the persisted
+    // query hooks retry later instead of immediately spending another minute.
     if (error?.name === 'AbortError') {
       if (endpoint.split('?')[0] === '/auth/qr/resolve') {
         throw new APIError(
@@ -627,6 +640,23 @@ async function apiRequestInner<T>(
         );
       }
       throw new APIError('Data refresh timed out and will retry later.', 0);
+    }
+
+    // Browsers intentionally hide a cross-origin gateway response when the edge
+    // omits CORS headers, presenting it as a generic TypeError. Cap that path as
+    // well; otherwise one 22-second 504 is multiplied into five invisible calls.
+    const maxNetworkRetries = Platform.OS === 'web'
+      ? MAX_WEB_NETWORK_READ_RETRIES
+      : MAX_TRANSIENT_READ_RETRIES;
+    if (method === 'GET' && _retryCount < maxNetworkRetries) {
+      await waitForNetworkRestore();
+      await new Promise((resolve) =>
+        setTimeout(resolve, transientRetryDelay(_retryCount))
+      );
+      return apiRequestInner<T>(endpoint, {
+        ...options,
+        _retryCount: _retryCount + 1,
+      });
     }
 
     // Do not raise a blocking connection popup. Query hooks retain cached data
@@ -776,4 +806,3 @@ export const api = {
 };
 
 export const apiClient = api;
-

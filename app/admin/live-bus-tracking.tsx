@@ -1,3 +1,4 @@
+import { useTransportPolling } from '../../src/hooks/useTransportPolling';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ type LiveRoute = {
   trip: { id: string; ui_status?: string; status?: string; driver_name?: string | null } | null;
   stops: LiveStop[];
   location: Location | null;
+  tracking_health?: { automatic_stops_enabled: boolean; pending_notifications: number; failed_notifications: number; oldest_pending_seconds: number | null } | null;
 };
 
 const LIVE_POLL_MS = 5_000;
@@ -35,25 +37,26 @@ export default function AdminLiveBusTracking() {
   const [data, setData] = useState<LiveRoute | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
 
   const load = useCallback(async (silent = false) => {
-    if (!routeId) return;
+    if (!routeId) { setLoading(false); setError('Choose a route to view tracking'); return; }
     if (!silent) setLoading(true);
     try {
       const result = await api.get<LiveRoute>(`/transport/routes/${routeId}/live`, undefined, { silent: true });
       setData(result);
+      setError(null);
+    } catch {
+      setError('Connection interrupted. Showing the last received information.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [routeId]);
 
-  useEffect(() => { void load(); }, [load]);
-
-  useEffect(() => {
-    const timer = setInterval(() => { void load(true); }, LIVE_POLL_MS);
-    return () => clearInterval(timer);
-  }, [load]);
+  useTransportPolling(() => load(true), LIVE_POLL_MS);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -62,11 +65,13 @@ export default function AdminLiveBusTracking() {
 
   const status = data?.trip?.ui_status || data?.trip?.status;
   const isLive = status === 'in_progress' || status === 'active';
-  const location = data?.location ?? null;
+  const age = data?.location ? Math.max(0, (now - Date.parse(data.location.recorded_at)) / 1000) : null;
+  const location = data?.location ? { ...data.location, age_seconds: age ?? 0, is_fresh: isLive && age != null && age <= 120 } : null;
 
   return (
     <View style={[s.page, { backgroundColor: theme.colors.background }]}> 
       <AdminHeader title="Live bus tracking" showBackButton />
+      {error && <Text accessibilityLiveRegion="polite" style={{ padding: 12, color: '#92400E' }}>{error}</Text>}
       {loading && !data ? (
         <View style={s.loader}><LogoLoader size={52} color={theme.colors.primary} /></View>
       ) : (
@@ -92,6 +97,11 @@ export default function AdminLiveBusTracking() {
             </View>
           </View>
 
+          {isLive && data?.tracking_health && <View style={{ padding: 12 }}>
+            <Text style={{ color: theme.colors.textSecondary }}>{data.tracking_health.automatic_stops_enabled ? 'Automatic stop updates enabled' : 'Driver confirmations required while the route is being calibrated'}</Text>
+            {(data.tracking_health.failed_notifications > 0 || (data.tracking_health.oldest_pending_seconds || 0) > 120) &&
+              <Text style={{ color: '#92400E', paddingTop: 6 }}>Notification delivery needs attention: {data.tracking_health.pending_notifications} pending, {data.tracking_health.failed_notifications} failed.</Text>}
+          </View>}
           {Platform.OS === 'web' ? (
             <LiveRouteTracker
               stops={data?.stops || []}

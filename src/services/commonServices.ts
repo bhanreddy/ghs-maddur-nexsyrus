@@ -385,6 +385,20 @@ export interface AssessmentMarksResponse {
     };
 }
 
+export interface ExamResultUploadResponse {
+    message: string;
+    exam_id: string;
+    exam_subject_id: string;
+    uploaded_count: number;
+    failed_count: number;
+    results: {
+        student_id: string;
+        mark_id?: string;
+        success?: boolean;
+        error?: string;
+    }[];
+}
+
 export const ResultService = {
     // Subjects
     getSubjects: async (): Promise<Subject[]> => {
@@ -411,8 +425,8 @@ export const ResultService = {
         return api.delete(`/results/exams/${id}${force ? '?force=true' : ''}`);
     },
 
-    upload: async (data: ExamResultUpload): Promise<{ success: boolean }> => {
-        return api.post<{ success: boolean }>('/results/upload', data);
+    upload: async (data: ExamResultUpload): Promise<ExamResultUploadResponse> => {
+        return api.post<ExamResultUploadResponse>('/results/upload', data);
     },
 
     getMarks: async (params: { class_section_id: string; exam_category: string; sub_exam: string; subject_id: string }): Promise<AssessmentMarksResponse> => {

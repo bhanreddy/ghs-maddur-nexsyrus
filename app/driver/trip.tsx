@@ -1,3 +1,6 @@
+import * as Crypto from 'expo-crypto';
+import DriverTrackingHealth from '../../src/components/DriverTrackingHealth';
+import { useTransportPolling } from '../../src/hooks/useTransportPolling';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
@@ -42,13 +45,14 @@ const tripStatusIsActive = (s?: string | null) =>
 const calibrationFixBody = async (): Promise<Record<string, unknown>> => {
   if (Platform.OS === 'web') return {};
   try {
-    const pos = await Location.getLastKnownPositionAsync({ maxAge: 120_000 });
+    const pos = await Location.getLastKnownPositionAsync({ maxAge: 30_000, requiredAccuracy: 50 });
     if (!pos) return {};
     return {
       latitude: pos.coords.latitude,
       longitude: pos.coords.longitude,
       accuracy: pos.coords.accuracy ?? null,
       is_mocked: pos.mocked || false,
+      recorded_at: new Date(pos.timestamp).toISOString(),
     };
   } catch {
     return {};
@@ -58,6 +62,8 @@ const calibrationFixBody = async (): Promise<Record<string, unknown>> => {
 type TripPayload = {
   trip: {
     id: string;
+    route_id: string;
+    trip_direction?: string;
     status: string;
     started_at?: string | null;
     completed_at?: string | null;
@@ -66,6 +72,7 @@ type TripPayload = {
     date?: string;
     bus_id?: string | null;
   };
+  available_routes?: { route_id: string; route_name: string; direction: string }[];
   stops: {
     stop_id: string;
     stop_name: string;
@@ -95,12 +102,15 @@ export default function DriverTripScreen() {
   const dateLocale = driverDateLocale(i18n.language);
   const styles = React.useMemo(() => getStyles(theme), [theme]);
 
+  const startRequestRef = useRef<{selection:string;id:string}|null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [selectedLeg, setSelectedLeg] = useState<'morning' | 'evening'>('morning');
   const loadTrip = useCallback(async (silent?: boolean) => {
     try {
       if (!silent) setLoading(true);
-      const data = await api.get<TripPayload>('/transport/driver/my-trip');
+      const data = await api.get<TripPayload>(`/transport/driver/my-trip?trip_direction=${selectedLeg}${selectedRouteId ? `&route_id=${selectedRouteId}` : ''}`);
       setPayload(data);
-      setNoRoute(false);
+      setNoRoute(!data.trip);
     } catch (e: any) {
       const code = e?.statusCode ?? e?.status;
       const msg = e?.message || '';
@@ -114,80 +124,18 @@ export default function DriverTripScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [t]);
+  }, [t, selectedRouteId, selectedLeg]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadTrip();
-      return () => {
-        if (pollRef.current) clearInterval(pollRef.current);
-      };
-    }, [loadTrip]),
-  );
-
-  useEffect(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-    const st = payload?.trip?.status;
-    if (tripStatusIsActive(st)) {
-      pollRef.current = setInterval(() => loadTrip(true), 30000);
-    }
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [payload?.trip?.status, loadTrip]);
+  useTransportPolling(() => loadTrip(true), 10000, `${selectedRouteId}:${selectedLeg}`);
 
   const trip = payload?.trip;
   const stops = payload?.stops ?? [];
 
-  const startForegroundTrackingFallback = useCallback(async (busId: string) => {
-    if (Platform.OS === 'web' || foregroundWatchRef.current) return;
-    try {
-      foregroundWatchRef.current = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5_000,
-          distanceInterval: 10,
-        },
-        (fix) => { void postBusLocation(busId, fix); },
-      );
-    } catch {
-      // Manual controls remain available if the device's foreground location
-      // service cannot be started.
-    }
-  }, []);
-
-  const stopAllLocationTracking = useCallback(async () => {
-    try { foregroundWatchRef.current?.remove(); } catch { /* no-op */ }
-    foregroundWatchRef.current = null;
-    await stopDriverLocationUpdates();
-  }, []);
-
-  // The one-tap Trip portal must use the same continuous GPS pipeline as the
-  // dashboard. Without it, a calibrated route has no fixes to evaluate while
-  // the driver is travelling and can never mark stops automatically.
+  const stopAllLocationTracking = stopDriverLocationUpdates;
   useEffect(() => {
-    if (!tripStatusIsActive(trip?.status) || !trip?.bus_id || Platform.OS === 'web') return;
-    let cancelled = false;
-    void (async () => {
-      const [foreground, background] = await Promise.all([
-        Location.getForegroundPermissionsAsync(),
-        Location.getBackgroundPermissionsAsync(),
-      ]);
-      if (cancelled || !foreground.granted) return;
-      try {
-        if (background.granted) await startDriverLocationUpdates(trip.bus_id!);
-        else await startForegroundTrackingFallback(trip.bus_id!);
-      } catch {
-        await startForegroundTrackingFallback(trip.bus_id!);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [trip?.id, trip?.status, trip?.bus_id, startForegroundTrackingFallback]);
-
-  useEffect(() => () => { void stopAllLocationTracking(); }, [stopAllLocationTracking]);
+    if (!trip?.bus_id || !tripStatusIsActive(trip.status)) return;
+    void startDriverLocationUpdates(trip.bus_id, trip.id).catch(() => {});
+  }, [trip?.id, trip?.status, trip?.bus_id]);
 
   useEffect(() => {
     if (!tripStatusIsActive(trip?.status)) {
@@ -219,18 +167,19 @@ export default function DriverTripScreen() {
         ...prev,
         stops: prev.stops.map((s) =>
           s.stop_id === stopId
-            ? { ...s, status: 'reached', reached_at: new Date().toISOString() }
+            ? { ...s, status: s.status === 'arrived' ? 'completed' : 'arrived', reached_at: new Date().toISOString() }
             : s,
         ),
       });
     }
     try {
       const fix = await calibrationFixBody();
-      await api.post(`/transport/driver/trip/${trip.id}/stop/${stopId}/reach`, {
+      const action = prev?.stops.find(s => s.stop_id === stopId)?.status === 'arrived' ? 'complete' : 'arrive';
+      await api.post(`/transport/trips/${trip.id}/stops/${stopId}/${action}`, {
         ...fix,
         source: 'manual',
       });
-      alertCompat(t('driver_ui.updated'), t('driver_ui.stop_marked_notifications_sent'));
+      await loadTrip(true);
     } catch {
       if (prev) setPayload(prev);
       alertCompat(t('driver_ui.error'), t('driver_ui.could_not_mark_stop'));
@@ -249,11 +198,12 @@ export default function DriverTripScreen() {
       if (Platform.OS !== 'web') {
         locationGranted = await requestDriverLocationPermissions({ requestBackground: true }).catch(() => false);
       }
-      await api.post(`/transport/driver/trip/${trip.id}/start`, {});
+      const selection = `${trip.route_id}:${trip.trip_direction}`;
+      if (startRequestRef.current?.selection !== selection) startRequestRef.current = { selection, id: Crypto.randomUUID() };
+      const started = await api.post<{ trip: { id: string } }>('/transport/trips/start', { request_id: startRequestRef.current.id, route_id: trip.route_id, bus_id: trip.bus_id, trip_direction: trip.trip_direction });
+      startRequestRef.current = null;
       if (locationGranted && trip.bus_id && Platform.OS !== 'web') {
-        const background = await Location.getBackgroundPermissionsAsync();
-        if (background.granted) await startDriverLocationUpdates(trip.bus_id);
-        else await startForegroundTrackingFallback(trip.bus_id);
+        await startDriverLocationUpdates(trip.bus_id, started.trip.id);
       } else if (Platform.OS !== 'web') {
         alertCompat(
           t('driver_ui.location_sharing_paused'),
@@ -291,17 +241,17 @@ export default function DriverTripScreen() {
       await api.post('/transport/sos', {
         bus_id: trip.bus_id,
         trip_id: trip.id,
-        lat: (fix as any).latitude || null,
-        lng: (fix as any).longitude || null,
+        lat: (fix as any).latitude ?? null,
+        lng: (fix as any).longitude ?? null,
         reason: 'DRIVER_EMERGENCY_SOS',
       });
       setConfirmSos(false);
       alertCompat(
-        '🚨 EMERGENCY SOS DISPATCHED',
-        'School administration and emergency response have been alerted with your vehicle location.\n\nEmergency Helpline: 108 / 112'
+        'SOS received by the server',
+        'The emergency has been recorded. Contact the school office or emergency services directly if immediate help is needed.'
       );
     } catch {
-      alertCompat('SOS Notification', 'Emergency alert recorded. Please contact the school office directly.');
+      alertCompat('SOS Notification', 'SOS delivery could not be confirmed. Please call the school office or emergency services directly.');
     } finally {
       setSosSending(false);
     }
@@ -380,8 +330,24 @@ export default function DriverTripScreen() {
         }
       />
       {statusBanner()}
+      {!tripStatusIsActive(trip?.status) && <View style={{ paddingHorizontal: 16, gap: 8 }}>
+        <Text style={{ color: theme.colors.textStrong }}>Choose route and journey</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {(payload?.available_routes || []).map(route => <TouchableOpacity key={route.route_id}
+            onPress={() => setSelectedRouteId(route.route_id)} style={{ padding: 10, borderWidth: 1, borderRadius: 8,
+              borderColor: (selectedRouteId || trip?.route_id) === route.route_id ? theme.colors.primary : theme.colors.borderLight }}>
+            <Text style={{ color: theme.colors.textStrong }}>{route.route_name}</Text>
+          </TouchableOpacity>)}
+        </View>
+        {trip?.direction === 'both' && <View style={{ flexDirection: 'row', gap: 8 }}>
+          {(['morning','evening'] as const).map(leg => <TouchableOpacity key={leg} onPress={() => setSelectedLeg(leg)}
+            style={{ padding: 10, borderWidth: 1, borderRadius: 8, borderColor: selectedLeg === leg ? theme.colors.primary : theme.colors.borderLight }}>
+            <Text style={{ color: theme.colors.textStrong }}>{leg === 'morning' ? 'Morning pickup' : 'Evening drop-off'}</Text>
+          </TouchableOpacity>)}
+        </View>}
+      </View>}
       <View style={styles.actions}>
-        {trip?.status === 'scheduled' && (
+        {(!tripStatusIsActive(trip?.status)) && (
           <TouchableOpacity
             style={[styles.primaryBtn, submitting && styles.btnDisabled]}
             onPress={startTrip}
@@ -418,13 +384,14 @@ export default function DriverTripScreen() {
         )}
       </View>
 
+      <DriverTrackingHealth />
       <FlatList
         data={stops}
         keyExtractor={(item) => item.stop_id}
         contentContainerStyle={styles.listPad}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => {
-          const done = item.status === 'reached' || item.status === 'completed';
+          const done = item.status === 'reached' || item.status === 'completed' || item.status === 'skipped';
           return (
             <View style={[styles.card, done && styles.cardDone]}>
               <View style={styles.cardLeft}>
@@ -445,14 +412,14 @@ export default function DriverTripScreen() {
                   </Text>
                 </View>
               </View>
-              {tripStatusIsActive(trip?.status) && !done && (
+              {tripStatusIsActive(trip?.status) && !done && stops.find(s => !['completed','skipped'].includes(s.status || 'pending'))?.stop_id === item.stop_id && (
                 <TouchableOpacity
                   style={styles.markBtn}
                   onPress={() => markReached(item.stop_id)}
                   disabled={submitting}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.markBtnText}>{t('driver_ui.mark_reached')}</Text>
+                  <Text style={styles.markBtnText}>{item.status === 'arrived' ? 'Confirm departure' : t('driver_ui.mark_reached')}</Text>
                 </TouchableOpacity>
               )}
             </View>

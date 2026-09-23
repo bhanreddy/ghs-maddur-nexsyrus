@@ -7,6 +7,20 @@ import type { IssuedLoginQr, LoginQrSchool } from './types';
 
 export const LOGIN_QR_CARDS_PER_PAGE = 8;
 
+// Keep the complete four-module quiet zone in every exported card.
+const QR_OPTIONS = { errorCorrectionLevel: 'M' as const, margin: 4 };
+
+export function studentQrPngDataUrl(payload: string): Promise<string> {
+  // Render directly to canvas on web. Exporting a hidden react-native-svg view
+  // depends on DOM measurements and an image load that has no error callback.
+  const modules = QRCode.create(payload, QR_OPTIONS).modules.size;
+  return QRCode.toDataURL(payload, {
+    ...QR_OPTIONS,
+    type: 'image/png',
+    scale: Math.ceil(1024 / (modules + 8)),
+  });
+}
+
 function escapeHtml(value: string): string {
   return String(value).replace(/[&<>"']/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
@@ -138,7 +152,7 @@ export function buildStudentQrPdfHtmlFromSvgs(
 
 export async function buildStudentQrPdfHtml(options: StudentQrPrintOptions, single = false): Promise<string> {
   const qrSvgs = await Promise.all(options.credentials.map((credential) =>
-    QRCode.toString(credential.qrPayload, { type: 'svg', errorCorrectionLevel: 'M', margin: 3, width: 512 }),
+    QRCode.toString(credential.qrPayload, { ...QR_OPTIONS, type: 'svg', width: 512 }),
   ));
   return buildStudentQrPdfHtmlFromSvgs(options, qrSvgs, single);
 }
@@ -189,9 +203,10 @@ async function downloadPdfOnWeb(html: string, filename: string): Promise<void> {
         backgroundColor: '#ffffff',
         logging: false,
       });
-      const image = canvas.toDataURL('image/jpeg', 0.92);
+      // JPEG artifacts soften the module edges and make printed cards harder to scan.
+      const image = canvas.toDataURL('image/png');
       if (index > 0) pdf.addPage('a4', 'portrait');
-      pdf.addImage(image, 'JPEG', 0, 0, 210, 297);
+      pdf.addImage(image, 'PNG', 0, 0, 210, 297);
     }
     pdf.save(filename);
   } finally {
