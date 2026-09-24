@@ -3,6 +3,11 @@ import { SCHOOL_LOGO, SCHOOL_NAME } from '../constants/school';
 import { SubstitutionBoard, SubstitutionSlot } from '../services/substitutionService';
 import { printHtmlOnWeb } from './pdfGenerator';
 import { bundledAssetToBase64Uri, resolveApiAssetUrl, toBase64Uri } from './toBase64Uri';
+import {
+  buildPeriodDisplayMap,
+  DisplayPeriodResult,
+  getSlotDisplayInfo,
+} from './substitutionPeriodNumbering';
 
 const DEFAULT_SCHOOL_LOGO = require('../../assets/images/icon.png') as number;
 
@@ -77,22 +82,27 @@ function safeFilePart(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'report';
 }
 
-function sortChronologically(rows: SubstitutionSlot[]): SubstitutionSlot[] {
+function sortChronologically(rows: SubstitutionSlot[], periodMap?: Map<number, DisplayPeriodResult>): SubstitutionSlot[] {
   return [...rows].sort((a, b) =>
     a.period_number - b.period_number ||
+    String(a.start_time || '').localeCompare(String(b.start_time || '')) ||
     classLabel(a).localeCompare(classLabel(b), undefined, { numeric: true }) ||
     String(a.substitute_teacher_name || '').localeCompare(String(b.substitute_teacher_name || ''))
   );
 }
 
-function makeGroups(board: SubstitutionBoard, mode: SubstitutionReportMode): ReportGroup[] {
+function makeGroups(
+  board: SubstitutionBoard,
+  mode: SubstitutionReportMode,
+  periodMap: Map<number, DisplayPeriodResult>
+): ReportGroup[] {
   const assigned = board.slots.filter((slot) => Boolean(slot.substitution_id && slot.substitute_teacher_name));
   if (mode === 'complete') {
     return [{
       key: 'complete',
       title: 'All assigned substitutions',
       subtitle: 'Chronological duty register',
-      rows: sortChronologically(assigned),
+      rows: sortChronologically(assigned, periodMap),
     }];
   }
 
@@ -113,14 +123,19 @@ function makeGroups(board: SubstitutionBoard, mode: SubstitutionReportMode): Rep
           key,
           title: key,
           subtitle: `${rows.length} cover dut${rows.length === 1 ? 'y' : 'ies'}`,
-          rows: sortChronologically(rows),
+          rows: sortChronologically(rows, periodMap),
         };
       }
       if (mode === 'period') {
-        const period = board.periods.find((item) => item.sort_order === Number(key));
+        const periodNum = Number(key);
+        const periodInfo = periodMap.get(periodNum);
+        const period = board.periods.find((item) => item.sort_order === periodNum);
+        const title = periodInfo?.isBreak
+          ? (periodInfo.name || period?.name || 'Break')
+          : (periodInfo?.displayLabel || period?.name || `Period ${key}`);
         return {
           key,
-          title: period?.name || `Period ${key}`,
+          title,
           subtitle: `${timeLabel(period?.start_time || rows[0]?.start_time)} - ${timeLabel(period?.end_time || rows[0]?.end_time)}`,
           rows: [...rows].sort((a, b) => classLabel(a).localeCompare(classLabel(b), undefined, { numeric: true })),
         };
@@ -129,39 +144,57 @@ function makeGroups(board: SubstitutionBoard, mode: SubstitutionReportMode): Rep
         key,
         title: key,
         subtitle: `${rows.length} cover dut${rows.length === 1 ? 'y' : 'ies'}`,
-        rows: sortChronologically(rows),
+        rows: sortChronologically(rows, periodMap),
       };
     })
     .sort((a, b) => {
-      if (mode === 'period') return Number(a.key) - Number(b.key);
+      if (mode === 'period') {
+        const aInfo = periodMap.get(Number(a.key));
+        const bInfo = periodMap.get(Number(b.key));
+        const aNum = aInfo?.teachingPeriodNumber ?? Number(a.key);
+        const bNum = bInfo?.teachingPeriodNumber ?? Number(b.key);
+        return aNum - bNum || Number(a.key) - Number(b.key);
+      }
       return a.title.localeCompare(b.title, undefined, { numeric: true });
     });
 }
 
-function tableRows(rows: SubstitutionSlot[]): string {
-  return rows.map((slot, index) => `
+function tableRows(rows: SubstitutionSlot[], periodMap: Map<number, DisplayPeriodResult>): string {
+  return rows.map((slot, index) => {
+    const periodInfo = getSlotDisplayInfo(slot, periodMap);
+    const periodMarkup = periodInfo.isBreak
+      ? `<span class="period-break">${escapeHtml(periodInfo.displayLabel)}</span>`
+      : `<strong>${escapeHtml(periodInfo.shortLabel)}</strong>`;
+
+    return `
     <tr>
       <td class="serial">${index + 1}</td>
       <td class="period-time">
-        <strong>P${escapeHtml(slot.period_number)}</strong>
+        ${periodMarkup}
         <span class="minor">${escapeHtml(timeLabel(slot.start_time))} - ${escapeHtml(timeLabel(slot.end_time))}</span>
       </td>
       <td><strong>${escapeHtml(classLabel(slot))}</strong>${slot.room_no ? `<span class="minor">Room ${escapeHtml(slot.room_no)}</span>` : ''}</td>
       <td>${escapeHtml(slot.regular_teacher_name || 'Not assigned')}</td>
       <td><strong class="substitute">${escapeHtml(slot.substitute_teacher_name)}</strong></td>
       <td class="signature-cell"><span class="row-signature-line"></span></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 export function buildSubstitutionReportHtml(options: SubstitutionReportOptions): string {
   const { board, mode } = options;
+  const periodMap = buildPeriodDisplayMap(board.periods);
   const schoolName = options.schoolName?.trim() || SCHOOL_NAME || 'School';
   const logoUri = options.logoUri || '';
   const generatedAt = options.generatedAt || new Date();
   const assigned = board.slots.filter((slot) => Boolean(slot.substitution_id && slot.substitute_teacher_name));
   const substituteTeachers = new Set(assigned.map((slot) => slot.substitute_teacher_id || slot.substitute_teacher_name)).size;
-  const periodsCovered = new Set(assigned.map((slot) => slot.period_number)).size;
-  const groups = makeGroups(board, mode);
+  const periodsCovered = new Set(
+    assigned
+      .filter((slot) => !getSlotDisplayInfo(slot, periodMap).isBreak)
+      .map((slot) => getSlotDisplayInfo(slot, periodMap).teachingPeriodNumber ?? slot.period_number)
+  ).size;
+  const groups = makeGroups(board, mode, periodMap);
   const logo = logoUri
     ? `<img class="logo" src="${escapeHtml(logoUri)}" alt="School logo" />`
     : `<div class="logo-fallback">${escapeHtml(schoolName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase())}</div>`;
@@ -186,7 +219,7 @@ export function buildSubstitutionReportHtml(options: SubstitutionReportOptions):
               <th>Signature</th>
             </tr>
           </thead>
-          <tbody>${tableRows(group.rows)}</tbody>
+          <tbody>${tableRows(group.rows, periodMap)}</tbody>
         </table>
       </section>`).join('')
     : `<div class="empty"><strong>No substitutions assigned</strong><span>There are no confirmed cover duties for this date.</span></div>`;

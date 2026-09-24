@@ -34,6 +34,11 @@ import {
   downloadSubstitutionReportPdf,
   SubstitutionReportMode,
 } from '../../src/utils/substitutionReportPdf';
+import { downloadSubstitutionReportCsv } from '../../src/utils/substitutionReportCsv';
+import {
+  buildPeriodDisplayMap,
+  getSlotDisplayInfo,
+} from '../../src/utils/substitutionPeriodNumbering';
 
 type BoardView = 'time' | 'class';
 
@@ -74,6 +79,7 @@ export default function DailySubstitutionsScreen() {
   const [view, setView] = useState<BoardView>('time');
   const [board, setBoard] = useState<SubstitutionBoard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
   const [teacherFilter, setTeacherFilter] = useState('');
@@ -92,11 +98,14 @@ export default function DailySubstitutionsScreen() {
   const loadBoard = useCallback(async (nextDate = date, pull = false) => {
     if (pull) setRefreshing(true);
     else setLoading(true);
+    setLoadError(null);
     try {
       const data = await SubstitutionService.getBoard(nextDate);
       setBoard(data);
     } catch (error: any) {
-      alertCompat('Could not load substitutions', error?.message || 'Please try again.');
+      const msg = error?.message || 'Please try again.';
+      setLoadError(msg);
+      alertCompat('Could not load substitutions', msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -107,6 +116,8 @@ export default function DailySubstitutionsScreen() {
     setTeacherFilter('');
     loadBoard(date);
   }, [date, loadBoard]);
+
+  const periodMap = useMemo(() => buildPeriodDisplayMap(board?.periods || []), [board?.periods]);
 
   const filteredSlots = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -126,13 +137,16 @@ export default function DailySubstitutionsScreen() {
   const groups = useMemo(() => {
     if (view === 'time') {
       return (board?.periods || [])
-        .map((period) => ({
-          key: `period-${period.sort_order}`,
-          title: period.name || `Period ${period.sort_order}`,
-          subtitle: `${timeLabel(period.start_time)} – ${timeLabel(period.end_time)}`,
-          icon: 'time-outline' as const,
-          slots: filteredSlots.filter((slot) => slot.period_number === period.sort_order),
-        }))
+        .map((period) => {
+          const info = getSlotDisplayInfo(period, periodMap);
+          return {
+            key: `period-${period.sort_order}`,
+            title: info.displayLabel || period.name || `Period ${period.sort_order}`,
+            subtitle: `${timeLabel(period.start_time)} – ${timeLabel(period.end_time)}`,
+            icon: (info.isBreak ? 'cafe-outline' : 'time-outline') as keyof typeof Ionicons.glyphMap,
+            slots: filteredSlots.filter((slot) => slot.period_number === period.sort_order),
+          };
+        })
         .filter((group) => group.slots.length > 0);
     }
 
@@ -152,7 +166,7 @@ export default function DailySubstitutionsScreen() {
         slots: [...slots].sort((a, b) => a.period_number - b.period_number),
       }))
       .sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
-  }, [board?.periods, filteredSlots, view]);
+  }, [board?.periods, filteredSlots, periodMap, view]);
 
   const assignedSlots = useMemo(
     () => (board?.slots || []).filter((slot) => Boolean(slot.substitution_id && slot.substitute_teacher_name)),
@@ -171,6 +185,19 @@ export default function DailySubstitutionsScreen() {
       setReportVisible(false);
     } catch (error: any) {
       alertCompat('Could not create report', error?.message || 'Please try again.');
+    } finally {
+      setReportDownloading(false);
+    }
+  };
+
+  const downloadCsv = async () => {
+    if (!board || assignedSlots.length === 0 || reportDownloading) return;
+    setReportDownloading(true);
+    try {
+      await downloadSubstitutionReportCsv(board);
+      setReportVisible(false);
+    } catch (error: any) {
+      alertCompat('Could not export CSV', error?.message || 'Please try again.');
     } finally {
       setReportDownloading(false);
     }
@@ -299,9 +326,15 @@ export default function DailySubstitutionsScreen() {
           <View style={styles.heroStats}>
             <Stat value={board?.summary.covered_slots || 0} label="Covered today" />
             <View style={styles.statDivider} />
-            <Stat value={board?.summary.total_slots || 0} label="Scheduled classes" />
+            <Stat
+              value={board?.summary.uncovered_slots ?? (board ? board.summary.total_slots - board.summary.covered_slots : 0)}
+              label="Uncovered classes"
+            />
             <View style={styles.statDivider} />
-            <Stat value={board?.teachers.length || 0} label="Teachers on roster" />
+            <Stat
+              value={board?.summary.unavailable_teachers_count ?? (board?.unavailable_teachers?.length || 0)}
+              label="Unavailable staff"
+            />
           </View>
         </LinearGradient>
 
@@ -312,7 +345,6 @@ export default function DailySubstitutionsScreen() {
               <AppDatePicker
                 value={date}
                 onChange={setDate}
-                minimumDate={today}
                 label={selectedDateLabel}
                 isDark={isDark}
                 containerStyle={{ marginBottom: 0 }}
@@ -357,7 +389,7 @@ export default function DailySubstitutionsScreen() {
             ) : null}
           </View>
 
-          <Text style={[styles.controlLabel, { marginTop: 18 }]}>ABSENT TEACHER</Text>
+          <Text style={[styles.controlLabel, { marginTop: 18 }]}>UNAVAILABLE TEACHER</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teacherChips}>
             <FilterChip
               label="All teachers"
@@ -365,12 +397,16 @@ export default function DailySubstitutionsScreen() {
               onPress={() => setTeacherFilter('')}
               c={c}
             />
-            {(board?.teachers || []).map((teacher) => (
+            {(board?.unavailable_teachers && board.unavailable_teachers.length > 0
+              ? board.unavailable_teachers
+              : (board?.teachers || []).map((t) => ({ id: t.id, teacher_name: t.teacher_name, source_label: 'Unavailable' }))
+            ).map((teacher) => (
               <FilterChip
                 key={teacher.id}
                 label={teacher.teacher_name}
+                sublabel={teacher.source_label}
                 active={teacherFilter === teacher.id}
-                onPress={() => setTeacherFilter(teacher.id)}
+                onPress={() => setTeacherFilter(teacherFilter === teacher.id ? '' : teacher.id)}
                 c={c}
               />
             ))}
@@ -383,7 +419,7 @@ export default function DailySubstitutionsScreen() {
             <View style={styles.reportCalloutCopy}>
               <Text style={styles.reportCalloutTitle}>Substitution duty register</Text>
               <Text style={styles.reportCalloutText}>
-                Download all {assignedSlots.length} confirmed {assignedSlots.length === 1 ? 'assignment' : 'assignments'} as a branded PDF.
+                Download all {assignedSlots.length} confirmed {assignedSlots.length === 1 ? 'assignment' : 'assignments'} as a branded PDF or CSV.
               </Text>
             </View>
             <TouchableOpacity
@@ -398,11 +434,81 @@ export default function DailySubstitutionsScreen() {
           </View>
         </View>
 
-        {loading ? (
+        {/* Informational Banner: Attendance not recorded */}
+        {board && board.attendance_recorded === false ? (
+          <View style={styles.attendanceBanner}>
+            <Ionicons name="information-circle-outline" size={20} color={c.infoText} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.attendanceBannerTitle}>Staff attendance not recorded for this date</Text>
+              <Text style={styles.attendanceBannerText}>
+                Unavailable teachers and affected classes are identified automatically using approved staff leave records.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Advisory Banner: Classes needing substitute cover */}
+        {board && board.summary.uncovered_slots > 0 ? (
+          <View style={styles.advisoryBanner}>
+            <Ionicons name="alert-circle" size={22} color={c.warningText} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.advisoryBannerTitle}>
+                Action Required: {board.summary.uncovered_slots} {board.summary.uncovered_slots === 1 ? 'class needs' : 'classes need'} substitute cover
+              </Text>
+              <Text style={styles.advisoryBannerText}>
+                Assign available teachers to cover all affected periods for {selectedDateLabel} to ensure student classes are covered.
+              </Text>
+            </View>
+          </View>
+        ) : board && board.summary.total_slots > 0 && board.summary.uncovered_slots === 0 ? (
+          <View style={styles.successBanner}>
+            <Ionicons name="checkmark-circle" size={22} color={c.success} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.successBannerTitle}>All affected classes covered</Text>
+              <Text style={styles.successBannerText}>
+                All {board.summary.total_slots} affected {board.summary.total_slots === 1 ? 'period has' : 'periods have'} confirmed substitute teachers for this date.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {loadError ? (
+          <Animated.View entering={FadeIn.duration(220)} style={styles.errorState}>
+            <View style={styles.errorIcon}>
+              <Ionicons name="cloud-offline-outline" size={32} color={c.danger} />
+            </View>
+            <Text style={styles.errorTitle}>Unable to load cover board</Text>
+            <Text style={styles.errorText}>{loadError}</Text>
+            <TouchableOpacity onPress={() => loadBoard(date)} style={styles.retryButton}>
+              <Ionicons name="refresh" size={16} color="#FFFFFF" />
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        ) : loading ? (
           <View style={styles.loadingState}>
             <LogoLoader size={52} color={c.primary} />
-            <Text style={styles.loadingText}>Preparing the cover board…</Text>
+            <Text style={styles.loadingText}>Analyzing teacher availability and timetable…</Text>
           </View>
+        ) : (board?.unavailable_teachers?.length || 0) === 0 && (board?.slots?.length || 0) === 0 ? (
+          <Animated.View entering={FadeIn.duration(220)} style={styles.emptyState}>
+            <View style={[styles.emptyIcon, { backgroundColor: c.successSoft }]}>
+              <Ionicons name="checkmark-done-circle" size={32} color={c.success} />
+            </View>
+            <Text style={styles.emptyTitle}>All teachers available</Text>
+            <Text style={styles.emptyText}>
+              No teachers are on approved leave or marked absent for {selectedDateLabel}. All classes are running with regular teachers.
+            </Text>
+          </Animated.View>
+        ) : (board?.unavailable_teachers?.length || 0) > 0 && (board?.slots?.length || 0) === 0 ? (
+          <Animated.View entering={FadeIn.duration(220)} style={styles.emptyState}>
+            <View style={[styles.emptyIcon, { backgroundColor: c.infoSoft }]}>
+              <Ionicons name="people-outline" size={32} color={c.infoText} />
+            </View>
+            <Text style={styles.emptyTitle}>No affected classes require cover</Text>
+            <Text style={styles.emptyText}>
+              {board?.unavailable_teachers?.length} {board?.unavailable_teachers?.length === 1 ? 'teacher is' : 'teachers are'} unavailable on {selectedDateLabel} ({board?.unavailable_teachers?.map((t) => `${t.teacher_name} [${t.source_label}]`).join(', ')}), but none have teaching periods scheduled in the timetable for this day.
+            </Text>
+          </Animated.View>
         ) : groups.length === 0 ? (
           <Animated.View entering={FadeIn.duration(220)} style={styles.emptyState}>
             <View style={styles.emptyIcon}>
@@ -410,8 +516,11 @@ export default function DailySubstitutionsScreen() {
             </View>
             <Text style={styles.emptyTitle}>No matching classes</Text>
             <Text style={styles.emptyText}>
-              Try a different teacher or search term. Sundays and dates outside the academic year may have no schedule.
+              No classes match the current search or teacher filter. Try clearing the filters.
             </Text>
+            <TouchableOpacity onPress={() => { setQuery(''); setTeacherFilter(''); }} style={styles.clearFilterButton}>
+              <Text style={styles.clearFilterButtonText}>Clear filters</Text>
+            </TouchableOpacity>
           </Animated.View>
         ) : (
           <View style={styles.groups}>
@@ -434,17 +543,21 @@ export default function DailySubstitutionsScreen() {
                   </View>
                 </View>
                 <View style={styles.slotGrid}>
-                  {group.slots.map((slot) => (
-                    <SubstitutionCard
-                      key={slot.slot_id}
-                      slot={slot}
-                      basis={cardBasis}
-                      c={c}
-                      styles={styles}
-                      onAssign={() => openAssignment(slot)}
-                      onCancel={() => cancelAssignment(slot)}
-                    />
-                  ))}
+                  {group.slots.map((slot) => {
+                    const slotPeriodInfo = getSlotDisplayInfo(slot, periodMap);
+                    return (
+                      <SubstitutionCard
+                        key={slot.slot_id}
+                        slot={slot}
+                        periodDisplayLabel={slotPeriodInfo.displayLabel}
+                        basis={cardBasis}
+                        c={c}
+                        styles={styles}
+                        onAssign={() => openAssignment(slot)}
+                        onCancel={() => cancelAssignment(slot)}
+                      />
+                    );
+                  })}
                 </View>
               </Animated.View>
             ))}
@@ -475,7 +588,8 @@ export default function DailySubstitutionsScreen() {
         assignedSlots={assignedSlots}
         periods={board?.periods || []}
         downloading={reportDownloading}
-        onDownload={downloadReport}
+        onDownloadPdf={downloadReport}
+        onDownloadCsv={downloadCsv}
         onClose={() => !reportDownloading && setReportVisible(false)}
         c={c}
       />
@@ -518,11 +632,13 @@ function SegmentButton({
 
 function FilterChip({
   label,
+  sublabel,
   active,
   onPress,
   c,
 }: {
   label: string;
+  sublabel?: string | null;
   active: boolean;
   onPress: () => void;
   c: ReturnType<typeof colors>;
@@ -539,6 +655,13 @@ function FilterChip({
       <Text style={[staticStyles.filterChipText, { color: active ? c.primary : c.text }]} numberOfLines={1}>
         {label}
       </Text>
+      {sublabel ? (
+        <View style={[staticStyles.chipSublabel, { backgroundColor: active ? c.primary : c.cardAlt }]}>
+          <Text style={[staticStyles.chipSublabelText, { color: active ? '#FFFFFF' : c.muted }]} numberOfLines={1}>
+            {sublabel}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -582,7 +705,8 @@ function ReportSheet({
   assignedSlots,
   periods,
   downloading,
-  onDownload,
+  onDownloadPdf,
+  onDownloadCsv,
   onClose,
   c,
 }: {
@@ -592,11 +716,13 @@ function ReportSheet({
   assignedSlots: SubstitutionSlot[];
   periods: SubstitutionBoard['periods'];
   downloading: boolean;
-  onDownload: () => void;
+  onDownloadPdf: () => void;
+  onDownloadCsv: () => void;
   onClose: () => void;
   c: ReturnType<typeof colors>;
 }) {
   if (!visible) return null;
+  const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
   const styles = makeStyles(c);
   const teacherCount = new Set(
     assignedSlots.map((slot) => slot.substitute_teacher_id || slot.substitute_teacher_name)
@@ -615,12 +741,12 @@ function ReportSheet({
         <View style={styles.sheetHeader}>
           <View style={styles.reportSheetHeading}>
             <View style={styles.reportSheetIcon}>
-              <Ionicons name="document-text-outline" size={22} color={c.primary} />
+              <Ionicons name={format === 'pdf' ? "document-text-outline" : "grid-outline"} size={22} color={c.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.sheetEyebrow}>BRANDED PDF REGISTER</Text>
-              <Text style={styles.sheetTitle}>Download substitutes list</Text>
-              <Text style={styles.sheetSubtitle}>Choose how the confirmed assignments should be arranged.</Text>
+              <Text style={styles.sheetEyebrow}>SUBSTITUTION REPORT EXPORT</Text>
+              <Text style={styles.sheetTitle}>Download duty register</Text>
+              <Text style={styles.sheetSubtitle}>Choose export format and layout for confirmed duties.</Text>
             </View>
           </View>
           <TouchableOpacity onPress={onClose} disabled={downloading} style={styles.sheetClose}>
@@ -629,65 +755,118 @@ function ReportSheet({
         </View>
 
         <ScrollView style={styles.reportSheetBody} showsVerticalScrollIndicator={false}>
+          <View style={styles.formatSegment}>
+            <Pressable
+              onPress={() => setFormat('pdf')}
+              style={[styles.formatBtn, format === 'pdf' && styles.formatBtnActive]}
+            >
+              <Ionicons name="document-text-outline" size={16} color={format === 'pdf' ? '#FFFFFF' : c.muted} />
+              <Text style={[styles.formatBtnText, format === 'pdf' && styles.formatBtnTextActive]}>Branded PDF</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setFormat('csv')}
+              style={[styles.formatBtn, format === 'csv' && styles.formatBtnActive]}
+            >
+              <Ionicons name="grid-outline" size={16} color={format === 'csv' ? '#FFFFFF' : c.muted} />
+              <Text style={[styles.formatBtnText, format === 'csv' && styles.formatBtnTextActive]}>CSV Spreadsheet</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.reportSummary}>
             <ReportMetric value={assignedSlots.length} label="Assignments" c={c} />
             <ReportMetric value={teacherCount} label="Substitutes" c={c} />
             <ReportMetric value={assignedPeriodCount} label={`of ${periods.length} periods`} c={c} />
           </View>
 
-          <View style={styles.reportOptions}>
-            {REPORT_OPTIONS.map((option) => {
-              const active = mode === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  onPress={() => onModeChange(option.value)}
-                  style={[
-                    styles.reportOption,
-                    active && { borderColor: c.primary, backgroundColor: c.primarySoft },
-                  ]}
-                >
-                  <View style={[styles.reportOptionIcon, active && { backgroundColor: c.primary }]}>
-                    <Ionicons name={option.icon} size={18} color={active ? '#FFFFFF' : c.primary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.reportOptionTitle}>{option.title}</Text>
-                    <Text style={styles.reportOptionText}>{option.description}</Text>
-                  </View>
-                  <Ionicons
-                    name={active ? 'radio-button-on' : 'radio-button-off'}
-                    size={21}
-                    color={active ? c.primary : c.muted}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
+          {format === 'pdf' ? (
+            <>
+              <View style={styles.reportOptions}>
+                {REPORT_OPTIONS.map((option) => {
+                  const active = mode === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => onModeChange(option.value)}
+                      style={[
+                        styles.reportOption,
+                        active && { borderColor: c.primary, backgroundColor: c.primarySoft },
+                      ]}
+                    >
+                      <View style={[styles.reportOptionIcon, active && { backgroundColor: c.primary }]}>
+                        <Ionicons name={option.icon} size={18} color={active ? '#FFFFFF' : c.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.reportOptionTitle}>{option.title}</Text>
+                        <Text style={styles.reportOptionText}>{option.description}</Text>
+                      </View>
+                      <Ionicons
+                        name={active ? 'radio-button-on' : 'radio-button-off'}
+                        size={21}
+                        color={active ? c.primary : c.muted}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-          <View style={styles.reportBrandNote}>
-            <Ionicons name="shield-checkmark-outline" size={15} color={c.success} />
-            <Text style={styles.reportBrandNoteText}>
-              The school name and logo are added automatically from this app&apos;s environment settings.
-            </Text>
-          </View>
+              <View style={styles.reportBrandNote}>
+                <Ionicons name="shield-checkmark-outline" size={15} color={c.success} />
+                <Text style={styles.reportBrandNoteText}>
+                  Teaching periods are continuously numbered (breaks do not increment). School logo and branding are included automatically.
+                </Text>
+              </View>
 
-          <TouchableOpacity
-            onPress={onDownload}
-            disabled={downloading || assignedSlots.length === 0}
-            activeOpacity={0.85}
-            style={{ opacity: downloading || assignedSlots.length === 0 ? 0.55 : 1 }}
-          >
-            <LinearGradient colors={['#312E81', '#4F46E5']} style={styles.confirmButton}>
-              {downloading ? (
-                <LogoLoader size={22} color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="download-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.confirmText}>Create premium PDF</Text>
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onDownloadPdf}
+                disabled={downloading || assignedSlots.length === 0}
+                activeOpacity={0.85}
+                style={{ opacity: downloading || assignedSlots.length === 0 ? 0.55 : 1 }}
+              >
+                <LinearGradient colors={['#312E81', '#4F46E5']} style={styles.confirmButton}>
+                  {downloading ? (
+                    <LogoLoader size={22} color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.confirmText}>Create premium PDF</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.csvExplainer}>
+                <View style={styles.csvExplainerIcon}>
+                  <Ionicons name="document-attach-outline" size={24} color={c.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.csvExplainerTitle}>Spreadsheet export (CSV)</Text>
+                  <Text style={styles.csvExplainerText}>
+                    Exports confirmed assignments in chronological timetable order with continuous teaching period numbers (Period 1, Period 2, etc.). Breaks and non-teaching slots are excluded from period numbers.
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={onDownloadCsv}
+                disabled={downloading || assignedSlots.length === 0}
+                activeOpacity={0.85}
+                style={{ opacity: downloading || assignedSlots.length === 0 ? 0.55 : 1 }}
+              >
+                <LinearGradient colors={['#059669', '#10B981']} style={styles.confirmButton}>
+                  {downloading ? (
+                    <LogoLoader size={22} color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="download-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.confirmText}>Export CSV spreadsheet</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
       </Animated.View>
     </Modal>
@@ -705,6 +884,7 @@ function ReportMetric({ value, label, c }: { value: number; label: string; c: Re
 
 function SubstitutionCard({
   slot,
+  periodDisplayLabel,
   basis,
   c,
   styles,
@@ -712,6 +892,7 @@ function SubstitutionCard({
   onCancel,
 }: {
   slot: SubstitutionSlot;
+  periodDisplayLabel?: string;
   basis: string;
   c: ReturnType<typeof colors>;
   styles: ReturnType<typeof makeStyles>;
@@ -719,17 +900,46 @@ function SubstitutionCard({
   onCancel: () => void;
 }) {
   const covered = Boolean(slot.substitution_id);
+  const isUncovered = !covered;
+
   return (
-    <View style={[styles.slotCard, { flexBasis: basis as any }]}>
-      <View style={[styles.slotAccent, { backgroundColor: covered ? c.success : c.primary }]} />
+    <View
+      style={[
+        styles.slotCard,
+        { flexBasis: basis as any },
+        isUncovered && styles.slotCardUncovered,
+      ]}
+    >
+      <View
+        style={[
+          styles.slotAccent,
+          { backgroundColor: covered ? c.success : c.warning },
+        ]}
+      />
       <View style={styles.slotTop}>
-        <View style={[styles.classBadge, { backgroundColor: covered ? c.successSoft : c.primarySoft }]}>
-          <Ionicons name="school" size={12} color={covered ? c.success : c.primary} />
-          <Text style={[styles.classBadgeText, { color: covered ? c.success : c.primary }]}>
-            {classLabel(slot)}
-          </Text>
+        <View style={styles.slotTopLeft}>
+          <View style={[styles.classBadge, { backgroundColor: covered ? c.successSoft : c.primarySoft }]}>
+            <Ionicons name="school" size={12} color={covered ? c.success : c.primary} />
+            <Text style={[styles.classBadgeText, { color: covered ? c.success : c.primary }]}>
+              {classLabel(slot)}
+            </Text>
+          </View>
+          {periodDisplayLabel ? (
+            <View style={styles.periodPill}>
+              <Text style={styles.periodPillText}>{periodDisplayLabel}</Text>
+            </View>
+          ) : null}
         </View>
-        <Text style={styles.slotTime}>{timeLabel(slot.start_time)}</Text>
+
+        <View style={styles.slotTopRight}>
+          <Text style={styles.slotTime}>{timeLabel(slot.start_time)}</Text>
+          {isUncovered ? (
+            <View style={styles.uncoveredBadge}>
+              <Ionicons name="alert-circle" size={11} color={c.danger} />
+              <Text style={styles.uncoveredBadgeText}>NEEDS SUBSTITUTE</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       <Text style={styles.subjectName}>{slot.subject_name}</Text>
@@ -738,10 +948,16 @@ function SubstitutionCard({
           <Text style={styles.avatarText}>{initials(slot.regular_teacher_name)}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.metaLabel}>{covered ? 'ABSENT TEACHER' : 'REGULAR TEACHER'}</Text>
+          <Text style={styles.metaLabel}>{covered ? 'REGULAR TEACHER (UNAVAILABLE)' : 'UNAVAILABLE TEACHER'}</Text>
           <Text style={styles.teacherName} numberOfLines={1}>
             {slot.regular_teacher_name || 'Teacher not assigned'}
           </Text>
+          {slot.unavailability_label ? (
+            <View style={styles.unavailabilitySourcePill}>
+              <Ionicons name="information-circle-outline" size={11} color={c.warningText} />
+              <Text style={styles.unavailabilitySourceText}>{slot.unavailability_label}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -851,7 +1067,7 @@ function CandidateSheet({
             </View>
             <Text style={styles.emptyTitle}>No teacher is free</Text>
             <Text style={styles.emptyText}>
-              Everyone eligible is teaching, absent, or already covering another class in this period.
+              Everyone eligible is teaching, on leave, marked absent, or already covering another class in this period.
             </Text>
           </View>
         ) : (
@@ -859,7 +1075,7 @@ function CandidateSheet({
             <View style={styles.rankExplainer}>
               <Ionicons name="analytics-outline" size={16} color={c.primary} />
               <Text style={styles.rankExplainerText}>
-                Ranked by subject match, class familiarity, workload and recent cover fairness.
+                Ranked by subject match, class familiarity, workload and recent cover fairness. Unavailable and conflicting teachers are automatically excluded.
               </Text>
             </View>
             <ScrollView style={styles.candidateList} contentContainerStyle={{ gap: 10 }}>
@@ -963,6 +1179,11 @@ function colors(isDark: boolean) {
     primarySoft: isDark ? 'rgba(91,92,226,0.16)' : '#EEF2FF',
     success: '#10B981',
     successSoft: isDark ? 'rgba(16,185,129,0.15)' : '#ECFDF5',
+    warning: '#F59E0B',
+    warningSoft: isDark ? 'rgba(245,158,11,0.16)' : '#FEF3C7',
+    warningText: isDark ? '#FBBF24' : '#B45309',
+    infoSoft: isDark ? 'rgba(59,130,246,0.14)' : '#EFF6FF',
+    infoText: isDark ? '#93C5FD' : '#1D4ED8',
     danger: '#EF4444',
     shadow: isDark ? '#000000' : '#64748B',
   };
@@ -986,7 +1207,7 @@ function makeStyles(c: ReturnType<typeof colors>) {
     resetText: { color: '#E0E7FF', fontSize: 10, marginTop: 2 },
     heroStats: { flexDirection: 'row', marginTop: 24, paddingTop: 18, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.13)' },
     statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.14)', marginHorizontal: 18 },
-    controlCard: { backgroundColor: c.card, borderRadius: 24, borderWidth: 1, borderColor: c.border, padding: 18, marginBottom: 24, shadowColor: c.shadow, shadowOpacity: Platform.OS === 'web' ? 0.08 : 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
+    controlCard: { backgroundColor: c.card, borderRadius: 24, borderWidth: 1, borderColor: c.border, padding: 18, marginBottom: 20, shadowColor: c.shadow, shadowOpacity: Platform.OS === 'web' ? 0.08 : 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
     controlTop: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
     dateCell: { flex: 1.2, minWidth: 260 },
     viewCell: { flex: 1, minWidth: 250 },
@@ -1005,12 +1226,29 @@ function makeStyles(c: ReturnType<typeof colors>) {
     reportButton: { minHeight: 42, paddingHorizontal: 15, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: c.primary },
     reportButtonDisabled: { opacity: 0.45 },
     reportButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
+    attendanceBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.infoSoft, borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', marginBottom: 16 },
+    attendanceBannerTitle: { color: c.infoText, fontSize: 13, fontWeight: '800' },
+    attendanceBannerText: { color: c.subtext, fontSize: 11, marginTop: 2, lineHeight: 16 },
+    advisoryBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.warningSoft, borderWidth: 1, borderColor: 'rgba(245,158,11,0.3)', marginBottom: 16 },
+    advisoryBannerTitle: { color: c.warningText, fontSize: 13, fontWeight: '900' },
+    advisoryBannerText: { color: c.subtext, fontSize: 11, marginTop: 2, lineHeight: 16 },
+    successBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.successSoft, borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', marginBottom: 16 },
+    successBannerTitle: { color: c.success, fontSize: 13, fontWeight: '900' },
+    successBannerText: { color: c.subtext, fontSize: 11, marginTop: 2, lineHeight: 16 },
+    errorState: { minHeight: 280, alignItems: 'center', justifyContent: 'center', padding: 30, backgroundColor: c.card, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', gap: 10 },
+    errorIcon: { width: 62, height: 62, borderRadius: 22, backgroundColor: 'rgba(239,68,68,0.12)', alignItems: 'center', justifyContent: 'center' },
+    errorTitle: { color: c.danger, fontSize: 18, fontWeight: '900' },
+    errorText: { color: c.subtext, fontSize: 13, textAlign: 'center', maxWidth: 460, lineHeight: 19 },
+    retryButton: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: c.primary },
+    retryButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
     loadingState: { minHeight: 280, alignItems: 'center', justifyContent: 'center', gap: 14 },
     loadingText: { color: c.subtext, fontSize: 13, fontWeight: '600' },
     emptyState: { minHeight: 270, alignItems: 'center', justifyContent: 'center', padding: 30, backgroundColor: c.card, borderRadius: 24, borderWidth: 1, borderColor: c.border },
     emptyIcon: { width: 62, height: 62, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primarySoft, marginBottom: 14 },
     emptyTitle: { color: c.text, fontSize: 18, fontWeight: '900' },
-    emptyText: { color: c.subtext, fontSize: 13, lineHeight: 20, textAlign: 'center', maxWidth: 440, marginTop: 6 },
+    emptyText: { color: c.subtext, fontSize: 13, lineHeight: 20, textAlign: 'center', maxWidth: 460, marginTop: 6 },
+    clearFilterButton: { marginTop: 14, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 11, backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.border },
+    clearFilterButtonText: { color: c.primary, fontSize: 12, fontWeight: '800' },
     groups: { gap: 26 },
     group: { gap: 12 },
     groupHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
@@ -1021,11 +1259,20 @@ function makeStyles(c: ReturnType<typeof colors>) {
     groupCountText: { color: c.primary, fontWeight: '900', fontSize: 12 },
     slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     slotCard: { minWidth: 285, flexGrow: 1, backgroundColor: c.card, borderRadius: 20, borderWidth: 1, borderColor: c.border, padding: 17, overflow: 'hidden', shadowColor: c.shadow, shadowOpacity: Platform.OS === 'web' ? 0.06 : 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+    slotCardUncovered: { borderColor: 'rgba(245,158,11,0.45)', backgroundColor: c.card },
     slotAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
     slotTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    slotTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    slotTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     classBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6 },
     classBadgeText: { fontSize: 11, fontWeight: '900' },
+    periodPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7, backgroundColor: c.cardAlt },
+    periodPillText: { color: c.subtext, fontSize: 10, fontWeight: '800' },
     slotTime: { color: c.muted, fontSize: 11, fontWeight: '800' },
+    uncoveredBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(239,68,68,0.12)' },
+    uncoveredBadgeText: { color: c.danger, fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+    unavailabilitySourcePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.warningSoft, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, marginTop: 4, alignSelf: 'flex-start' },
+    unavailabilitySourceText: { color: c.warningText, fontSize: 9, fontWeight: '800' },
     subjectName: { color: c.text, fontSize: 18, fontWeight: '900', marginTop: 14, marginBottom: 13, letterSpacing: -0.4 },
     teacherRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 14 },
     avatar: { width: 36, height: 36, borderRadius: 12, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
@@ -1052,6 +1299,11 @@ function makeStyles(c: ReturnType<typeof colors>) {
     sheetTitle: { color: c.text, fontSize: 20, fontWeight: '900', marginTop: 4, letterSpacing: -0.5 },
     sheetSubtitle: { color: c.subtext, fontSize: 11, marginTop: 5 },
     sheetClose: { width: 38, height: 38, borderRadius: 13, backgroundColor: c.cardAlt, alignItems: 'center', justifyContent: 'center' },
+    formatSegment: { flexDirection: 'row', backgroundColor: c.cardAlt, borderRadius: 13, padding: 4, gap: 6, marginBottom: 14 },
+    formatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 10, borderRadius: 10 },
+    formatBtnActive: { backgroundColor: c.primary },
+    formatBtnText: { color: c.muted, fontSize: 12, fontWeight: '800' },
+    formatBtnTextActive: { color: '#FFFFFF' },
     candidateLoading: { minHeight: 280, alignItems: 'center', justifyContent: 'center', gap: 14 },
     noCandidate: { minHeight: 280, alignItems: 'center', justifyContent: 'center', padding: 24 },
     rankExplainer: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: c.primarySoft, padding: 11, borderRadius: 12, marginBottom: 12 },
@@ -1083,6 +1335,10 @@ function makeStyles(c: ReturnType<typeof colors>) {
     reportOptionText: { color: c.subtext, fontSize: 9, lineHeight: 13, marginTop: 2 },
     reportBrandNote: { marginTop: 13, padding: 10, borderRadius: 12, backgroundColor: c.successSoft, flexDirection: 'row', alignItems: 'center', gap: 8 },
     reportBrandNoteText: { flex: 1, color: c.subtext, fontSize: 9, lineHeight: 13, fontWeight: '600' },
+    csvExplainer: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 16, backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.border, marginTop: 8, marginBottom: 14 },
+    csvExplainerIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
+    csvExplainerTitle: { color: c.text, fontSize: 13, fontWeight: '900' },
+    csvExplainerText: { color: c.subtext, fontSize: 10, lineHeight: 15, marginTop: 3 },
   });
 }
 
@@ -1092,8 +1348,10 @@ const staticStyles = StyleSheet.create({
   statLabel: { color: '#C7D2FE', fontSize: 10, marginTop: 3, fontWeight: '700' },
   segmentButton: { flex: 1, borderRadius: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 10, minHeight: 40 },
   segmentLabel: { fontSize: 11, fontWeight: '900' },
-  filterChip: { height: 36, maxWidth: 190, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  filterChipText: { fontSize: 11, fontWeight: '800', maxWidth: 145 },
+  filterChip: { height: 36, maxWidth: 210, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  filterChipText: { fontSize: 11, fontWeight: '800', maxWidth: 120 },
+  chipSublabel: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  chipSublabelText: { fontSize: 8, fontWeight: '800' },
   reportMetric: { flex: 1, minWidth: 0, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1 },
   reportMetricValue: { fontSize: 16, fontWeight: '900' },
   reportMetricLabel: { fontSize: 8, fontWeight: '800', marginTop: 2 },

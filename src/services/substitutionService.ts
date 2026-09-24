@@ -6,12 +6,16 @@ export interface SubstitutionPeriod {
   start_time: string;
   end_time: string;
   sort_order: number;
+  is_break?: boolean | null;
+  slot_type?: string | null;
 }
 
 export interface SubstitutionSlot {
   slot_id: string;
   class_section_id: string;
   period_number: number;
+  is_break?: boolean | null;
+  period_name?: string | null;
   start_time: string;
   end_time: string;
   room_no?: string | null;
@@ -28,6 +32,19 @@ export interface SubstitutionSlot {
   assigned_at?: string | null;
   is_auto_suggested?: boolean | null;
   leave_application_id?: string | null;
+  unavailability_sources?: ('leave' | 'attendance' | 'manual')[];
+  unavailability_label?: string | null;
+}
+
+export interface UnavailableTeacher {
+  id: string;
+  teacher_name: string;
+  staff_code?: string | null;
+  sources: ('leave' | 'attendance')[];
+  source_label: string;
+  leave_status?: string | null;
+  attendance_status?: string | null;
+  affected_slots_count: number;
 }
 
 export interface SubstitutionBoard {
@@ -38,10 +55,13 @@ export interface SubstitutionBoard {
   periods: SubstitutionPeriod[];
   slots: SubstitutionSlot[];
   teachers: { id: string; teacher_name: string }[];
+  unavailable_teachers?: UnavailableTeacher[];
+  attendance_recorded?: boolean;
   summary: {
     total_slots: number;
     covered_slots: number;
     uncovered_slots: number;
+    unavailable_teachers_count?: number;
   };
 }
 
