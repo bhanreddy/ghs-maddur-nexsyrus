@@ -16,6 +16,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -61,6 +62,17 @@ import {
   type HallTicketsPerPage,
 } from '../../src/utils/hallTicketPdf';
 import { SCHOOL_CONFIG } from '../../src/constants/schoolConfig';
+import {
+  HallTicketService,
+  type HallTicketPreview,
+} from '../../src/services/hallTicketService';
+import {
+  HALL_TICKET_CLEARANCE_PRESETS,
+  parseHallTicketPercent,
+  presetForRange,
+  validateHallTicketRange,
+  type HallTicketClearancePreset,
+} from '../../src/utils/hallTicketEligibility';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1476,8 +1488,18 @@ function HallTicketModal({
   const [sectionId, setSectionId] = useState('');
   const [ticketsPerPage, setTicketsPerPage] = useState<HallTicketsPerPage>(4);
   const [showRollNumbers, setShowRollNumbers] = useState(false);
+  const [minClearance, setMinClearance] = useState('0');
+  const [maxClearance, setMaxClearance] = useState('100');
+  const [excludePreviouslyDownloaded, setExcludePreviouslyDownloaded] = useState(true);
+  const [preview, setPreview] = useState<HallTicketPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [showStudentPreview, setShowStudentPreview] = useState(false);
+  const [previewRevision, setPreviewRevision] = useState(0);
+  const [pendingTrackingBatchId, setPendingTrackingBatchId] = useState<string | null>(null);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const pendingTrackingStorageKey = `hall-ticket-pending-batch:${exam.id}`;
 
   useEffect(() => {
     let active = true;
@@ -1510,6 +1532,18 @@ function HallTicketModal({
       active = false;
     };
   }, [exam.id, onClose]);
+
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(pendingTrackingStorageKey)
+      .then((batchId) => {
+        if (active && batchId) setPendingTrackingBatchId(batchId);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [pendingTrackingStorageKey]);
 
   const examClassIds = useMemo(
     () => new Set((detail?.papers || []).map((paper) => paper.class_id)),
@@ -1544,6 +1578,90 @@ function HallTicketModal({
   const handleClassPress = (nextClassId: string) => {
     setClassId(nextClassId);
     setSectionId('');
+    setPreview(null);
+  };
+
+  const rangeError = useMemo(
+    () => validateHallTicketRange(minClearance, maxClearance),
+    [maxClearance, minClearance],
+  );
+  const minClearanceValue = parseHallTicketPercent(minClearance);
+  const maxClearanceValue = parseHallTicketPercent(maxClearance);
+  const selectedClearancePreset: HallTicketClearancePreset =
+    minClearanceValue == null || maxClearanceValue == null
+      ? 'custom'
+      : presetForRange(minClearanceValue, maxClearanceValue);
+
+  useEffect(() => {
+    if (!classId || !sectionId || rangeError || minClearanceValue == null || maxClearanceValue == null) {
+      setPreview(null);
+      setPreviewLoading(false);
+      setPreviewError(null);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      HallTicketService.preview(exam.id, {
+        class_id: classId,
+        section_id: sectionId,
+        min_clearance_percent: minClearanceValue,
+        max_clearance_percent: maxClearanceValue,
+        exclude_previously_downloaded: excludePreviouslyDownloaded,
+      })
+        .then((nextPreview) => {
+          if (active) setPreview(nextPreview);
+        })
+        .catch((err: any) => {
+          if (!active) return;
+          setPreview(null);
+          setPreviewError(err?.message || 'Could not calculate hall-ticket eligibility.');
+        })
+        .finally(() => {
+          if (active) setPreviewLoading(false);
+        });
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [
+    classId,
+    sectionId,
+    minClearanceValue,
+    maxClearanceValue,
+    rangeError,
+    excludePreviouslyDownloaded,
+    exam.id,
+    previewRevision,
+  ]);
+
+  const applyClearancePreset = (presetId: HallTicketClearancePreset) => {
+    const preset = HALL_TICKET_CLEARANCE_PRESETS.find((item) => item.id === presetId);
+    if (!preset?.range) return;
+    setMinClearance(String(preset.range.min));
+    setMaxClearance(String(preset.range.max));
+  };
+
+  const retryTracking = async () => {
+    if (!pendingTrackingBatchId) return;
+    try {
+      setDownloading(true);
+      await HallTicketService.complete(exam.id, pendingTrackingBatchId);
+      await AsyncStorage.removeItem(pendingTrackingStorageKey).catch(() => undefined);
+      setPendingTrackingBatchId(null);
+      setPreviewRevision((value) => value + 1);
+      alertCompat('Download recorded', 'The hall-ticket batch is now included in download history.');
+    } catch (err: any) {
+      if (err?.status === 409) {
+        await AsyncStorage.removeItem(pendingTrackingStorageKey).catch(() => undefined);
+        setPendingTrackingBatchId(null);
+      }
+      alertCompat('Tracking retry failed', err?.message || 'Please try again when the connection is available.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleDownload = async () => {
@@ -1551,12 +1669,28 @@ function HallTicketModal({
       alertCompat('Select class and section', 'Both filters are required to create the hall-ticket batch.');
       return;
     }
+    if (rangeError || minClearanceValue == null || maxClearanceValue == null) {
+      alertCompat('Check fee range', rangeError || 'Enter a valid fee-clearance range.');
+      return;
+    }
 
+    let preparedBatchId: string | null = null;
+    let pdfCreated = false;
     try {
       setDownloading(true);
-      const data = await ExamTimetableService.getHallTicketData(exam.id, classId, sectionId);
+      const data = await HallTicketService.prepare(exam.id, {
+        class_id: classId,
+        section_id: sectionId,
+        min_clearance_percent: minClearanceValue,
+        max_clearance_percent: maxClearanceValue,
+        exclude_previously_downloaded: excludePreviouslyDownloaded,
+        tickets_per_page: ticketsPerPage,
+        show_roll_numbers: showRollNumbers,
+      });
+      preparedBatchId = data.batch_id;
       if (data.students.length === 0) {
-        alertCompat('No students found', 'There are no active students in this class and section.');
+        await HallTicketService.fail(exam.id, data.batch_id).catch(() => undefined);
+        alertCompat('No eligible students', 'No students match this fee-clearance range.');
         return;
       }
 
@@ -1571,13 +1705,28 @@ function HallTicketModal({
         ticketsPerPage,
         showRollNumbers,
       });
-      if (Platform.OS === 'web') {
+      pdfCreated = true;
+      try {
+        await HallTicketService.complete(exam.id, data.batch_id);
+        await AsyncStorage.removeItem(pendingTrackingStorageKey).catch(() => undefined);
+        setPendingTrackingBatchId(null);
+        setPreviewRevision((value) => value + 1);
         alertCompat(
           'Hall tickets downloaded',
           `${data.students.length} hall ticket${data.students.length === 1 ? '' : 's'} saved as ${fileName}.`,
         );
+      } catch (trackingError: any) {
+        await AsyncStorage.setItem(pendingTrackingStorageKey, data.batch_id).catch(() => undefined);
+        setPendingTrackingBatchId(data.batch_id);
+        alertCompat(
+          'PDF downloaded — tracking pending',
+          `${fileName} was created, but its download history was not saved. Use “Retry tracking” before the next batch. ${trackingError?.message || ''}`.trim(),
+        );
       }
     } catch (err: any) {
+      if (preparedBatchId && !pdfCreated) {
+        await HallTicketService.fail(exam.id, preparedBatchId).catch(() => undefined);
+      }
       alertCompat('Download failed', err?.message || 'Could not generate hall tickets.');
     } finally {
       setDownloading(false);
@@ -1586,6 +1735,16 @@ function HallTicketModal({
   const selectedModel =
     HALL_TICKET_MODELS.find((model) => model.count === ticketsPerPage) ||
     HALL_TICKET_MODELS[0];
+  const readyCount = preview?.eligibility_summary.ready_to_download ?? 0;
+  const cannotDownload =
+    !classId ||
+    !sectionId ||
+    !!rangeError ||
+    previewLoading ||
+    !preview ||
+    readyCount === 0 ||
+    !!pendingTrackingBatchId ||
+    downloading;
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => !downloading && onClose()}>
@@ -1723,20 +1882,224 @@ function HallTicketModal({
                 </View>
               )}
 
+              <View style={styles.hallTicketSectionHeader}>
+                <View style={styles.hallTicketSectionIcon}>
+                  <Ionicons name="wallet-outline" size={18} color={theme.colors.primary} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.hallTicketSectionTitle}>Fee eligibility</Text>
+                  <Text style={styles.hallTicketSectionText}>
+                    School fees for this exam’s academic year. Transport fees are not included.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.chipWrap}>
+                {HALL_TICKET_CLEARANCE_PRESETS.map((preset) => {
+                  const active = selectedClearancePreset === preset.id;
+                  return (
+                    <TouchableOpacity
+                      key={preset.id}
+                      style={[styles.chip, active && styles.chipActive]}
+                      activeOpacity={0.72}
+                      onPress={() => applyClearancePreset(preset.id)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: active }}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{preset.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <View style={styles.hallTicketRangeRow}>
+                <View style={styles.hallTicketRangeField}>
+                  <Text style={styles.inputSubLabel}>Minimum cleared %</Text>
+                  <AppTextInput
+                    value={minClearance}
+                    onChangeText={setMinClearance}
+                    placeholder="0"
+                    keyboardType="decimal-pad"
+                    style={styles.input}
+                    accessibilityLabel="Minimum fee clearance percentage"
+                  />
+                </View>
+                <Text style={styles.hallTicketRangeDivider}>to</Text>
+                <View style={styles.hallTicketRangeField}>
+                  <Text style={styles.inputSubLabel}>Maximum cleared %</Text>
+                  <AppTextInput
+                    value={maxClearance}
+                    onChangeText={setMaxClearance}
+                    placeholder="100"
+                    keyboardType="decimal-pad"
+                    style={styles.input}
+                    accessibilityLabel="Maximum fee clearance percentage"
+                  />
+                </View>
+              </View>
+              {!!rangeError && <Text style={styles.hallTicketValidationText}>{rangeError}</Text>}
+
+              <View style={styles.hallTicketOptionRow}>
+                <View style={styles.hallTicketOptionIcon}>
+                  <Ionicons name="copy-outline" size={19} color={theme.colors.primary} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.hallTicketOptionTitle}>Exclude previously issued</Text>
+                  <Text style={styles.hallTicketOptionText}>
+                    {excludePreviouslyDownloaded
+                      ? 'Students already downloaded for this exam will be skipped.'
+                      : 'Previously issued students can be included as intentional reprints.'}
+                  </Text>
+                </View>
+                <Switch
+                  value={excludePreviouslyDownloaded}
+                  onValueChange={setExcludePreviouslyDownloaded}
+                  trackColor={{ false: theme.colors.border, true: `${theme.colors.primary}66` }}
+                  thumbColor={excludePreviouslyDownloaded ? theme.colors.primary : theme.colors.textTertiary}
+                  accessibilityLabel="Exclude previously issued hall tickets"
+                />
+              </View>
+
+              {!!pendingTrackingBatchId && (
+                <TouchableOpacity
+                  style={styles.hallTicketTrackingWarning}
+                  onPress={retryTracking}
+                  disabled={downloading}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="cloud-offline-outline" size={18} color={theme.colors.warning} />
+                  <View style={styles.flex}>
+                    <Text style={styles.hallTicketTrackingTitle}>Download history is pending</Text>
+                    <Text style={styles.hallTicketTrackingText}>Tap to retry tracking the last PDF batch.</Text>
+                  </View>
+                  <Ionicons name="refresh" size={18} color={theme.colors.warning} />
+                </TouchableOpacity>
+              )}
+
+              {previewLoading ? (
+                <View style={styles.hallTicketPreviewLoading}>
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <Text style={styles.helperText}>Calculating fee eligibility…</Text>
+                </View>
+              ) : previewError ? (
+                <View style={styles.hallTicketPreviewError}>
+                  <Ionicons name="alert-circle-outline" size={18} color={theme.colors.danger} />
+                  <Text style={styles.hallTicketPreviewErrorText}>{previewError}</Text>
+                </View>
+              ) : preview ? (
+                <View style={styles.hallTicketEligibilityCard}>
+                  <View style={styles.hallTicketEligibilityTop}>
+                    <View>
+                      <Text style={styles.hallTicketEligibilityEyebrow}>READY TO DOWNLOAD</Text>
+                      <Text style={styles.hallTicketEligibilityCount}>{readyCount}</Text>
+                    </View>
+                    <Ionicons name="shield-checkmark-outline" size={29} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.hallTicketStatsGrid}>
+                    <View style={styles.hallTicketStat}>
+                      <Text style={styles.hallTicketStatValue}>{preview.eligibility_summary.total_active_students}</Text>
+                      <Text style={styles.hallTicketStatLabel}>Active</Text>
+                    </View>
+                    <View style={styles.hallTicketStat}>
+                      <Text style={styles.hallTicketStatValue}>{preview.eligibility_summary.within_fee_range}</Text>
+                      <Text style={styles.hallTicketStatLabel}>In range</Text>
+                    </View>
+                    <View style={styles.hallTicketStat}>
+                      <Text style={styles.hallTicketStatValue}>{preview.eligibility_summary.previously_downloaded}</Text>
+                      <Text style={styles.hallTicketStatLabel}>Issued</Text>
+                    </View>
+                    <View style={styles.hallTicketStat}>
+                      <Text style={styles.hallTicketStatValue}>{preview.eligibility_summary.temporarily_reserved}</Text>
+                      <Text style={styles.hallTicketStatLabel}>Reserved</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.hallTicketPreviewToggle}
+                    onPress={() => setShowStudentPreview((value) => !value)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.hallTicketPreviewToggleText}>
+                      {showStudentPreview ? 'Hide student preview' : 'Preview matching students'}
+                    </Text>
+                    <Ionicons
+                      name={showStudentPreview ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                  </TouchableOpacity>
+
+                  {showStudentPreview && (
+                    <View style={styles.hallTicketStudentList}>
+                      {preview.clearance_snapshots
+                        .filter((student) => student.within_range)
+                        .map((student) => (
+                          <View key={student.id} style={styles.hallTicketStudentRow}>
+                            <View style={styles.hallTicketStudentAvatar}>
+                              <Text style={styles.hallTicketStudentAvatarText}>
+                                {(student.display_name || '?').charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                            <View style={styles.flex}>
+                              <Text style={styles.hallTicketStudentName} numberOfLines={1}>{student.display_name}</Text>
+                              <Text style={styles.hallTicketStudentMeta}>
+                                {student.admission_no}{student.no_fee_record ? ' · No fee record' : ''}
+                              </Text>
+                            </View>
+                            <View style={styles.hallTicketStudentStatus}>
+                              <Text style={styles.hallTicketStudentPercent}>{student.clearance_percent.toFixed(2)}%</Text>
+                              {(student.previously_downloaded || student.temporarily_reserved) && (
+                                <Text style={styles.hallTicketStudentBadge}>
+                                  {student.previously_downloaded ? 'Issued' : 'Reserved'}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                        ))}
+                    </View>
+                  )}
+                </View>
+              ) : classId && sectionId && !rangeError ? (
+                <Text style={styles.helperText}>Eligibility preview will appear here.</Text>
+              ) : null}
+
+              {!!preview?.recent_batches.length && (
+                <View style={styles.hallTicketHistoryCard}>
+                  <View style={styles.hallTicketHistoryHeader}>
+                    <Ionicons name="time-outline" size={17} color={theme.colors.textSecondary} />
+                    <Text style={styles.hallTicketHistoryTitle}>Recent downloads</Text>
+                  </View>
+                  {preview.recent_batches.map((batch) => (
+                    <View key={batch.id} style={styles.hallTicketHistoryRow}>
+                      <View style={styles.flex}>
+                        <Text style={styles.hallTicketHistoryRange}>
+                          {batch.min_clearance_percent}%–{batch.max_clearance_percent}% · {batch.student_count} tickets
+                        </Text>
+                        <Text style={styles.hallTicketHistoryMeta}>
+                          {batch.operator_name || 'School user'}
+                          {batch.completed_at ? ` · ${new Date(batch.completed_at).toLocaleString()}` : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.hallTicketHistoryLayout}>{batch.tickets_per_page}/page</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               <TouchableOpacity
                 style={[
                   styles.modalPrimaryBtn,
-                  (!classId || !sectionId || downloading) && styles.disabledBtn,
+                  cannotDownload && styles.disabledBtn,
                 ]}
                 activeOpacity={0.8}
-                disabled={!classId || !sectionId || downloading}
+                disabled={cannotDownload}
                 onPress={handleDownload}
               >
                 <Ionicons name="download-outline" size={17} color="#FFFFFF" />
                 <Text style={styles.modalPrimaryBtnText}>
                   {downloading
-                    ? 'Creating PDF…'
-                    : `Download ${ticketsPerPage}-per-page A4 hall tickets`}
+                    ? 'Preparing hall tickets…'
+                    : `Prepare & download ${readyCount} hall ticket${readyCount === 1 ? '' : 's'}`}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -6066,6 +6429,169 @@ const getStyles = (theme: Theme, isDark: boolean) =>
     },
     hallTicketOptionTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.textStrong },
     hallTicketOptionText: { marginTop: 2, fontSize: 10.5, lineHeight: 14, color: theme.colors.textTertiary },
+    hallTicketSectionHeader: {
+      marginTop: 18,
+      marginBottom: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    hallTicketSectionIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: `${theme.colors.primary}12`,
+    },
+    hallTicketSectionTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.textStrong },
+    hallTicketSectionText: { marginTop: 2, fontSize: 10.5, lineHeight: 14, color: theme.colors.textTertiary },
+    hallTicketRangeRow: {
+      marginTop: 12,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 10,
+    },
+    hallTicketRangeField: { flex: 1, minWidth: 0 },
+    hallTicketRangeDivider: {
+      paddingBottom: 13,
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.colors.textTertiary,
+      textTransform: 'uppercase',
+    },
+    hallTicketValidationText: {
+      marginTop: 6,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '600',
+      color: theme.colors.danger,
+    },
+    hallTicketTrackingWarning: {
+      marginTop: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      padding: 11,
+      borderWidth: 1,
+      borderColor: `${theme.colors.warning}55`,
+      borderRadius: 12,
+      backgroundColor: `${theme.colors.warning}10`,
+    },
+    hallTicketTrackingTitle: { fontSize: 12.5, fontWeight: '800', color: theme.colors.textStrong },
+    hallTicketTrackingText: { marginTop: 2, fontSize: 10.5, color: theme.colors.textSecondary },
+    hallTicketPreviewLoading: {
+      marginTop: 12,
+      minHeight: 72,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      borderRadius: 14,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    hallTicketPreviewError: {
+      marginTop: 12,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: `${theme.colors.danger}0C`,
+      borderWidth: 1,
+      borderColor: `${theme.colors.danger}30`,
+    },
+    hallTicketPreviewErrorText: { flex: 1, fontSize: 11.5, lineHeight: 16, color: theme.colors.danger },
+    hallTicketEligibilityCard: {
+      marginTop: 12,
+      padding: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: `${theme.colors.primary}28`,
+      backgroundColor: `${theme.colors.primary}08`,
+    },
+    hallTicketEligibilityTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    hallTicketEligibilityEyebrow: {
+      fontSize: 9.5,
+      letterSpacing: 0.7,
+      fontWeight: '800',
+      color: theme.colors.primary,
+    },
+    hallTicketEligibilityCount: { marginTop: 1, fontSize: 30, lineHeight: 34, fontWeight: '900', color: theme.colors.textStrong },
+    hallTicketStatsGrid: { marginTop: 12, flexDirection: 'row', gap: 7 },
+    hallTicketStat: {
+      flex: 1,
+      paddingVertical: 8,
+      paddingHorizontal: 5,
+      alignItems: 'center',
+      borderRadius: 10,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    hallTicketStatValue: { fontSize: 14, fontWeight: '900', color: theme.colors.textStrong },
+    hallTicketStatLabel: { marginTop: 2, fontSize: 9.5, fontWeight: '600', color: theme.colors.textTertiary },
+    hallTicketPreviewToggle: {
+      marginTop: 10,
+      paddingTop: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    hallTicketPreviewToggleText: { fontSize: 11.5, fontWeight: '800', color: theme.colors.primary },
+    hallTicketStudentList: { marginTop: 8, gap: 5 },
+    hallTicketStudentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 7,
+      paddingHorizontal: 8,
+      borderRadius: 10,
+      backgroundColor: theme.colors.card,
+    },
+    hallTicketStudentAvatar: {
+      width: 28,
+      height: 28,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: `${theme.colors.primary}14`,
+    },
+    hallTicketStudentAvatarText: { fontSize: 11, fontWeight: '900', color: theme.colors.primary },
+    hallTicketStudentName: { fontSize: 11.5, fontWeight: '700', color: theme.colors.textStrong },
+    hallTicketStudentMeta: { marginTop: 1, fontSize: 9.5, color: theme.colors.textTertiary },
+    hallTicketStudentStatus: { alignItems: 'flex-end' },
+    hallTicketStudentPercent: { fontSize: 11.5, fontWeight: '900', color: theme.colors.textStrong },
+    hallTicketStudentBadge: { marginTop: 2, fontSize: 8.5, fontWeight: '800', color: theme.colors.warning },
+    hallTicketHistoryCard: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+    },
+    hallTicketHistoryHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 5 },
+    hallTicketHistoryTitle: { fontSize: 12.5, fontWeight: '800', color: theme.colors.textStrong },
+    hallTicketHistoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 7,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    hallTicketHistoryRange: { fontSize: 10.5, fontWeight: '700', color: theme.colors.textSecondary },
+    hallTicketHistoryMeta: { marginTop: 2, fontSize: 9, color: theme.colors.textTertiary },
+    hallTicketHistoryLayout: { fontSize: 9.5, fontWeight: '800', color: theme.colors.primary },
     fieldLabel: {
       fontSize: 12,
       fontWeight: '700',

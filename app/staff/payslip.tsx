@@ -193,6 +193,24 @@ export default function PaySlip() {
                       <Text style={styles.netValue}>{item.net}</Text>
                     </View>
                   </View>
+                  {item.amount_in_words ? (
+                    <Text style={styles.wordsText}>{item.amount_in_words}</Text>
+                  ) : null}
+                  {item.attendance ? (
+                    <Text style={styles.summaryLine}>
+                      {item.calendar_days ?? '—'} calendar days · {item.employment_days ?? '—'} employment days · {item.attendance.totalLates ?? 0} lates · CL used {item.attendance.clUsed ?? 0}
+                    </Text>
+                  ) : null}
+                  {item.lines?.length ? (
+                    <View style={styles.lineList}>
+                      {item.lines.map((line, lineIndex) => (
+                        <View key={`${item.id}-${lineIndex}`} style={styles.lineItem}>
+                          <Text style={styles.lineName}>{line.name}</Text>
+                          <Text style={styles.lineExplanation}>{line.explanation}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                   <TouchableOpacity
                     style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
                     onPress={() => handleDownload(item)}
@@ -345,6 +363,37 @@ const getStyles = (theme: Theme) =>
       fontSize: 16,
       fontWeight: 'bold',
       color: '#111827',
+    },
+    wordsText: {
+      marginTop: 12,
+      color: '#334155',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    summaryLine: {
+      marginTop: 8,
+      color: '#64748B',
+      fontSize: 12,
+    },
+    lineList: {
+      marginTop: 12,
+      gap: 8,
+    },
+    lineItem: {
+      backgroundColor: '#F8FAFC',
+      borderRadius: 10,
+      padding: 10,
+    },
+    lineName: {
+      color: '#0F172A',
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    lineExplanation: {
+      marginTop: 4,
+      color: '#475569',
+      fontSize: 12,
+      lineHeight: 18,
     },
     downloadButton: {
       flexDirection: 'row',

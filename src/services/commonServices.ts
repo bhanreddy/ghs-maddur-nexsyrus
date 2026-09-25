@@ -151,6 +151,41 @@ export interface LeaveApplication {
     applicant_name?: string;
     applicant_role?: string;
     reviewed_by_name?: string | null;
+    staff_id?: string | null;
+    payroll_treatment?: 'PAID_CL' | 'PAID_LEAVE' | 'UNPAID' | null;
+    payroll_months?: LeavePayrollMonthPreview[];
+}
+
+export interface LeavePayrollMonthPreview {
+    year: number;
+    month: number;
+    month_key: string;
+    available: boolean;
+    requested_payroll_days?: number;
+    cl_used_days?: number;
+    cl_entitlement_days?: number;
+    cl_remaining_days?: number;
+    projected_paid_cl_days?: number;
+    projected_unpaid_days?: number;
+    unpaid_days_without_cl?: number;
+    entitlement_reason?: string | null;
+    unavailable_reason?: string;
+}
+
+export type LeavePayrollTreatment = 'PAID_CL' | 'PAID_LEAVE' | 'UNPAID';
+
+export interface LeaveReviewResult {
+    message: string;
+    leave: LeaveApplication;
+    payroll_follow_up?: {
+        required: true;
+        code: 'SUPPLEMENTARY_PAYROLL_REQUIRED';
+        payroll_id: string;
+        month: number;
+        year: number;
+        workflow_status: string;
+        message: string;
+    } | null;
 }
 
 export interface CreateLeaveRequest {
@@ -173,12 +208,16 @@ export const LeaveService = {
         return api.post<LeaveApplication>('/leaves', data);
     },
 
-    approve: async (id: string): Promise<LeaveApplication> => {
-        return api.put<LeaveApplication>(`/leaves/${id}`, { status: 'approved' });
+    approve: async (id: string, payroll_treatment: LeavePayrollTreatment, review_remarks?: string): Promise<LeaveReviewResult> => {
+        return api.put<LeaveReviewResult>(`/leaves/${id}`, {
+            status: 'approved',
+            payroll_treatment,
+            review_remarks,
+        });
     },
 
-    reject: async (id: string, review_remarks?: string): Promise<LeaveApplication> => {
-        return api.put<LeaveApplication>(`/leaves/${id}`, { status: 'rejected', review_remarks });
+    reject: async (id: string, review_remarks?: string): Promise<LeaveReviewResult> => {
+        return api.put<LeaveReviewResult>(`/leaves/${id}`, { status: 'rejected', review_remarks });
     },
 
     cancel: async (id: string): Promise<void> => {

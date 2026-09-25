@@ -21,6 +21,11 @@ export interface SchoolSettings {
     school_board?: string;
     /** Admin-selected policy applied to class result ranks. */
     result_ranking_method?: ResultRankingMethod;
+    /**
+     * When "true", parent-portal accounts may upload or remove their profile
+     * picture. Missing or any other value means the backend refuses those requests.
+     */
+    allow_parent_profile_photo_upload?: 'true' | 'false';
 }
 
 export const SchoolSettingsService = {

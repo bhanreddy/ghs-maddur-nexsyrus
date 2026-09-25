@@ -70,6 +70,9 @@ export default function AdminSettings() {
     const [rankingMethod, setRankingMethod] = React.useState<ResultRankingMethod>('competition');
     const [rankingLoading, setRankingLoading] = React.useState(true);
     const [rankingSaving, setRankingSaving] = React.useState<ResultRankingMethod | null>(null);
+    const [parentPhotoUploadEnabled, setParentPhotoUploadEnabled] = React.useState(false);
+    const [parentPhotoLoading, setParentPhotoLoading] = React.useState(true);
+    const [parentPhotoSaving, setParentPhotoSaving] = React.useState(false);
 
     React.useEffect(() => {
         let active = true;
@@ -78,15 +81,40 @@ export default function AdminSettings() {
                 if (!active) return;
                 const saved = settings.result_ranking_method;
                 setRankingMethod(saved === 'attendance_tiebreak' || saved === 'dense' ? saved : 'competition');
+                setParentPhotoUploadEnabled(settings.allow_parent_profile_photo_upload === 'true');
             })
             .catch(() => {
-                // The safe server default is standard competition ranking.
+                // The safe server default is standard competition ranking,
+                // and parent profile uploads stay disabled.
             })
             .finally(() => {
-                if (active) setRankingLoading(false);
+                if (active) {
+                    setRankingLoading(false);
+                    setParentPhotoLoading(false);
+                }
             });
         return () => { active = false; };
     }, []);
+
+    const handleParentPhotoUploadChange = async (next: boolean) => {
+        if (parentPhotoSaving || parentPhotoLoading) return;
+        const previous = parentPhotoUploadEnabled;
+        setParentPhotoUploadEnabled(next);
+        setParentPhotoSaving(true);
+        try {
+            await SchoolSettingsService.updateSettings({
+                allow_parent_profile_photo_upload: next ? 'true' : 'false',
+            });
+        } catch {
+            setParentPhotoUploadEnabled(previous);
+            alertCompat(
+                'Could not save parent photo permission',
+                'Only an authorised administrator can change whether parents may upload profile pictures.',
+            );
+        } finally {
+            setParentPhotoSaving(false);
+        }
+    };
 
     const handleRankingMethodChange = async (next: ResultRankingMethod) => {
         if (rankingSaving || next === rankingMethod) return;
@@ -213,6 +241,40 @@ export default function AdminSettings() {
                                 onValueChange={(val) => { i18n.changeLanguage(val ? 'te' : 'en').catch(console.error); }}
                                 value={i18n.language === 'te'}
                             />
+                        }
+                    />
+                </Group>
+
+                {/* ── Parent portal permissions ── */}
+                <Group
+                    title="Parent Portal"
+                    subtitle="Parent screens stay the same. The server enforces this permission."
+                    delay={190}
+                    theme={theme}
+                >
+                    <SettingRow
+                        icon="camera"
+                        iconColor="#10B981"
+                        iconBg="#ECFDF5"
+                        label="Parent profile pictures"
+                        sublabel={
+                            parentPhotoUploadEnabled
+                                ? 'Parents can upload and remove their profile picture'
+                                : 'Parents cannot upload or remove a profile picture'
+                        }
+                        isLast
+                        rightElement={
+                            parentPhotoLoading ? (
+                                <ActivityIndicator color="#10B981" />
+                            ) : (
+                                <Switch
+                                    trackColor={{ false: theme.colors.border, true: '#34D399' }}
+                                    thumbColor="#fff"
+                                    disabled={parentPhotoSaving}
+                                    onValueChange={handleParentPhotoUploadChange}
+                                    value={parentPhotoUploadEnabled}
+                                />
+                            )
                         }
                     />
                 </Group>
