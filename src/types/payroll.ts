@@ -13,9 +13,33 @@ export interface PayrollEntry {
     payroll_month: number;
     payroll_year: number;
     payment_method: string | null;
+    payment_reference?: string | null;
     remarks: string | null;
     created_at: string;
     updated_at: string;
+    calculation_engine?: string | null;
+    workflow_status?: string | null;
+    requires_review?: boolean;
+    review_reason?: string | null;
+    attendance_summary?: {
+        input_mode: 'SYSTEM_DAILY' | 'MANUAL_SUMMARY';
+        cl_days: string | null;
+        non_cl_days: string | null;
+        late_count: number | null;
+        provider_name?: string | null;
+        supporting_reference?: string | null;
+        reason?: string | null;
+        verified?: boolean;
+        version: number;
+    } | null;
+    holiday_override?: {
+        holiday_count: number;
+        source?: string | null;
+        provider_name?: string | null;
+        supporting_reference?: string | null;
+        reason?: string | null;
+        version: number;
+    } | null;
 
     // Relations
     staff?: {

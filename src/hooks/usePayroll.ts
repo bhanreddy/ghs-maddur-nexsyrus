@@ -47,13 +47,22 @@ export function usePayroll(options?: { isAdmin?: boolean }) {
         setLoading(false);
     }, [selectedMonth, selectedYear, fetchDistributionStatus, recomputeSummary]);
 
-    const markAsPaid = async (id: string): Promise<PayrollActionResult> => {
-        const result = await PayrollService.markAsPaid(id);
+    const markAsPaid = async (
+        id: string,
+        options?: { engine?: string | null; paymentReference?: string; force?: boolean },
+    ): Promise<PayrollActionResult> => {
+        const result = await PayrollService.markAsPaid(id, options);
         if (result.ok) {
             setPayrollData(prev => {
                 const next = prev.map(item =>
                     item.id === id
-                        ? { ...item, status: 'paid' as const, payment_date: new Date().toISOString().split('T')[0] }
+                        ? {
+                            ...item,
+                            status: 'paid' as const,
+                            workflow_status: 'PAID',
+                            payment_date: new Date().toISOString().split('T')[0],
+                            payment_reference: options?.paymentReference || item.payment_reference || null,
+                          }
                         : item
                 );
                 recomputeSummary(next);

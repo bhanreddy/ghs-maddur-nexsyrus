@@ -20,7 +20,7 @@ import { StaffMyProfile, StaffService } from '../../src/services/staffService';
 import { SchoolProfile, SchoolService } from '../../src/services/schoolService';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useTheme } from '../../src/hooks/useTheme';
-import { downloadPayslipPdf, PayslipPdfRow } from '../../src/utils/payslipPdf';
+import { downloadPayslipPdf, payslipAttendanceRows, PayslipPdfRow } from '../../src/utils/payslipPdf';
 import { bundledAssetToBase64Uri, resolveApiAssetUrl, toBase64Uri } from '../../src/utils/toBase64Uri';
 import { SCHOOL_LOGO } from '../../src/constants/school';
 import { Theme } from '../../src/theme/themes';
@@ -197,9 +197,13 @@ export default function PaySlip() {
                     <Text style={styles.wordsText}>{item.amount_in_words}</Text>
                   ) : null}
                   {item.attendance ? (
-                    <Text style={styles.summaryLine}>
-                      {item.calendar_days ?? '—'} calendar days · {item.employment_days ?? '—'} employment days · {item.attendance.totalLates ?? 0} lates · CL used {item.attendance.clUsed ?? 0}
-                    </Text>
+                    <View style={styles.lineList}>
+                      {payslipAttendanceRows(item.attendance, item.per_day_salary).map((row) => (
+                        <Text key={`${item.id}-${row.label}`} style={styles.summaryLine}>
+                          {row.label}: {row.value}
+                        </Text>
+                      ))}
+                    </View>
                   ) : null}
                   {item.lines?.length ? (
                     <View style={styles.lineList}>

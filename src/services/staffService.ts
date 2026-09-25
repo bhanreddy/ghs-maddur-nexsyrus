@@ -25,6 +25,8 @@ export interface Staff {
     dob?: string | null;
     gender?: string | null;
     address?: string | null;
+    /** Current effective locality. Null when the staff member has none. */
+    locality_classification?: 'LOCAL' | 'NON_LOCAL' | null;
 }
 
 /** GET /staff returns a paginated envelope from the backend. */
@@ -88,6 +90,7 @@ export interface CreateStaffRequest {
 
     password: string;
     role_code?: string;
+    locality_classification?: 'LOCAL' | 'NON_LOCAL' | null;
 }
 
 // Legacy structure if needed, but easier to use flattened

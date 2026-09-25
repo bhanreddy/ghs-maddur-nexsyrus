@@ -19,7 +19,7 @@ const EXACT: Record<string, string> = {
   '/accounts/omr-print': 'Print OMR Sheets',
   '/accounts/certificate-generator': 'Certificates',
   '/accounts/expenses': 'Expense Tracker',
-  '/accounts/payroll': 'Payroll',
+  '/accounts/payroll': 'Staff Payroll',
   '/accounts/addStaff': 'Add Staff',
   '/accounts/addStudent': 'Add Student',
   '/accounts/addAdmin': 'Add Admin',
