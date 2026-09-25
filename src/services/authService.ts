@@ -153,6 +153,74 @@ async function recoverSessionWithSavedLogin(
   }
 }
 
+type SavedSessionRecovery = {
+  session: Session | null;
+  method: 'password' | 'qr' | null;
+  error?: string;
+  code?: string;
+};
+
+/**
+ * Replay a previously scanned school QR only after refresh-token and password
+ * recovery are unavailable. The backend still enforces expiry, revocation,
+ * school ownership, and active-student status on every replay.
+ */
+async function recoverSessionWithSavedQr(
+  prior: Pick<AuthSession, 'validatedUser'>
+): Promise<SavedSessionRecovery> {
+  const credential = await accountVault.getQrRecoveryCredential(
+    prior.validatedUser.userId
+  );
+  if (!credential) return { session: null, method: null };
+
+  beginInternalSwap();
+  try {
+    const exchange = await api.post<{
+      token?: string;
+      refresh_token?: string;
+      tokenHash?: string;
+      type?: 'magiclink' | 'email';
+    }>(
+      '/auth/qr/resolve',
+      { qrPayload: credential.qrPayload },
+      {
+        silent: true,
+        timeoutMs: 20000,
+        omitAuth: true,
+        headers: { 'X-Request-Id': createQrLoginRequestId() },
+      }
+    );
+    const established = await establishQrSupabaseSession(exchange);
+    if (
+      !established?.session ||
+      established.userId !== prior.validatedUser.userId
+    ) {
+      return {
+        session: null,
+        method: 'qr',
+        error: "We couldn't restore this saved QR login. Scan the QR again.",
+        code: 'QR_SESSION_CREATE_FAILED',
+      };
+    }
+    return { session: established.session, method: 'qr' };
+  } catch (error: any) {
+    const mapped = mapQrExchangeError(error);
+    return { session: null, method: 'qr', ...mapped };
+  } finally {
+    endInternalSwap();
+  }
+}
+
+async function recoverSessionWithSavedCredential(
+  prior: Pick<AuthSession, 'validatedUser'>
+): Promise<SavedSessionRecovery> {
+  const passwordSession = await recoverSessionWithSavedLogin(prior);
+  if (passwordSession) {
+    return { session: passwordSession, method: 'password' };
+  }
+  return recoverSessionWithSavedQr(prior);
+}
+
 function vaultAccountAsPrior(target: VaultAccount): Pick<AuthSession, 'validatedUser'> {
   return { validatedUser: target.validatedUser };
 }
@@ -170,6 +238,27 @@ async function saveRecoveryCredentialReliably(
         email,
         password
       );
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 50 * Math.pow(2, attempt))
+        );
+      }
+    }
+  }
+  throw lastError;
+}
+
+async function saveQrRecoveryCredentialReliably(
+  userId: string,
+  qrPayload: string
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await accountVault.saveQrRecoveryCredential(userId, qrPayload);
       return;
     } catch (error) {
       lastError = error;
@@ -274,7 +363,7 @@ async function establishQrSupabaseSession(exchange: {
 async function completeAdditiveVaultLogin(
   supabaseSession: Session,
   previousActiveUserId: string | null,
-  recovery?: { email: string; password: string }
+  recovery?: { email: string; password: string } | { qrPayload: string }
 ): Promise<{ session?: AuthSession; error?: string }> {
   try {
     const validatedUser = await api.post<ValidatedUser>('/auth/validate-school-user', {}, {
@@ -299,11 +388,16 @@ async function completeAdditiveVaultLogin(
     };
 
     await accountVault.addAccount(accountVault.buildVaultAccount(authSession));
-    if (recovery) {
+    if (recovery && 'email' in recovery) {
       await saveRecoveryCredentialReliably(
         authSession.validatedUser.userId,
         recovery.email,
         recovery.password
+      );
+    } else if (recovery && 'qrPayload' in recovery) {
+      await saveQrRecoveryCredentialReliably(
+        authSession.validatedUser.userId,
+        recovery.qrPayload
       );
     }
 
@@ -450,10 +544,10 @@ function mapSwitchErrorMessage(message?: string): string {
   const raw = message || "Could not restore this account's session";
   const lower = raw.toLowerCase();
   if (lower.includes('refresh token') || lower.includes('invalid') || lower.includes('expired')) {
-    return 'This saved login expired. Remove it from the list, then add it again with email and password.';
+    return 'This saved login expired. Add it again with email and password, or scan its school QR.';
   }
   if (lower.includes('could not restore')) {
-    return 'This saved login expired. Remove it from the list, then add it again with email and password.';
+    return 'This saved login expired. Add it again with email and password, or scan its school QR.';
   }
   return raw;
 }
@@ -559,9 +653,9 @@ async function restorePersistedSessionCore(): Promise<AuthSession | null> {
     }
   }
 
-  const recovered = await recoverSessionWithSavedLogin(prior);
-  if (!recovered) return null;
-  return persistSessionFromRefresh(recovered, prior.validatedUser);
+  const recovered = await recoverSessionWithSavedCredential(prior);
+  if (!recovered.session) return null;
+  return persistSessionFromRefresh(recovered.session, prior.validatedUser);
 }
 
 export const clearAuthState = async (): Promise<void> => {
@@ -642,11 +736,14 @@ async function doSwitchAccount(
       }
     }
 
-    // Refresh dead or setSession rejected → rebuild from durable login credential.
+    // Refresh dead or setSession rejected → rebuild from the saved password
+    // or school QR credential, depending on how this account was added.
     if (!liveSession) {
-      const recovered = await recoverSessionWithSavedLogin(vaultAccountAsPrior(target));
-      if (recovered) {
-        liveSession = recovered;
+      const recovered = await recoverSessionWithSavedCredential(vaultAccountAsPrior(target));
+      if (recovered.session) {
+        liveSession = recovered.session;
+      } else if (recovered.method === 'qr') {
+        setSessionError = recovered.error || setSessionError;
       }
     }
 
@@ -718,7 +815,9 @@ async function finalizeSwitchedSession(
   return { session: newActive };
 }
 
-type RecoveryCredential = { email: string; password: string };
+type RecoveryCredential =
+  | { email: string; password: string }
+  | { qrPayload: string };
 
 /** Shared post-auth pipeline. Supabase issues the session; SchoolIMS validates
  * its tenant, account status, role, profile, and device ownership. */
@@ -766,11 +865,16 @@ async function finalizeSupabaseSignIn(
     try {
       await accountVault.addAccount(accountVault.buildVaultAccount(authSession));
       await accountVault.setActiveAccountId(authSession.validatedUser.userId);
-      if (recoveryCredential) {
+      if (recoveryCredential && 'email' in recoveryCredential) {
         await saveRecoveryCredentialReliably(
           authSession.validatedUser.userId,
           recoveryCredential.email,
           recoveryCredential.password,
+        );
+      } else if (recoveryCredential && 'qrPayload' in recoveryCredential) {
+        await saveQrRecoveryCredentialReliably(
+          authSession.validatedUser.userId,
+          recoveryCredential.qrPayload,
         );
       }
     } catch (vaultErr) {
@@ -959,7 +1063,7 @@ export const AuthService = {
           code: 'QR_SESSION_CREATE_FAILED',
         };
       }
-      const result = await finalizeSupabaseSignIn(established.session, established.userId, undefined, {
+      const result = await finalizeSupabaseSignIn(established.session, established.userId, { qrPayload }, {
         requestId,
         omitAuth: true,
       });
@@ -1053,7 +1157,7 @@ export const AuthService = {
             code: 'QR_SESSION_CREATE_FAILED',
           };
         }
-        return completeAdditiveVaultLogin(established.session, previousActiveUserId);
+        return completeAdditiveVaultLogin(established.session, previousActiveUserId, { qrPayload });
       } catch (error: any) {
         if (previousActiveUserId) {
           try { await doSwitchAccount(previousActiveUserId); } catch { /* best-effort */ }
@@ -1069,7 +1173,7 @@ export const AuthService = {
    * Serialized onto the swap chain (race-safe under rapid A→B→A). Delegates to
    * the shared doSwitchAccount core. Never prompts for a password; if the
    * stored refresh token is dead it silently rebuilds the session from the
-   * durable login credential saved at sign-in / add-account time.
+   * durable password or QR credential saved at sign-in / add-account time.
    */
   switchAccount: (userId: string): Promise<{ session?: AuthSession; error?: string }> =>
     enqueueSwap(() => doSwitchAccount(userId)),
@@ -1145,9 +1249,9 @@ export const AuthService = {
           // previously completed a successful password login on this device.
           // Do not erase the cached app session before trying that recovery.
           if (prior?.validatedUser) {
-            const recovered = await recoverSessionWithSavedLogin(prior);
-            if (recovered) {
-              refreshData = { ...refreshData, session: recovered };
+            const recovered = await recoverSessionWithSavedCredential(prior);
+            if (recovered.session) {
+              refreshData = { ...refreshData, session: recovered.session };
               refreshError = null;
             } else {
               console.warn(

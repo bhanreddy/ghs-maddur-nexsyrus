@@ -119,8 +119,8 @@ export interface MySubstitution {
 }
 
 export const SubstitutionService = {
-  getBoard(date: string): Promise<SubstitutionBoard> {
-    return api.get<SubstitutionBoard>('/substitutions/board', { date });
+  getBoard(date: string, scope: 'affected' | 'all' = 'affected'): Promise<SubstitutionBoard> {
+    return api.get<SubstitutionBoard>('/substitutions/board', { date, scope });
   },
 
   getCandidates(date: string, slotId: string): Promise<CandidateResponse> {
@@ -135,6 +135,7 @@ export const SubstitutionService = {
     slot_id: string;
     substitute_teacher_id: string;
     reason?: string;
+    supersede_substitution_id?: string;
   }): Promise<{ message: string; substitution: unknown }> {
     return api.post('/substitutions', data, { silent: true });
   },

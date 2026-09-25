@@ -55,6 +55,8 @@ jest.mock('./accountVault', () => ({
   getBackupRefreshTokenForUser: jest.fn(async () => null),
   getLoginRecoveryCredential: jest.fn(async () => null),
   saveLoginRecoveryCredential: jest.fn(async () => {}),
+  getQrRecoveryCredential: jest.fn(async () => null),
+  saveQrRecoveryCredential: jest.fn(async () => {}),
   listAccounts: jest.fn(async () => []),
   getActiveAccountId: jest.fn(async () => null),
   setActiveAccountId: jest.fn(async () => {}),
@@ -82,6 +84,7 @@ import { AuthService } from './authService';
 
 const { supabase } = require('./supabaseConfig');
 const { api, APIError } = require('./apiClient');
+const accountVault = require('./accountVault');
 
 const qrPayload = JSON.stringify({
   type: 'SCHOOLIMS_LOGIN',
@@ -137,6 +140,10 @@ describe('AuthService QR login', () => {
       refresh_token: 'qr-refresh',
     });
     expect(supabase.auth.verifyOtp).not.toHaveBeenCalled();
+    expect(accountVault.saveQrRecoveryCredential).toHaveBeenCalledWith(
+      'user-17',
+      qrPayload,
+    );
     expect(result.session?.validatedUser.userId).toBe('user-17');
     expect(result.error).toBeUndefined();
   });
@@ -217,5 +224,54 @@ describe('AuthService QR login', () => {
     expect(result.session).toBeUndefined();
     expect(result.code).toBe('QR_SCHOOL_MISMATCH');
     expect(supabase.auth.signOut).toHaveBeenCalled();
+  });
+
+  it('restores a QR account from its saved QR when the refresh token is dead', async () => {
+    const expiredSession = {
+      ...supabaseSession,
+      access_token: 'expired-access',
+      refresh_token: 'expired-refresh',
+      expires_at: Math.floor(Date.now() / 1000) - 60,
+    };
+    accountVault.listAccounts.mockResolvedValueOnce([{
+      userId: 'user-17',
+      displayName: 'Student',
+      photoUrl: null,
+      admissionNo: 'A-17',
+      supabaseSession: expiredSession,
+      validatedUser,
+    }]);
+    accountVault.getQrRecoveryCredential.mockResolvedValueOnce({
+      qrPayload,
+      updatedAt: Date.now(),
+    });
+    api.post
+      .mockResolvedValueOnce({
+        token: 'qr-recovered-access',
+        refresh_token: 'qr-recovered-refresh',
+      })
+      .mockResolvedValueOnce(validatedUser);
+    const recoveredSession = {
+      ...supabaseSession,
+      access_token: 'qr-recovered-access',
+      refresh_token: 'qr-recovered-refresh',
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    };
+    supabase.auth.setSession.mockResolvedValue({
+      data: { session: recoveredSession, user: recoveredSession.user },
+      error: null,
+    });
+
+    const result = await AuthService.switchAccount('user-17');
+
+    expect(api.post).toHaveBeenNthCalledWith(
+      1,
+      '/auth/qr/resolve',
+      { qrPayload },
+      expect.objectContaining({ omitAuth: true, silent: true }),
+    );
+    expect(result.error).toBeUndefined();
+    expect(result.session?.supabaseSession.access_token).toBe('qr-recovered-access');
+    expect(accountVault.setActiveAccountId).toHaveBeenCalledWith('user-17');
   });
 });

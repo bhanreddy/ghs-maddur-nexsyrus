@@ -129,6 +129,20 @@ describe('accountVault.removeAccount fingerprint cleanup', () => {
     );
   });
 
+  it('persists a QR recovery credential and deletes only the removed account QR', async () => {
+    await accountVault.addAccount(account('student-1', 'student'));
+    await accountVault.addAccount(account('student-2', 'student'));
+    await accountVault.saveQrRecoveryCredential('student-1', '  qr-payload-1  ');
+    await accountVault.saveQrRecoveryCredential('student-2', 'qr-payload-2');
+
+    await accountVault.removeAccount('student-1');
+
+    await expect(accountVault.getQrRecoveryCredential('student-1')).resolves.toBeNull();
+    await expect(accountVault.getQrRecoveryCredential('student-2')).resolves.toEqual(
+      expect.objectContaining({ qrPayload: 'qr-payload-2' })
+    );
+  });
+
   it('reads July legacy credential envelopes after an app update', async () => {
     secureTokenStore.__store.set(
       'vault_login_credentials_v1',
