@@ -30,10 +30,10 @@ import DashboardMenuOverlay from '../../src/components/DashboardMenuOverlay';
 import DashboardWebSidebar, {
   DASHBOARD_SIDEBAR_COLLAPSED,
   DASHBOARD_SIDEBAR_EXPANDED,
-  type WebSidebarActionItem,
 } from '../../src/components/DashboardWebSidebar';
 import { useAdminWebChrome } from '../../src/contexts/AdminWebChromeContext';
-import { buildAdminNavActions } from '../../src/constants/adminNav';
+import { buildAdminQuickActions } from '../../src/constants/adminQuickActions';
+import { useAdminSidebarItems } from '../../src/hooks/useAdminSidebarItems';
 import { useAnalytics } from '../../src/hooks/useAnalytics';
 import { usePersistedSWR } from '../../src/hooks/usePersistedSWR';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1356,7 +1356,7 @@ export default function AdminDashboard() {
 
   const quickActions: ActionItem[] = useMemo(
     () =>
-      buildAdminNavActions(t).map((item) => ({
+      buildAdminQuickActions(t).map((item) => ({
         ...item,
         badge:
           item.route === '/admin/diary/viewer'
@@ -1401,47 +1401,10 @@ export default function AdminDashboard() {
     router.push(`/admin/analytics/${metric}${query}` as any);
   }, [router]);
 
-  const sidebarItems = useMemo<WebSidebarActionItem[]>(
-    () => [
-      {
-        title: t('Dashboard', 'Dashboard'),
-        icon: 'grid-outline',
-        route: '/admin/dashboard',
-        gradient: ['#3B82F6', '#1D4ED8'],
-        category: 'Overview',
-      },
-      {
-        title: t('admin_dashboard_v2.total_students', 'Students'),
-        icon: 'people-outline',
-        route: '/admin/students',
-        gradient: ['#3B82F6', '#1D4ED8'],
-        category: 'Overview',
-      },
-      {
-        title: t('admin_dashboard_v2.staff_present', 'Staff Present'),
-        icon: 'checkmark-circle-outline',
-        route: '/admin/attendance',
-        gradient: ['#10B981', '#047857'],
-        category: 'Overview',
-      },
-      {
-        title: t('admin_dashboard_v2.collection', 'Collection'),
-        icon: 'wallet-outline',
-        route: '/admin/finance',
-        gradient: ['#F59E0B', '#B45309'],
-        category: 'Overview',
-      },
-      ...permittedQuickActions.map((item) => ({
-        title: item.title,
-        icon: item.icon,
-        route: item.route,
-        gradient: item.gradient ?? TIER[item.tier].g,
-        badge: item.badge,
-        category: item.category,
-      })),
-    ],
-    [t, permittedQuickActions],
-  );
+  const sidebarItems = useAdminSidebarItems({
+    diaryToday: dashboardData?.diaryEntriesToday,
+    pendingRequests: pendingRequestsCount,
+  });
 
   /** ⚡PERF: chunk quick actions into rows so Android only mounts ~2 rows at a time */
   const actionRows = useMemo(() => {

@@ -1,29 +1,14 @@
-import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import type { TFunction } from 'i18next';
-
-export type AdminNavIconName = React.ComponentProps<typeof Ionicons>['name'];
-export type AdminNavTier = 'PRIMARY' | 'FINANCE' | 'ACADEMIC' | 'OPS' | 'ADMIN';
-
-export interface AdminNavAction {
-  title: string;
-  icon: AdminNavIconName;
-  route: string;
-  tier: AdminNavTier;
-  gradient: [string, string];
-  category: string;
-  /** RBAC permission required to see this entry (optional). */
-  permission?: string;
-}
+import type { AdminNavAction } from './adminNav.types';
 
 /**
- * Canonical admin navigation list — the single source of truth shared by the
- * dashboard quick-action grid and the persistent web sidebar (see
- * `useAdminSidebarItems`). Keep new admin sections here so both surfaces stay
- * in sync. Dynamic badges (diary count, access requests) are layered on by the
- * consumer, not stored here.
+ * Admin sidebar catalogue.
+ *
+ * Sidebar visibility is intentionally independent of dashboard Quick Actions
+ * (`adminQuickActions.ts`). Adding an entry here does not create a Quick Action
+ * card. Dynamic badges are layered on by the consumer, not stored here.
  */
-export function buildAdminNavActions(t: TFunction): AdminNavAction[] {
+export function buildAdminSidebarNavActions(t: TFunction): AdminNavAction[] {
   return [
     { title: 'Website Gallery', icon: 'images-outline', route: '/admin/website-gallery', tier: 'OPS', gradient: ['#0F766E', '#2563EB'], category: 'Website', permission: 'admin.manage' },
     { title: 'Daily Content', icon: 'newspaper-outline', route: '/admin/content', tier: 'OPS', gradient: ['#1E3A8A', '#3B82F6'], category: 'Comms', permission: 'content.view' },

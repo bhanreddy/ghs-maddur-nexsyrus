@@ -1,5 +1,5 @@
-import type { AdminNavIconName } from './adminNav';
-import { buildAdminNavActions } from './adminNav';
+import type { AdminNavIconName } from './adminNav.types';
+import { buildAdminSidebarNavActions } from './adminSidebarNav';
 import type { TFunction } from 'i18next';
 
 export type AdminSearchKind = 'page' | 'action';
@@ -151,7 +151,8 @@ export const ADMIN_SEARCH_SUGGESTIONS: { title: string; query: string; icon: Adm
 
 /**
  * Full searchable catalogue for the admin web command palette.
- * Built from the canonical nav list plus secondary screens.
+ * Built from the sidebar catalogue plus secondary screens. Sidebar-only
+ * destinations stay searchable even when they are not Quick Action cards.
  */
 export function buildAdminSearchIndex(t: TFunction): AdminSearchEntry[] {
   const dashboard: AdminSearchEntry = {
@@ -165,7 +166,7 @@ export function buildAdminSearchIndex(t: TFunction): AdminSearchEntry[] {
     kind: 'page',
   };
 
-  const fromNav: AdminSearchEntry[] = buildAdminNavActions(t).map((item) => ({
+  const fromNav: AdminSearchEntry[] = buildAdminSidebarNavActions(t).map((item) => ({
     id: `nav-${item.route}`,
     title: item.title,
     subtitle: item.category,

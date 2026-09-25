@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -39,13 +39,8 @@ import {
   buildPeriodDisplayMap,
   getSlotDisplayInfo,
 } from '../../src/utils/substitutionPeriodNumbering';
-import {
-  filterManualPickerSlots,
-  hasManualSubstitutionReason,
-  isEligibleManualPickerSlot,
-  isManualSubstitution,
-  regularTeacherMetaLabel,
-} from '../../src/utils/manualSubstitutionSlots';
+import { regularTeacherMetaLabel } from '../../src/utils/manualSubstitutionSlots';
+import ManualPlanningBoard from '../../src/components/admin/substitutions/ManualPlanningBoard';
 
 type BoardView = 'time' | 'class';
 
@@ -102,12 +97,17 @@ export default function DailySubstitutionsScreen() {
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [assignmentSource, setAssignmentSource] = useState<'board' | 'manual'>('board');
-  const [manualVisible, setManualVisible] = useState(false);
-  const [manualPaused, setManualPaused] = useState(false);
-  const [manualBoard, setManualBoard] = useState<SubstitutionBoard | null>(null);
-  const [manualLoading, setManualLoading] = useState(false);
-  const [manualError, setManualError] = useState<string | null>(null);
-  const [manualQuery, setManualQuery] = useState('');
+  const [planningOpen, setPlanningOpen] = useState(false);
+  const [planningBoard, setPlanningBoard] = useState<SubstitutionBoard | null>(null);
+  const [planningLoading, setPlanningLoading] = useState(false);
+  const [planningRefreshing, setPlanningRefreshing] = useState(false);
+  const [planningError, setPlanningError] = useState<string | null>(null);
+  const [planningNotice, setPlanningNotice] = useState<{ slotId: string; title: string; detail: string } | null>(null);
+  const planningBoardRef = useRef<SubstitutionBoard | null>(null);
+  const planningRequestRef = useRef(0);
+  const assignLock = useRef(false);
+  const openingRef = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const loadBoard = useCallback(async (nextDate = date, pull = false) => {
     if (pull) setRefreshing(true);
@@ -126,14 +126,44 @@ export default function DailySubstitutionsScreen() {
     }
   }, [date]);
 
+  const loadPlanning = useCallback(async (nextDate: string) => {
+    const requestId = ++planningRequestRef.current;
+    const hasCurrent = planningBoardRef.current?.date === nextDate;
+    if (hasCurrent) setPlanningRefreshing(true);
+    else setPlanningLoading(true);
+    setPlanningError(null);
+    try {
+      const data = await SubstitutionService.getBoard(nextDate, 'all');
+      if (planningRequestRef.current !== requestId) return;
+      planningBoardRef.current = data;
+      setPlanningBoard(data);
+    } catch (error: any) {
+      if (planningRequestRef.current !== requestId) return;
+      setPlanningError(error?.message || 'Please try again.');
+      if (!hasCurrent) {
+        planningBoardRef.current = null;
+        setPlanningBoard(null);
+      }
+    } finally {
+      if (planningRequestRef.current === requestId) {
+        setPlanningLoading(false);
+        setPlanningRefreshing(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     setTeacherFilter('');
-    setManualVisible(false);
-    setManualPaused(false);
     setSheetVisible(false);
     setAssignmentSource('board');
+    setPlanningNotice(null);
     loadBoard(date);
   }, [date, loadBoard]);
+
+  useEffect(() => {
+    if (!planningOpen) return;
+    loadPlanning(date);
+  }, [planningOpen, date, loadPlanning]);
 
   const periodMap = useMemo(() => buildPeriodDisplayMap(board?.periods || []), [board?.periods]);
 
@@ -224,32 +254,32 @@ export default function DailySubstitutionsScreen() {
   const closeCandidateSheet = () => {
     if (saving) return;
     setSheetVisible(false);
-    if (assignmentSource === 'manual') setManualPaused(false);
+    setAssignmentSource('board');
   };
 
-  const openManualPicker = async () => {
-    setManualVisible(true);
-    setManualPaused(false);
-    setManualQuery('');
-    setManualError(null);
-    setManualBoard(null);
-    setManualLoading(true);
-    try {
-      const data = await SubstitutionService.getBoard(date, 'all');
-      setManualBoard(data);
-    } catch (error: any) {
-      setManualError(error?.message || 'Please try again.');
-    } finally {
-      setManualLoading(false);
-    }
+  const openPlanning = () => {
+    if (planningBoardRef.current?.date !== date) setPlanningLoading(true);
+    setPlanningError(null);
+    setPlanningOpen(true);
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
+  };
+
+  const closePlanning = () => {
+    if (saving) return;
+    setSheetVisible(false);
+    setPlanningOpen(false);
+    setAssignmentSource('board');
+    setPlanningNotice(null);
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
   };
 
   const openAssignment = async (slot: SubstitutionSlot, source: 'board' | 'manual' = 'board') => {
+    if (openingRef.current || saving) return;
     if (!slot.regular_teacher_id) {
       alertCompat('Regular teacher required', 'Assign a regular teacher in the timetable before arranging cover.');
-      if (source === 'manual') setManualPaused(false);
       return;
     }
+    openingRef.current = true;
     setAssignmentSource(source);
     setTargetSlot(slot);
     setCandidateData(null);
@@ -264,45 +294,51 @@ export default function DailySubstitutionsScreen() {
     } catch (error: any) {
       alertCompat('Could not find available teachers', error?.message || 'Please try again.');
       setSheetVisible(false);
-      if (source === 'manual') setManualPaused(false);
+      setAssignmentSource('board');
     } finally {
       setCandidatesLoading(false);
+      openingRef.current = false;
     }
   };
 
-  const reasonRequired = assignmentSource === 'manual' || (targetSlot ? isManualSubstitution(targetSlot) : false);
-
   const assign = async () => {
-    if (!targetSlot || !selectedCandidate) return;
-    if (reasonRequired && !hasManualSubstitutionReason(reason)) {
-      alertCompat('Reason required', 'Enter a short reason so this manual substitution can be audited.');
-      return;
-    }
+    if (!targetSlot || !selectedCandidate || assignLock.current || saving) return;
+    assignLock.current = true;
     setSaving(true);
+    const fromPlanning = assignmentSource === 'manual';
+    const slotSnapshot = targetSlot;
+    const teacherName = selectedCandidate.teacher_name;
     try {
       await SubstitutionService.assign({
         date,
-        slot_id: targetSlot.slot_id,
+        slot_id: slotSnapshot.slot_id,
         substitute_teacher_id: selectedCandidate.id,
         reason: reason.trim(),
         supersede_substitution_id:
-          targetSlot.substitution_id && !targetSlot.is_auto_suggested
-            ? targetSlot.substitution_id
+          slotSnapshot.substitution_id && !slotSnapshot.is_auto_suggested
+            ? slotSnapshot.substitution_id
             : undefined,
       });
       setSheetVisible(false);
-      setManualVisible(false);
-      setManualPaused(false);
-      setManualBoard(null);
       setAssignmentSource('board');
-      await loadBoard(date);
-      alertCompat(
-        'Cover assigned',
-        `${selectedCandidate.teacher_name} will cover ${classLabel(targetSlot)} for this date only.`
-      );
+      if (fromPlanning) {
+        setPlanningNotice({
+          slotId: slotSnapshot.slot_id,
+          title: 'Cover assigned',
+          detail: `${teacherName} will cover ${classLabel(slotSnapshot)} for this date only. The regular timetable resumes the next day.`,
+        });
+        await Promise.all([loadBoard(date), loadPlanning(date)]);
+      } else {
+        await loadBoard(date);
+        alertCompat(
+          'Cover assigned',
+          `${teacherName} will cover ${classLabel(slotSnapshot)} for this date only.`
+        );
+      }
     } catch (error: any) {
       alertCompat('Could not assign cover', error?.message || 'Please refresh and try again.');
     } finally {
+      assignLock.current = false;
       setSaving(false);
     }
   };
@@ -343,12 +379,16 @@ export default function DailySubstitutionsScreen() {
       {!shellActive && <AdminHeader title="Daily Substitutions" showBackButton />}
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => loadBoard(date, true)}
+            onRefresh={() => {
+              loadBoard(date, true);
+              if (planningOpen) loadPlanning(date);
+            }}
             tintColor={c.primary}
           />
         }
@@ -410,6 +450,7 @@ export default function DailySubstitutionsScreen() {
                 accentColor={c.primary}
               />
             </View>
+            {!planningOpen ? (
             <View style={styles.viewCell}>
               <Text style={styles.controlLabel}>ORGANISE BY</Text>
               <View style={styles.segment}>
@@ -429,8 +470,10 @@ export default function DailySubstitutionsScreen() {
                 />
               </View>
             </View>
+            ) : null}
           </View>
 
+          {!planningOpen ? (
           <View style={styles.searchWrap}>
             <Ionicons name="search-outline" size={18} color={c.muted} />
             <AppTextInput
@@ -446,7 +489,10 @@ export default function DailySubstitutionsScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
+          ) : null}
 
+          {!planningOpen ? (
+          <>
           <Text style={[styles.controlLabel, { marginTop: 18 }]}>UNAVAILABLE TEACHER</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teacherChips}>
             <FilterChip
@@ -469,16 +515,20 @@ export default function DailySubstitutionsScreen() {
               />
             ))}
           </ScrollView>
+          </>
+          ) : null}
 
           <TouchableOpacity
-            onPress={openManualPicker}
+            onPress={planningOpen ? closePlanning : openPlanning}
             activeOpacity={0.85}
-            style={styles.manualButton}
+            style={[styles.manualButton, planningOpen && styles.manualButtonSecondary]}
             accessibilityRole="button"
-            accessibilityLabel="Add manual substitution"
+            accessibilityLabel={planningOpen ? 'Back to substitutions overview' : 'Add manual substitution'}
           >
-            <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.manualButtonText}>Add manual substitution</Text>
+            <Ionicons name={planningOpen ? 'arrow-back' : 'add-circle-outline'} size={18} color={planningOpen ? c.primary : '#FFFFFF'} />
+            <Text style={[styles.manualButtonText, planningOpen && styles.manualButtonSecondaryText]}>
+              {planningOpen ? 'Back to substitutions' : 'Add manual substitution'}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.reportCallout}>
@@ -503,6 +553,21 @@ export default function DailySubstitutionsScreen() {
           </View>
         </View>
 
+        {planningOpen ? (
+          <ManualPlanningBoard
+            dateLabel={selectedDateLabel}
+            board={planningBoard?.date === date ? planningBoard : null}
+            loading={!(planningBoard?.date === date) && !planningError}
+            refreshing={planningRefreshing && planningBoard?.date === date}
+            error={planningError}
+            notice={planningNotice}
+            onDismissNotice={() => setPlanningNotice(null)}
+            onRetry={() => loadPlanning(date)}
+            onBack={closePlanning}
+            onSelectSlot={(slot) => openAssignment(slot, 'manual')}
+          />
+        ) : (
+        <>
         {/* Informational Banner: Attendance not recorded */}
         {board && board.attendance_recorded === false ? (
           <View style={styles.attendanceBanner}>
@@ -568,7 +633,7 @@ export default function DailySubstitutionsScreen() {
               No teachers are on approved leave or marked absent for {selectedDateLabel}. You can still add a manual substitution for any scheduled class. It applies to this date only, and the regular timetable resumes the next day.
             </Text>
             <TouchableOpacity
-              onPress={openManualPicker}
+              onPress={openPlanning}
               activeOpacity={0.85}
               style={[styles.manualButton, { marginTop: 16 }]}
               accessibilityRole="button"
@@ -642,28 +707,9 @@ export default function DailySubstitutionsScreen() {
             ))}
           </View>
         )}
+        </>
+        )}
       </ScrollView>
-
-      <ManualPickerSheet
-        visible={manualVisible && !manualPaused}
-        dateLabel={selectedDateLabel}
-        board={manualBoard}
-        loading={manualLoading}
-        error={manualError}
-        query={manualQuery}
-        onQueryChange={setManualQuery}
-        onSelect={(slot) => {
-          setManualPaused(true);
-          openAssignment(slot, 'manual');
-        }}
-        onRetry={openManualPicker}
-        onClose={() => {
-          setManualVisible(false);
-          setManualPaused(false);
-          setAssignmentSource('board');
-        }}
-        c={c}
-      />
 
       <CandidateSheet
         visible={sheetVisible}
@@ -674,7 +720,6 @@ export default function DailySubstitutionsScreen() {
         onSelect={setSelectedCandidate}
         reason={reason}
         onReasonChange={setReason}
-        reasonRequired={reasonRequired}
         saving={saving}
         onAssign={assign}
         onClose={closeCandidateSheet}
@@ -1108,145 +1153,6 @@ function SubstitutionCard({
   );
 }
 
-function ManualPickerSheet({
-  visible,
-  dateLabel,
-  board,
-  loading,
-  error,
-  query,
-  onQueryChange,
-  onSelect,
-  onRetry,
-  onClose,
-  c,
-}: {
-  visible: boolean;
-  dateLabel: string;
-  board: SubstitutionBoard | null;
-  loading: boolean;
-  error: string | null;
-  query: string;
-  onQueryChange: (value: string) => void;
-  onSelect: (slot: SubstitutionSlot) => void;
-  onRetry: () => void;
-  onClose: () => void;
-  c: ReturnType<typeof colors>;
-}) {
-  const styles = makeStyles(c);
-  const periodMap = useMemo(() => buildPeriodDisplayMap(board?.periods || []), [board?.periods]);
-  const eligibleCount = useMemo(
-    () => (board?.slots || []).filter(isEligibleManualPickerSlot).length,
-    [board?.slots],
-  );
-  const slots = useMemo(
-    () => filterManualPickerSlots(
-      board?.slots || [],
-      query,
-      (slot) => getSlotDisplayInfo(slot, periodMap).displayLabel,
-    ).sort((a, b) => a.period_number - b.period_number || classLabel(a).localeCompare(classLabel(b), undefined, { numeric: true })),
-    [board?.slots, periodMap, query],
-  );
-
-  if (!visible) return null;
-
-  return (
-    <Modal transparent visible animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <Animated.View
-        entering={SlideInDown.springify().damping(24).stiffness(260)}
-        exiting={SlideOutDown.duration(180)}
-        style={styles.sheet}
-      >
-        <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sheetEyebrow}>MANUAL SUBSTITUTION</Text>
-            <Text style={styles.sheetTitle}>Choose a class to cover</Text>
-            <Text style={styles.sheetSubtitle}>
-              {dateLabel}. This does not change the permanent timetable.
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onClose} style={styles.sheetClose} accessibilityLabel="Close manual substitution">
-            <Ionicons name="close" size={19} color={c.text} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={18} color={c.muted} />
-          <AppTextInput
-            value={query}
-            onChangeText={onQueryChange}
-            placeholder="Search class, section, subject, period or teacher"
-            placeholderTextColor={c.muted}
-            style={styles.searchInput}
-          />
-          {query ? (
-            <TouchableOpacity onPress={() => onQueryChange('')} style={styles.clearSearch}>
-              <Ionicons name="close" size={15} color={c.muted} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {loading ? (
-          <View style={styles.candidateLoading}>
-            <LogoLoader size={46} color={c.primary} />
-            <Text style={styles.loadingText}>Loading scheduled classes…</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.noCandidate}>
-            <Text style={styles.emptyTitle}>Could not load classes</Text>
-            <Text style={styles.emptyText}>{error}</Text>
-            <TouchableOpacity onPress={onRetry} style={styles.retryButton}>
-              <Ionicons name="refresh" size={16} color="#FFFFFF" />
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : eligibleCount === 0 ? (
-          <View style={styles.noCandidate}>
-            <Text style={styles.emptyTitle}>No class needs a new cover</Text>
-            <Text style={styles.emptyText}>
-              Breaks, periods without a regular teacher, and classes that already have a substitution are hidden.
-            </Text>
-          </View>
-        ) : slots.length === 0 ? (
-          <View style={styles.noCandidate}>
-            <Text style={styles.emptyTitle}>No matching classes</Text>
-            <Text style={styles.emptyText}>Try another class, section, subject, period, or teacher.</Text>
-          </View>
-        ) : (
-          <ScrollView style={styles.candidateList} contentContainerStyle={{ gap: 10, paddingBottom: 8 }}>
-            {slots.map((slot) => {
-              const period = getSlotDisplayInfo(slot, periodMap);
-              return (
-                <Pressable
-                  key={slot.slot_id}
-                  onPress={() => onSelect(slot)}
-                  style={styles.pickerRow}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Cover ${classLabel(slot)} ${slot.subject_name}`}
-                >
-                  <View style={styles.pickerPeriod}>
-                    <Text style={styles.pickerPeriodText}>{period.shortLabel || period.displayLabel}</Text>
-                    <Text style={styles.pickerTime}>{timeLabel(slot.start_time)}</Text>
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.pickerTitle}>{classLabel(slot)} · {slot.subject_name}</Text>
-                    <Text style={styles.pickerMeta} numberOfLines={1}>
-                      {slot.regular_teacher_name}
-                      {period.displayLabel ? ` · ${period.displayLabel}` : ''}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={c.muted} />
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-      </Animated.View>
-    </Modal>
-  );
-}
 
 function CandidateSheet({
   visible,
@@ -1257,7 +1163,6 @@ function CandidateSheet({
   onSelect,
   reason,
   onReasonChange,
-  reasonRequired,
   saving,
   onAssign,
   onClose,
@@ -1272,7 +1177,6 @@ function CandidateSheet({
   onSelect: (candidate: SubstituteCandidate) => void;
   reason: string;
   onReasonChange: (value: string) => void;
-  reasonRequired: boolean;
   saving: boolean;
   onAssign: () => void;
   onClose: () => void;
@@ -1375,27 +1279,23 @@ function CandidateSheet({
             </ScrollView>
 
             <View style={styles.reasonField}>
-              <Text style={styles.controlLabel}>
-                {reasonRequired ? 'REASON (REQUIRED)' : 'NOTE / REASON (OPTIONAL)'}
-              </Text>
+              <Text style={styles.controlLabel}>NOTE / REASON (OPTIONAL)</Text>
               <AppTextInput
                 value={reason}
                 onChangeText={onReasonChange}
-                placeholder={reasonRequired ? 'e.g. Called into a parent meeting' : 'e.g. Regular teacher on leave'}
+                placeholder="e.g. Called into a parent meeting"
                 placeholderTextColor={c.muted}
                 maxLength={500}
                 style={styles.reasonInput}
+                accessibilityLabel="Optional note or reason"
               />
-              {reasonRequired ? (
-                <Text style={styles.reasonHint}>Enter at least 3 characters so this manual cover stays auditable.</Text>
-              ) : null}
             </View>
 
             <TouchableOpacity
               onPress={onAssign}
-              disabled={!selected || saving || (reasonRequired && !hasManualSubstitutionReason(reason))}
+              disabled={!selected || saving}
               activeOpacity={0.85}
-              style={{ opacity: !selected || saving || (reasonRequired && !hasManualSubstitutionReason(reason)) ? 0.55 : 1 }}
+              style={{ opacity: !selected || saving ? 0.55 : 1 }}
             >
               <LinearGradient colors={['#4F46E5', '#6366F1']} style={styles.confirmButton}>
                 {saving ? (
@@ -1482,6 +1382,8 @@ function makeStyles(c: ReturnType<typeof colors>) {
     reportButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
     manualButton: { marginTop: 16, minHeight: 46, borderRadius: 14, backgroundColor: c.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16 },
     manualButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+    manualButtonSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.primary },
+    manualButtonSecondaryText: { color: c.primary },
     attendanceBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.infoSoft, borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', marginBottom: 16 },
     attendanceBannerTitle: { color: c.infoText, fontSize: 13, fontWeight: '800' },
     attendanceBannerText: { color: c.subtext, fontSize: 11, marginTop: 2, lineHeight: 16 },
@@ -1546,12 +1448,6 @@ function makeStyles(c: ReturnType<typeof colors>) {
     changeButton: { minHeight: 31, paddingHorizontal: 8, borderRadius: 10, backgroundColor: c.card, flexDirection: 'row', alignItems: 'center', gap: 4 },
     changeButtonText: { color: c.primary, fontSize: 10, fontWeight: '900' },
     cancelButton: { width: 31, height: 31, borderRadius: 10, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center' },
-    pickerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.cardAlt },
-    pickerPeriod: { width: 64, alignItems: 'flex-start' },
-    pickerPeriodText: { color: c.primary, fontSize: 12, fontWeight: '900' },
-    pickerTime: { color: c.muted, fontSize: 10, fontWeight: '700', marginTop: 2 },
-    pickerTitle: { color: c.text, fontSize: 14, fontWeight: '900' },
-    pickerMeta: { color: c.subtext, fontSize: 11, marginTop: 3 },
     reasonHint: { color: c.muted, fontSize: 10, marginTop: 6 },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,6,23,0.58)' },
     sheet: { position: 'absolute', bottom: 0, alignSelf: 'center', width: '100%', maxWidth: 820, maxHeight: '92%', backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: Platform.OS === 'ios' ? 34 : 24, borderWidth: 1, borderColor: c.border },

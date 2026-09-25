@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePermissions } from './usePermissions';
-import { buildAdminNavActions } from '../constants/adminNav';
+import { buildAdminSidebarNavActions } from '../constants/adminSidebarNav';
 import type { WebSidebarActionItem } from '../components/DashboardWebSidebar';
 
 export interface AdminNavBadges {
@@ -49,8 +49,9 @@ const OVERVIEW_METRIC_ITEMS: WebSidebarActionItem[] = [
 
 /**
  * Builds the persistent web-sidebar entries for the admin portal from the
- * canonical nav list, filtered by RBAC and decorated with live badges. Shared
- * by the admin layout shell (see `app/admin/_layout.tsx`).
+ * sidebar catalogue, filtered by RBAC and decorated with live badges. Shared
+ * by the admin layout shell (see `app/admin/_layout.tsx`). Quick Actions are
+ * a separate list and are not used here.
  */
 export function useAdminSidebarItems(badges?: AdminNavBadges): WebSidebarActionItem[] {
   const { t } = useTranslation();
@@ -71,7 +72,7 @@ export function useAdminSidebarItems(badges?: AdminNavBadges): WebSidebarActionI
               ? t('admin_dashboard_v2.staff_present', 'Staff Present')
               : t('admin_dashboard_v2.collection', 'Collection'),
       })),
-      ...buildAdminNavActions(t)
+      ...buildAdminSidebarNavActions(t)
         .filter((item) => !item.permission || hasPermission(item.permission))
         .map((item) => ({
           title: item.title,
