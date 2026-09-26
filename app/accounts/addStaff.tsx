@@ -423,6 +423,67 @@ const LoginRoleSelector = ({ value, onChange, isDark }: {
     </View>
   </View>
 );
+const LOCALITY_OPTIONS: { value: '' | 'LOCAL' | 'NON_LOCAL'; label: string; testID: string }[] = [
+  { value: '', label: 'Not specified', testID: 'locality-option-unspecified' },
+  { value: 'LOCAL', label: 'Local', testID: 'locality-option-LOCAL' },
+  { value: 'NON_LOCAL', label: 'Non Local', testID: 'locality-option-NON_LOCAL' },
+];
+
+const LocalityClassificationSelector = ({
+  value,
+  onChange,
+  isDark,
+}: {
+  value: '' | 'LOCAL' | 'NON_LOCAL';
+  onChange: (value: '' | 'LOCAL' | 'NON_LOCAL') => void;
+  isDark: boolean;
+}) => (
+  <View style={localitySt.group} testID="locality-classification">
+    <Text style={[localitySt.label, { color: FORM.label(isDark) }]}>
+      Locality Classification
+    </Text>
+    <View style={[localitySt.track, { backgroundColor: isDark ? '#221F30' : '#EDE9F6' }]}>
+      {LOCALITY_OPTIONS.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <Pressable
+            key={opt.testID}
+            testID={opt.testID}
+            accessibilityRole="button"
+            accessibilityLabel={opt.label}
+            accessibilityState={{ selected: active }}
+            style={({ pressed }) => [
+              localitySt.pill,
+              active && { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 6, elevation: 3 },
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => onChange(opt.value)}
+          >
+            {active ? (
+              <LinearGradient colors={['#3D6B60', '#5BAA9A']} style={localitySt.pillGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Text style={[localitySt.pillText, { color: '#fff' }]}>{opt.label}</Text>
+              </LinearGradient>
+            ) : (
+              <View style={localitySt.pillInactive}>
+                <Text style={[localitySt.pillText, { color: FORM.muted(isDark) }]}>{opt.label}</Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  </View>
+);
+const localitySt = StyleSheet.create({
+  group: { marginBottom: 14 },
+  label: { fontSize: 12, fontWeight: '700', marginBottom: 10, letterSpacing: 0.1 },
+  track: { flexDirection: 'row', borderRadius: 16, padding: 4, gap: 3 },
+  pill: { flex: 1, borderRadius: 13, overflow: 'hidden' },
+  pillGrad: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 4 },
+  pillInactive: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 4 },
+  pillText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.1, textAlign: 'center' },
+});
+
 const loginRoleSt = StyleSheet.create({
   group: { marginBottom: 14 },
   label: { fontSize: 12, fontWeight: '700', marginBottom: 10, letterSpacing: 0.1 },
@@ -559,6 +620,7 @@ export default function AddStaffScreen() {
     phone: '', designationId: '', salary: '', genderId: '1',
     staffCode: '', dob: '', joiningDate: new Date().toISOString().split('T')[0],
     loginRole: 'staff' as StaffAddLoginRoleCode,
+    localityClassification: '' as '' | 'LOCAL' | 'NON_LOCAL',
   });
 
   const update = (key: string, val: string) => setFormData(p => ({ ...p, [key]: val }));
@@ -596,6 +658,9 @@ export default function AddStaffScreen() {
           staffCode: data.staff_code || '', dob: data.dob || '',
           joiningDate: data.joining_date || '',
           loginRole: resolveRoleFromDesignation(data.designation || data.designation_name),
+          localityClassification: data.locality_classification === 'LOCAL' || data.locality_classification === 'NON_LOCAL'
+            ? data.locality_classification
+            : '',
         });
         // Store originals for auth change detection
         setOriginalEmail(loadedEmail);
@@ -641,6 +706,7 @@ export default function AddStaffScreen() {
         department: '', gender_id: parseInt(formData.genderId), staff_code: formData.staffCode,
         joining_date: formData.joiningDate, dob: formData.dob || undefined,
         role_code: formData.loginRole || calculatedRole,
+        locality_classification: formData.localityClassification || null,
       };
 
       if (canViewSalary && formData.salary) {
@@ -795,6 +861,12 @@ export default function AddStaffScreen() {
                 const desig = designations.find(d => d.id.toString() === v);
                 update('loginRole', resolveRoleFromDesignation(desig?.name));
               }}
+              isDark={isDark}
+            />
+
+            <LocalityClassificationSelector
+              value={formData.localityClassification}
+              onChange={(value) => update('localityClassification', value)}
               isDark={isDark}
             />
 

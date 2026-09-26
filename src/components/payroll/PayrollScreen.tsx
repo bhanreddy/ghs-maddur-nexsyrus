@@ -1,52 +1,31 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   Image,
   StatusBar,
   Pressable,
-  Modal,
   Switch,
   Platform,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
   useWindowDimensions,
+  RefreshControl,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { alertCompat } from '../../utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import AdminHeader from '../AdminHeader';
 import AppTextInput from '../AppTextInput';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  withSequence,
-  withRepeat,
-} from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { usePayroll } from '../../hooks/usePayroll';
 import { PayrollEntry } from '../../types/payroll';
+import PayrollAttendanceAdjustModal from './PayrollAttendanceAdjustModal';
 import { useTheme } from '../../hooks/useTheme';
 import { useAccountsWebChrome } from '../../contexts/AccountsWebChromeContext';
-import { Theme, Surfaces, Spacing, Radii, Shadows, Typography } from '../../theme/themes';
-import { styles as themeStyles } from '../../theme/styles';
 import { AdminService } from '../../services/adminService';
-
-/** Mode A — clay world, glass accents. Soft finance desk, not loud gradients. */
-const CLAY = {
-  indigoTint: '#EEF2FF',
-  indigoInk: '#4338CA',
-  emeraldTint: '#ECFDF5',
-  emeraldInk: '#047857',
-  amberTint: '#FFFBEB',
-  amberInk: '#B45309',
-  roseTint: '#FEF2F2',
-  roseInk: '#B91C1C',
-  slateTint: '#F1F5F9',
-} as const;
+import { Shadows } from '../../theme/themes';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -54,1036 +33,939 @@ const MONTHS = [
 ];
 
 type StatusFilter = 'all' | 'pending' | 'paid';
+type SortKey = 'name' | 'role' | 'base' | 'deductions' | 'adjustment' | 'net' | 'status';
+type SortDir = 'asc' | 'desc';
+type PayPhase = 'review' | 'submitting' | 'success' | 'error';
+type PressState = { pressed: boolean; hovered?: boolean; focused?: boolean };
 
-const getDesig = (name?: string) => {
-  const n = name || 'Staff';
-  const hash = n.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const colors = [
-    { color: '#6366F1', tint: '#EEF2FF', icon: 'star-outline' as const },
-    { color: '#3B82F6', tint: '#EFF6FF', icon: 'book-outline' as const },
-    { color: '#059669', tint: '#ECFDF5', icon: 'shield-outline' as const },
-    { color: '#D97706', tint: '#FFFBEB', icon: 'calculator-outline' as const },
-    { color: '#DB2777', tint: '#FDF2F8', icon: 'library-outline' as const },
-    { color: '#0284C7', tint: '#F0F9FF', icon: 'briefcase-outline' as const },
-    { color: '#DC2626', tint: '#FEF2F2', icon: 'car-outline' as const },
-  ];
-  const defaults: Record<string, (typeof colors)[number]> = {
-    Principal: colors[0],
-    'Vice Principal': colors[1],
-    Teacher: colors[1],
-    'Senior Teacher': colors[5],
-    'Lab Assistant': colors[2],
-    Librarian: colors[4],
-    Clerk: colors[3],
-    Accountant: colors[3],
-    Admin: colors[2],
-    Driver: colors[6],
-  };
-  return defaults[n] || colors[hash % colors.length];
+type Palette = {
+  page: string;
+  surface: string;
+  text: string;
+  secondary: string;
+  border: string;
+  primary: string;
+  onPrimary: string;
+  selectedWash: string;
+  paidBg: string;
+  paidFg: string;
+  pendingBg: string;
+  pendingFg: string;
+  dangerBg: string;
+  dangerFg: string;
+  neutralBg: string;
+  track: string;
+  muted: string;
+  hover: string;
 };
 
-const fmtINR = (n: number) => `₹${n.toLocaleString('en-IN')}`;
-const fmtDate = (d?: string) => {
-  if (!d) return '—';
-  try {
-    return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
-  } catch {
-    return d;
+function palette(isDark: boolean): Palette {
+  if (isDark) {
+    return {
+      page: '#0F172A',
+      surface: '#111827',
+      text: '#F8FAFC',
+      secondary: '#CBD5E1',
+      border: '#334155',
+      primary: '#4F46E5',
+      onPrimary: '#FFFFFF',
+      selectedWash: 'rgba(79,70,229,0.22)',
+      paidBg: '#052E16',
+      paidFg: '#86EFAC',
+      pendingBg: '#451A03',
+      pendingFg: '#FDE68A',
+      dangerBg: '#450A0A',
+      dangerFg: '#FECACA',
+      neutralBg: '#1E293B',
+      track: '#334155',
+      muted: '#64748B',
+      hover: 'rgba(248,250,252,0.04)',
+    };
   }
-};
+  return {
+    page: '#F8FAFC',
+    surface: '#FFFFFF',
+    text: '#0F172A',
+    secondary: '#475569',
+    border: '#E2E8F0',
+    primary: '#4F46E5',
+    onPrimary: '#FFFFFF',
+    selectedWash: '#EEF2FF',
+    paidBg: '#F0FDF4',
+    paidFg: '#166534',
+    pendingBg: '#FFFBEB',
+    pendingFg: '#92400E',
+    dangerBg: '#FEF2F2',
+    dangerFg: '#B91C1C',
+    neutralBg: '#F8FAFC',
+    track: '#E2E8F0',
+    muted: '#94A3B8',
+    hover: '#F8FAFC',
+  };
+}
 
-function PressScale({
-  children,
-  onPress,
-  disabled,
-  style,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-  style?: object;
-}) {
-  const s = useSharedValue(1);
-  const a = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+function focusRing(focused?: boolean) {
+  if (!focused || Platform.OS !== 'web') return null;
+  return {
+    outlineWidth: 2,
+    outlineStyle: 'solid' as const,
+    outlineColor: '#4F46E5',
+    outlineOffset: 2,
+  };
+}
+
+function formatINR(value: number) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return '₹0';
+  const negative = amount < 0;
+  const abs = Math.abs(amount);
+  const hasFraction = Math.round(abs * 100) % 100 !== 0;
+  const formatted = abs.toLocaleString('en-IN', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+  return `${negative ? '−' : ''}₹${formatted}`;
+}
+
+function formatDeduction(value: number) {
+  const amount = Math.abs(Number(value) || 0);
+  if (amount === 0) return { text: '₹0', negative: false, muted: true, positive: false };
+  return { text: `−${formatINR(amount)}`, negative: true, muted: false, positive: false };
+}
+
+function formatAdjustment(value: number) {
+  const amount = Number(value) || 0;
+  if (amount === 0) return { text: '₹0', negative: false, muted: true, positive: false };
+  if (amount < 0) return { text: formatINR(amount), negative: true, muted: false, positive: false };
+  return { text: `+${formatINR(amount)}`, negative: false, muted: false, positive: true };
+}
+
+function formatPayDate(value?: string | null) {
+  if (!value) return '';
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function staffName(item: PayrollEntry) {
+  const person = item.staff?.person;
   return (
-    <Pressable
-      disabled={disabled || !onPress}
-      onPressIn={() => {
-        if (!disabled && onPress) s.value = withTiming(0.97, { duration: 90 });
-      }}
-      onPressOut={() => {
-        s.value = withTiming(1, { duration: 120 });
-      }}
-      onPress={onPress}
-      hitSlop={8}
-      style={Platform.OS === 'web' ? ({ cursor: disabled || !onPress ? 'default' : 'pointer' } as object) : undefined}
-    >
-      <Animated.View style={[style, a, disabled && { opacity: 0.42 }]}>{children}</Animated.View>
-    </Pressable>
+    person?.display_name ||
+    `${person?.first_name || ''} ${person?.last_name || ''}`.trim() ||
+    'Staff member'
   );
 }
 
-const Skeleton = ({ style }: { style: object }) => {
-  const op = useSharedValue(0.35);
-  useEffect(() => {
-    op.value = withRepeat(
-      withSequence(withTiming(0.88, { duration: 650 }), withTiming(0.35, { duration: 650 })),
-      -1,
-      false,
-    );
-  }, [op]);
-  const anim = useAnimatedStyle(() => ({ opacity: op.value }));
-  return <Animated.View style={[style, anim]} />;
-};
+function staffRole(item: PayrollEntry) {
+  return item.staff?.designation?.name || 'Staff';
+}
 
-/* ─── Month navigator ─── */
-const MonthNav = ({
-  month,
-  year,
-  onPrev,
-  onNext,
-  isDark,
-  onToggleSettings,
-  settingsOpen,
-  showSettings,
-}: {
-  month: number;
-  year: number;
-  onPrev: () => void;
-  onNext: () => void;
-  isDark: boolean;
-  onToggleSettings?: () => void;
-  settingsOpen?: boolean;
-  showSettings?: boolean;
-}) => {
-  const surface = isDark ? Surfaces.dark.raised : Surfaces.light.raised;
-  const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)';
-  const ink = isDark ? '#E2E8F0' : '#0F172A';
-  const muted = isDark ? '#64748B' : '#64748B';
-  const chipBg = isDark ? Surfaces.dark.overlay : CLAY.slateTint;
+function periodLabel(month: number, year: number) {
+  return `${MONTHS[month - 1] || 'Month'} ${year}`;
+}
 
-  return (
-    <Animated.View entering={FadeInDown.duration(280)} style={[navSt.wrap, { backgroundColor: surface, borderColor: border }, Shadows.sm]}>
-      <PressScale onPress={onPrev} style={[navSt.arrow, { backgroundColor: chipBg }]}>
-        <Ionicons name="chevron-back" size={18} color={muted} />
-      </PressScale>
+function needsPaySetup(item: PayrollEntry) {
+  const teacherPayroll = item.calculation_engine === 'teacher-salary-v1';
+  return Boolean(item.review_reason) || (teacherPayroll && item.workflow_status !== 'LOCKED');
+}
 
-      <View style={navSt.center}>
-        <Text style={[navSt.monthTxt, { color: ink }]}>{MONTHS[month - 1]}</Text>
-        <View style={[navSt.yearPill, { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : CLAY.indigoTint }]}>
-          <Text style={[navSt.yearTxt, { color: isDark ? '#A5B4FC' : CLAY.indigoInk }]}>{year}</Text>
-        </View>
-      </View>
+function workflowLabel(status?: string | null) {
+  if (!status) return '';
+  const labels: Record<string, string> = {
+    DRAFT: 'Draft',
+    VALIDATED: 'Validated',
+    APPROVED: 'Approved',
+    LOCKED: 'Locked for payment',
+    PAID: 'Paid',
+  };
+  return labels[status] || status;
+}
 
-      <View style={navSt.right}>
-        {showSettings && (
-          <PressScale
-            onPress={onToggleSettings}
-            style={[
-              navSt.arrow,
-              {
-                backgroundColor: settingsOpen
-                  ? isDark
-                    ? 'rgba(99,102,241,0.22)'
-                    : CLAY.indigoTint
-                  : chipBg,
-              },
-            ]}
-          >
-            <Ionicons
-              name={settingsOpen ? 'options' : 'options-outline'}
-              size={18}
-              color={settingsOpen ? (isDark ? '#A5B4FC' : CLAY.indigoInk) : muted}
-            />
-          </PressScale>
-        )}
-        <PressScale onPress={onNext} style={[navSt.arrow, { backgroundColor: chipBg }]}>
-          <Ionicons name="chevron-forward" size={18} color={muted} />
-        </PressScale>
-      </View>
-    </Animated.View>
-  );
-};
-
-const navSt = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    borderRadius: Radii.xl,
-    padding: Spacing.xs,
-    borderWidth: 1,
-  },
-  arrow: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  center: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flex: 1, justifyContent: 'center' },
-  monthTxt: { fontSize: 17, fontWeight: '700', letterSpacing: -0.4 },
-  yearPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radii.pill },
-  yearTxt: { fontSize: 12, fontWeight: '700' },
-  right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-});
-
-/* ─── Soft summary + progress ─── */
-const SummaryHero = ({
-  summary,
-  count,
-  isDark,
-}: {
-  summary: { total_paid: number; total_pending: number };
-  count: { paid: number; total: number };
-  isDark: boolean;
-}) => {
-  const total = summary.total_paid + summary.total_pending;
-  const pct = total > 0 ? summary.total_paid / total : 0;
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withTiming(pct, { duration: 700 });
-  }, [pct, progress]);
-
-  const barStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleX: Math.max(progress.value, 0.02) }],
-  }));
-
-  const surface = isDark ? Surfaces.dark.raised : Surfaces.light.raised;
-  const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)';
-  const ink = isDark ? '#F1F5F9' : '#0F172A';
-  const muted = isDark ? '#94A3B8' : '#64748B';
-
-  const cards = [
-    {
-      label: 'Total',
-      value: fmtINR(total),
-      tint: isDark ? 'rgba(99,102,241,0.16)' : CLAY.indigoTint,
-      ink: isDark ? '#A5B4FC' : CLAY.indigoInk,
-      icon: 'wallet-outline' as const,
-    },
-    {
-      label: 'Disbursed',
-      value: fmtINR(summary.total_paid),
-      tint: isDark ? 'rgba(16,185,129,0.14)' : CLAY.emeraldTint,
-      ink: isDark ? '#34D399' : CLAY.emeraldInk,
-      icon: 'checkmark-circle-outline' as const,
-    },
-    {
-      label: 'Pending',
-      value: fmtINR(summary.total_pending),
-      tint: isDark ? 'rgba(245,158,11,0.14)' : CLAY.amberTint,
-      ink: isDark ? '#FBBF24' : CLAY.amberInk,
-      icon: 'time-outline' as const,
-    },
-  ];
-
-  return (
-    <Animated.View
-      entering={FadeInDown.delay(60).duration(300)}
-      style={[sumSt.hero, { backgroundColor: surface, borderColor: border }, Shadows.sm]}
-    >
-      <View style={sumSt.row}>
-        {cards.map((c) => (
-          <View key={c.label} style={[sumSt.stat, { backgroundColor: c.tint }]}>
-            <View style={[sumSt.iconWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' }]}>
-              <Ionicons name={c.icon} size={14} color={c.ink} />
-            </View>
-            <Text style={[sumSt.val, { color: c.ink }]} numberOfLines={1} adjustsFontSizeToFit>
-              {c.value}
-            </Text>
-            <Text style={[sumSt.lbl, { color: muted }]}>{c.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={sumSt.progressBlock}>
-        <View style={sumSt.progressTop}>
-          <Text style={[sumSt.progressTitle, { color: ink }]}>
-            {count.paid} of {count.total} paid
-          </Text>
-          <Text style={[sumSt.pct, { color: isDark ? '#A5B4FC' : CLAY.indigoInk }]}>
-            {Math.round(pct * 100)}%
-          </Text>
-        </View>
-        <View style={[sumSt.track, { backgroundColor: isDark ? Surfaces.dark.overlay : CLAY.slateTint }]}>
-          <Animated.View
-            style={[
-              sumSt.fill,
-              barStyle,
-              Platform.OS === 'web' ? ({ transformOrigin: 'left center' } as object) : null,
-            ]}
-          >
-            <LinearGradient
-              colors={['#6366F1', '#818CF8']}
-              style={StyleSheet.absoluteFill}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          </Animated.View>
-        </View>
-      </View>
-    </Animated.View>
-  );
-};
-
-const sumSt = StyleSheet.create({
-  hero: {
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    borderRadius: Radii.xxl,
-    padding: Spacing.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  row: { flexDirection: 'row', gap: Spacing.xs },
-  stat: {
-    flex: 1,
-    borderRadius: Radii.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    overflow: 'hidden',
-  },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  val: { fontSize: 15, fontWeight: '800', letterSpacing: -0.5, marginBottom: 2 },
-  lbl: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
-  progressBlock: { gap: 8 },
-  progressTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progressTitle: { fontSize: 13, fontWeight: '600' },
-  pct: { fontSize: 14, fontWeight: '800', letterSpacing: -0.3 },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  fill: { height: 8, width: '100%', borderRadius: 4 },
-});
-
-/* ─── Compact settings (collapsed by default) ─── */
-const SettingsPanel = ({
-  isAdmin,
-  distributionBlocked,
-  staffPayslipsEnabled,
-  isDark,
-  onToggleDistribution,
-  onTogglePayslips,
-  togglingDist,
-  togglingPayslips,
-}: {
-  isAdmin: boolean;
-  distributionBlocked: boolean;
-  staffPayslipsEnabled: boolean;
-  isDark: boolean;
-  onToggleDistribution?: (blocked: boolean) => void;
-  onTogglePayslips?: (enabled: boolean) => void;
-  togglingDist?: boolean;
-  togglingPayslips?: boolean;
-}) => {
-  const surface = isDark ? Surfaces.dark.raised : Surfaces.light.raised;
-  const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)';
-  const ink = isDark ? '#F1F5F9' : '#0F172A';
-  const muted = isDark ? '#94A3B8' : '#64748B';
-
-  if (!isAdmin) {
-    if (!distributionBlocked) return null;
-    return (
-      <Animated.View
-        entering={FadeInDown.duration(240)}
-        style={[setSt.wrap, { backgroundColor: isDark ? 'rgba(239,68,68,0.12)' : CLAY.roseTint, borderColor: isDark ? 'rgba(248,113,113,0.35)' : '#FECACA' }]}
-      >
-        <Ionicons name="lock-closed" size={18} color={isDark ? '#F87171' : CLAY.roseInk} />
-        <View style={{ flex: 1 }}>
-          <Text style={[setSt.title, { color: isDark ? '#FECACA' : CLAY.roseInk }]}>Distribution paused</Text>
-          <Text style={[setSt.sub, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
-            You can review payroll but cannot release salaries.
-          </Text>
-        </View>
-      </Animated.View>
-    );
+function detailLines(item: PayrollEntry) {
+  const lines: { label: string; value: string }[] = [];
+  if (item.staff?.staff_code) lines.push({ label: 'Staff code', value: item.staff.staff_code });
+  if (Number(item.bonus) > 0) lines.push({ label: 'Bonus', value: formatINR(item.bonus) });
+  if (item.remarks) lines.push({ label: 'Remarks', value: item.remarks });
+  if (item.review_reason) lines.push({ label: 'Review note', value: item.review_reason });
+  const attendance = item.attendance_summary;
+  if (attendance?.input_mode === 'MANUAL_SUMMARY') {
+    lines.push({
+      label: 'Attendance totals',
+      value: `${attendance.cl_days ?? 0} casual leave, ${attendance.non_cl_days ?? 0} other leave, ${attendance.late_count ?? 0} late marks`,
+    });
   }
+  if (item.holiday_override) {
+    lines.push({ label: 'Holiday count', value: String(item.holiday_override.holiday_count) });
+  }
+  if (item.payment_method) lines.push({ label: 'Payment method', value: item.payment_method });
+  if (item.payment_reference) lines.push({ label: 'Transaction reference', value: item.payment_reference });
+  if (item.workflow_status && item.status !== 'paid') {
+    lines.push({ label: 'Payroll step', value: workflowLabel(item.workflow_status) });
+  }
+  return lines;
+}
 
-  const rows = [
-    {
-      key: 'dist',
-      icon: distributionBlocked ? ('lock-closed' as const) : ('lock-open-outline' as const),
-      title: 'Accounts can release pay',
-      sub: distributionBlocked ? 'Blocked — accounts cannot process' : 'Open — accounts can process',
-      value: !distributionBlocked,
-      onChange: (v: boolean) => onToggleDistribution?.(!v),
-      toggling: togglingDist,
-      onColor: '#10B981',
-      offColor: '#EF4444',
-    },
-    {
-      key: 'slips',
-      icon: staffPayslipsEnabled ? ('document-text-outline' as const) : ('eye-off-outline' as const),
-      title: 'Staff portal payslips',
-      sub: staffPayslipsEnabled ? 'Visible to staff' : 'Hidden from staff',
-      value: staffPayslipsEnabled,
-      onChange: (v: boolean) => onTogglePayslips?.(v),
-      toggling: togglingPayslips,
-      onColor: '#10B981',
-      offColor: '#EF4444',
-    },
-  ];
+function initials(name: string) {
+  return name.split(' ').map((part) => part[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+}
 
-  return (
-    <Animated.View entering={FadeInDown.duration(240)} style={[setSt.panel, { backgroundColor: surface, borderColor: border }, Shadows.sm]}>
-      <Text style={[setSt.panelLabel, { color: muted }]}>PAYROLL CONTROLS</Text>
-      {rows.map((r, i) => (
-        <View
-          key={r.key}
-          style={[
-            setSt.row,
-            i < rows.length - 1 && {
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: border,
-            },
-          ]}
-        >
-          <View style={[setSt.iconBox, { backgroundColor: isDark ? Surfaces.dark.overlay : CLAY.slateTint }]}>
-            <Ionicons name={r.icon} size={16} color={r.value ? CLAY.emeraldInk : CLAY.roseInk} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[setSt.title, { color: ink }]}>{r.title}</Text>
-            <Text style={[setSt.sub, { color: muted }]}>{r.sub}</Text>
-          </View>
-          <Switch
-            value={r.value}
-            onValueChange={r.onChange}
-            disabled={r.toggling}
-            trackColor={{ false: '#FCA5A5', true: '#6EE7B7' }}
-            thumbColor={r.value ? r.onColor : r.offColor}
-          />
-        </View>
-      ))}
-    </Animated.View>
-  );
-};
+const AVATAR_TONES = [
+  { bg: '#EEF2FF', fg: '#4338CA' },
+  { bg: '#ECFDF5', fg: '#047857' },
+  { bg: '#FFF7ED', fg: '#C2410C' },
+  { bg: '#FDF2F8', fg: '#BE185D' },
+  { bg: '#F0F9FF', fg: '#0369A1' },
+  { bg: '#F5F3FF', fg: '#6D28D9' },
+];
 
-const setSt = StyleSheet.create({
-  wrap: {
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    borderRadius: Radii.xl,
-    padding: Spacing.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  panel: {
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    borderRadius: Radii.xl,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    borderWidth: 1,
-  },
-  panelLabel: {
-    ...Typography.label,
-    marginBottom: Spacing.xs,
-    marginTop: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 12,
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  sub: { fontSize: 12, fontWeight: '500', lineHeight: 16 },
-});
+function avatarTone(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = (hash + name.charCodeAt(i)) % AVATAR_TONES.length;
+  return AVATAR_TONES[hash];
+}
 
-/* ─── Filter chips + search ─── */
-const ListToolbar = ({
-  filter,
-  onFilter,
-  counts,
-  query,
-  onQuery,
-  isDark,
-}: {
-  filter: StatusFilter;
-  onFilter: (f: StatusFilter) => void;
-  counts: { all: number; pending: number; paid: number };
-  query: string;
-  onQuery: (q: string) => void;
-  isDark: boolean;
-}) => {
-  const chips: { key: StatusFilter; label: string; count: number }[] = [
-    { key: 'all', label: 'All', count: counts.all },
-    { key: 'pending', label: 'Pending', count: counts.pending },
-    { key: 'paid', label: 'Paid', count: counts.paid },
-  ];
-  const ink = isDark ? '#E2E8F0' : '#0F172A';
-  const muted = isDark ? '#64748B' : '#64748B';
-  const surface = isDark ? Surfaces.dark.raised : Surfaces.light.raised;
-  const border = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)';
-
-  return (
-    <Animated.View entering={FadeInDown.delay(100).duration(280)} style={toolSt.wrap}>
-      <View style={toolSt.chips}>
-        {chips.map((c) => {
-          const active = filter === c.key;
-          return (
-            <PressScale key={c.key} onPress={() => onFilter(c.key)}>
-              <View
-                style={[
-                  toolSt.chip,
-                  {
-                    backgroundColor: active
-                      ? isDark
-                        ? 'rgba(99,102,241,0.22)'
-                        : CLAY.indigoTint
-                      : isDark
-                        ? Surfaces.dark.raised
-                        : Surfaces.light.raised,
-                    borderColor: active
-                      ? isDark
-                        ? 'rgba(165,180,252,0.45)'
-                        : 'rgba(99,102,241,0.35)'
-                      : border,
-                  },
-                ]}
-              >
-                <Text style={[toolSt.chipTxt, { color: active ? (isDark ? '#C7D2FE' : CLAY.indigoInk) : muted }]}>
-                  {c.label}
-                </Text>
-                <View
-                  style={[
-                    toolSt.count,
-                    {
-                      backgroundColor: active
-                        ? isDark
-                          ? 'rgba(255,255,255,0.12)'
-                          : 'rgba(67,56,202,0.12)'
-                        : isDark
-                          ? Surfaces.dark.overlay
-                          : CLAY.slateTint,
-                    },
-                  ]}
-                >
-                  <Text style={[toolSt.countTxt, { color: active ? (isDark ? '#E0E7FF' : CLAY.indigoInk) : muted }]}>
-                    {c.count}
-                  </Text>
-                </View>
-              </View>
-            </PressScale>
-          );
-        })}
-      </View>
-
-      <View style={[toolSt.search, { backgroundColor: surface, borderColor: border }]}>
-        <Ionicons name="search" size={16} color={muted} />
-        <AppTextInput
-          style={[themeStyles.inputInChrome, toolSt.searchInput, { color: ink }]}
-          value={query}
-          onChangeText={onQuery}
-          placeholder="Search staff…"
-          placeholderTextColor={isDark ? '#475569' : '#94A3B8'}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {query.length > 0 && (
-          <PressScale onPress={() => onQuery('')}>
-            <Ionicons name="close-circle" size={16} color={muted} />
-          </PressScale>
-        )}
-      </View>
-    </Animated.View>
-  );
-};
-
-const toolSt = StyleSheet.create({
-  wrap: { paddingHorizontal: Spacing.md, marginTop: Spacing.md, gap: Spacing.sm },
-  chips: { flexDirection: 'row', gap: 8 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingLeft: 12,
-    paddingRight: 8,
-    paddingVertical: 8,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-    minHeight: 36,
-  },
-  chipTxt: { fontSize: 13, fontWeight: '700' },
-  count: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countTxt: { fontSize: 11, fontWeight: '800' },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: { flex: 1, fontSize: 14, fontWeight: '500', paddingVertical: 0 },
-});
-
-/* ─── Avatar ─── */
-const StaffAvatar = React.memo(function StaffAvatar({
-  url,
-  name,
-  color,
-  tint,
-  size = 44,
-}: {
-  url?: string | null;
-  name: string;
-  color: string;
-  tint: string;
-  size?: number;
-}) {
-  const [imgErr, setImgErr] = useState(false);
-  const initials =
-    name
-      ?.split(' ')
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || '?';
-  const r = size / 2;
-
-  if (!url || imgErr) {
+function StaffAvatar({ url, name, colors }: { url?: string | null; name: string; colors: Palette }) {
+  const [failed, setFailed] = useState(false);
+  const tone = avatarTone(name);
+  if (!url || failed) {
     return (
-      <View style={[avSt.circle, { width: size, height: size, borderRadius: r, backgroundColor: tint }]}>
-        <Text style={[avSt.initials, { fontSize: size * 0.32, color }]}>{initials}</Text>
+      <View style={[styles.avatar, { backgroundColor: colors.page === '#0F172A' ? colors.selectedWash : tone.bg }]}>
+        <Text style={[styles.avatarText, { color: colors.page === '#0F172A' ? colors.primary : tone.fg }]}>{initials(name)}</Text>
       </View>
     );
   }
   return (
     <Image
       source={{ uri: url }}
-      style={[avSt.img, { width: size, height: size, borderRadius: r }]}
-      onError={() => setImgErr(true)}
+      accessibilityIgnoresInvertColors
+      style={styles.avatarImage}
+      onError={() => setFailed(true)}
     />
   );
-});
+}
 
-const avSt = StyleSheet.create({
-  circle: { justifyContent: 'center', alignItems: 'center' },
-  initials: { fontWeight: '800', letterSpacing: -0.4 },
-  img: { resizeMode: 'cover' },
-});
-
-/* ─── Staff row ─── */
-type PayrollCardProps = {
-  item: PayrollEntry;
-  onPay: () => void;
-  onAdjust: () => void;
-  isDark: boolean;
-  canProcess: boolean;
-  compact: boolean;
-};
-
-const PayrollCard = React.memo(function PayrollCard({
-  item,
-  onPay,
-  onAdjust,
-  isDark,
-  canProcess,
-  compact,
-}: PayrollCardProps) {
-  const person = item.staff?.person;
-  const designation = item.staff?.designation?.name || 'Staff';
-  const desig = getDesig(designation);
-  const isPaid = item.status === 'paid';
-  const fullName =
-    person?.display_name ||
-    `${person?.first_name || ''} ${person?.last_name || ''}`.trim() ||
-    'Staff Member';
-  const adjustment = Number(item.salary_adjustment ?? 0);
-
-  const surface = isDark ? Surfaces.dark.raised : Surfaces.light.raised;
-  const border = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)';
-  const ink = isDark ? '#F1F5F9' : '#0F172A';
-  const muted = isDark ? '#94A3B8' : '#64748B';
-  const soft = isDark ? Surfaces.dark.overlay : Surfaces.light.overlay;
-
+function StatusBadge({
+  paid,
+  review,
+  colors,
+  date,
+}: {
+  paid: boolean;
+  review?: boolean;
+  colors: Palette;
+  date?: string;
+}) {
+  const label = paid ? 'Paid' : review ? 'Needs review' : 'Pending';
+  const bg = paid ? colors.paidBg : colors.pendingBg;
+  const fg = paid ? colors.paidFg : colors.pendingFg;
   return (
-    <View style={[crdSt.card, { backgroundColor: surface, borderColor: border }, Shadows.sm]}>
-      <View style={crdSt.topRow}>
-        <StaffAvatar url={person?.photo_url} name={fullName} color={desig.color} tint={desig.tint} size={compact ? 40 : 44} />
-        <View style={crdSt.infoArea}>
-          <Text style={[crdSt.name, { color: ink }]} numberOfLines={1}>
-            {fullName}
-          </Text>
-          <Text style={[crdSt.role, { color: desig.color }]} numberOfLines={1}>
-            {designation}
-          </Text>
-        </View>
-
-        <View style={crdSt.netCol}>
-          <Text style={[crdSt.netLabel, { color: muted }]}>NET</Text>
-          <Text style={[crdSt.netVal, { color: ink }]}>{fmtINR(item.net_salary)}</Text>
-        </View>
+    <View style={styles.badgeWrap}>
+      <View style={[styles.badge, { backgroundColor: bg }]}>
+        <Ionicons name={paid ? 'checkmark-circle' : review ? 'alert-circle' : 'time-outline'} size={13} color={fg} />
+        <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
       </View>
+      {paid && date ? (
+        <Text style={[styles.paidDate, { color: colors.secondary }]}>{date}</Text>
+      ) : null}
+    </View>
+  );
+}
 
-      <View style={[crdSt.breakRow, { backgroundColor: soft }]}>
-        <View style={crdSt.breakItem}>
-          <Text style={[crdSt.breakLabel, { color: muted }]}>Base</Text>
-          <Text style={[crdSt.breakVal, { color: ink }]}>{fmtINR(item.base_salary ?? item.net_salary)}</Text>
-        </View>
-        <View style={[crdSt.breakDiv, { backgroundColor: border }]} />
-        <View style={crdSt.breakItem}>
-          <Text style={[crdSt.breakLabel, { color: muted }]}>Deduct</Text>
-          <Text style={[crdSt.breakVal, { color: '#EF4444' }]}>−{fmtINR(item.deductions ?? 0)}</Text>
-        </View>
-        <View style={[crdSt.breakDiv, { backgroundColor: border }]} />
-        <View style={crdSt.breakItem}>
-          <Text style={[crdSt.breakLabel, { color: muted }]}>Adjust</Text>
-          <Text style={[crdSt.breakVal, { color: adjustment >= 0 ? '#059669' : '#EF4444' }]}>
-            {adjustment >= 0 ? '+' : '−'}
-            {fmtINR(Math.abs(adjustment))}
-          </Text>
-        </View>
+function MoneyText({
+  value,
+  negative,
+  positive,
+  muted,
+  emphasis,
+  colors,
+}: {
+  value: string;
+  negative?: boolean;
+  positive?: boolean;
+  muted?: boolean;
+  emphasis?: boolean;
+  colors: Palette;
+}) {
+  const color = negative ? colors.dangerFg : positive ? colors.paidFg : muted ? colors.muted : colors.text;
+  return (
+    <Text style={[styles.money, emphasis && styles.moneyEmphasis, { color }]}>
+      {value}
+    </Text>
+  );
+}
+
+function DisbursementHero({
+  totalAmount,
+  paidAmount,
+  pendingAmount,
+  staffCount,
+  paidCount,
+  pendingCount,
+  amountPercent,
+  stacked,
+  colors,
+}: {
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+  staffCount: number;
+  paidCount: number;
+  pendingCount: number;
+  amountPercent: number;
+  stacked: boolean;
+  colors: Palette;
+}) {
+  const width = `${Math.max(0, Math.min(100, amountPercent))}%` as `${number}%`;
+  const complete = amountPercent >= 100 && staffCount > 0;
+  return (
+    <View
+      accessibilityLabel={`Total payroll ${formatINR(totalAmount)}. Disbursed ${formatINR(paidAmount)}. Outstanding ${formatINR(pendingAmount)}. ${amountPercent}% of payroll disbursed. ${paidCount} of ${staffCount} staff paid.`}
+      style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}
+    >
+      <View style={[styles.heroStats, stacked && styles.heroStatsStack]}>
+        <HeroStat label="Total payroll" value={formatINR(totalAmount)} hint={`${staffCount} staff`} colors={colors} />
+        {stacked ? null : <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />}
+        <HeroStat label="Disbursed" value={formatINR(paidAmount)} hint={`${paidCount} paid`} tone="paid" colors={colors} />
+        {stacked ? null : <View style={[styles.heroDivider, { backgroundColor: colors.border }]} />}
+        <HeroStat label="Outstanding" value={formatINR(pendingAmount)} hint={`${pendingCount} pending`} tone="pending" colors={colors} />
       </View>
-
-      <View style={crdSt.footer}>
-        {isPaid ? (
-          <>
-            <View style={[crdSt.badge, { backgroundColor: isDark ? 'rgba(16,185,129,0.16)' : CLAY.emeraldTint }]}>
-              <Ionicons name="checkmark-circle" size={13} color={isDark ? '#34D399' : '#059669'} />
-              <Text style={[crdSt.badgeTxt, { color: isDark ? '#6EE7B7' : '#065F46' }]}>Paid</Text>
-            </View>
-            <Text style={[crdSt.dateText, { color: muted }]}>{fmtDate(item.payment_date ?? undefined)}</Text>
-          </>
-        ) : (
-          <>
-            <View style={[crdSt.badge, { backgroundColor: isDark ? 'rgba(245,158,11,0.16)' : CLAY.amberTint }]}>
-              <Ionicons name="time-outline" size={12} color={isDark ? '#FBBF24' : '#D97706'} />
-              <Text style={[crdSt.badgeTxt, { color: isDark ? '#FCD34D' : '#92400E' }]}>Pending</Text>
-            </View>
-            <View style={crdSt.actionRow}>
-              <PressScale onPress={onAdjust} style={[crdSt.ghostBtn, { borderColor: border }]}>
-                <Ionicons name="create-outline" size={14} color={muted} />
-                <Text style={[crdSt.ghostTxt, { color: muted }]}>Adjust</Text>
-              </PressScale>
-              {canProcess && (
-                <PressScale onPress={onPay} style={crdSt.payWrap}>
-                  <LinearGradient
-                    colors={['#4F46E5', '#6366F1']}
-                    style={crdSt.payBtn}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']}
-                      style={StyleSheet.absoluteFill}
-                      pointerEvents="none"
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 0, y: 1 }}
-                    />
-                    <Ionicons name="card-outline" size={14} color="#fff" />
-                    <Text style={crdSt.payTxt}>Process</Text>
-                  </LinearGradient>
-                </PressScale>
-              )}
-            </View>
-          </>
-        )}
+      <View
+        accessibilityRole="progressbar"
+        accessibilityLabel={`${formatINR(paidAmount)} of ${formatINR(totalAmount)} disbursed`}
+        accessibilityValue={{ min: 0, max: 100, now: amountPercent, text: `${amountPercent}%` }}
+        style={styles.heroMeter}
+      >
+        <View style={[styles.meterTrack, { backgroundColor: colors.track }]}>
+          <LinearGradient
+            colors={complete ? ['#059669', '#10B981'] : ['#4F46E5', '#0D9488']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.meterFill, { width }]}
+          />
+        </View>
+        <Text style={[styles.heroMeterCaption, { color: colors.secondary }]}>
+          {amountPercent}% disbursed · {paidCount} of {staffCount} staff paid
+        </Text>
       </View>
     </View>
   );
-});
+}
 
-const crdSt = StyleSheet.create({
-  card: {
-    borderRadius: Radii.xl,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    padding: Spacing.md,
-    gap: 12,
-  },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  infoArea: { flex: 1, minWidth: 0 },
-  name: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2, marginBottom: 2 },
-  role: { fontSize: 12, fontWeight: '600' },
-  netCol: { alignItems: 'flex-end' },
-  netLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.6, marginBottom: 2 },
-  netVal: { fontSize: 16, fontWeight: '800', letterSpacing: -0.4 },
-  breakRow: {
-    flexDirection: 'row',
-    borderRadius: Radii.md,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-  },
-  breakItem: { flex: 1, alignItems: 'center', gap: 3 },
-  breakLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
-  breakVal: { fontSize: 12, fontWeight: '700', letterSpacing: -0.2 },
-  breakDiv: { width: StyleSheet.hairlineWidth, marginVertical: 2 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radii.pill,
-  },
-  badgeTxt: { fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
-  dateText: { fontSize: 12, fontWeight: '600' },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ghostBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    height: 40,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  ghostTxt: { fontSize: 13, fontWeight: '700' },
-  payWrap: {
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#4F46E5',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
-      },
-      android: { elevation: 4 },
-      default: {},
-    }),
-  },
-  payBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    height: 40,
-    borderRadius: Radii.md,
-    overflow: 'hidden',
-  },
-  payTxt: { fontSize: 13, fontWeight: '800', color: '#fff' },
-});
+function HeroStat({
+  label,
+  value,
+  hint,
+  tone,
+  colors,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: 'paid' | 'pending';
+  colors: Palette;
+}) {
+  const valueColor = tone === 'paid' ? colors.paidFg : tone === 'pending' ? colors.pendingFg : colors.text;
+  return (
+    <View style={styles.heroStat} accessibilityLabel={`${label}, ${value}, ${hint}`}>
+      <Text style={[styles.heroStatLabel, { color: colors.secondary }]}>{label}</Text>
+      <Text style={[styles.heroStatValue, { color: valueColor }]}>{value}</Text>
+      <Text style={[styles.heroStatHint, { color: colors.muted }]}>{hint}</Text>
+    </View>
+  );
+}
 
-const CardSkeleton = ({ isDark }: { isDark: boolean }) => (
-  <View
-    style={[
-      crdSt.card,
-      {
-        backgroundColor: isDark ? Surfaces.dark.raised : Surfaces.light.raised,
-        borderColor: 'transparent',
-        gap: 12,
-      },
-    ]}
-  >
-    <Skeleton style={{ height: 44, borderRadius: 12, backgroundColor: isDark ? Surfaces.dark.overlay : '#E2E8F0' }} />
-    <Skeleton style={{ height: 36, borderRadius: 10, backgroundColor: isDark ? Surfaces.dark.overlay : '#E2E8F0' }} />
-    <Skeleton style={{ height: 28, width: '55%', borderRadius: 10, backgroundColor: isDark ? Surfaces.dark.overlay : '#E2E8F0' }} />
-  </View>
-);
+function SortHeader({
+  label,
+  column,
+  sort,
+  align,
+  columnStyle,
+  colors,
+  onSort,
+}: {
+  label: string;
+  column: SortKey;
+  sort: { key: SortKey; dir: SortDir } | null;
+  align?: 'right';
+  columnStyle: object | number;
+  colors: Palette;
+  onSort: (key: SortKey) => void;
+}) {
+  const active = sort?.key === column;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Sort by ${label}${active ? `, ${sort?.dir === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+      onPress={() => onSort(column)}
+      style={(state) => [styles.headBtn, columnStyle, align === 'right' && styles.headBtnRight, { alignItems: 'center' }, pressStyle(state)]}
+    >
+      <Text style={[styles.headText, { color: active ? colors.text : colors.secondary }]} numberOfLines={1}>{label}</Text>
+      {active ? (
+        <Ionicons name={sort?.dir === 'asc' ? 'arrow-up' : 'arrow-down'} size={12} color={colors.primary} />
+      ) : null}
+    </Pressable>
+  );
+}
 
-/* ─── Adjust modal ─── */
-type AdjustModalProps = {
-  visible: boolean;
-  item: PayrollEntry | null;
-  isDark: boolean;
-  onClose: () => void;
-  onSave: (direction: 'increase' | 'decrease', amount: number, remarks: string) => Promise<void>;
-  saving: boolean;
+function comparePayroll(a: PayrollEntry, b: PayrollEntry, key: SortKey, dir: SortDir) {
+  const sign = dir === 'asc' ? 1 : -1;
+  const value = (item: PayrollEntry) => {
+    switch (key) {
+      case 'name': return staffName(item).toLowerCase();
+      case 'role': return staffRole(item).toLowerCase();
+      case 'base': return Number(item.base_salary) || 0;
+      case 'deductions': return Number(item.deductions) || 0;
+      case 'adjustment': return Number(item.salary_adjustment) || 0;
+      case 'net': return Number(item.net_salary) || 0;
+      case 'status': return item.status === 'paid' ? 1 : 0;
+      default: return 0;
+    }
+  };
+  const av = value(a);
+  const bv = value(b);
+  if (av < bv) return -1 * sign;
+  if (av > bv) return 1 * sign;
+  return staffName(a).localeCompare(staffName(b));
+}
+
+function DetailBlock({ item, colors, includeBreakdown }: { item: PayrollEntry; colors: Palette; includeBreakdown: boolean }) {
+  const lines = detailLines(item);
+  const deduction = formatDeduction(item.deductions);
+  const adjustment = formatAdjustment(item.salary_adjustment);
+  return (
+    <View style={[styles.detailBlock, { backgroundColor: colors.neutralBg, borderTopColor: colors.border }]}>
+      {includeBreakdown ? (
+        <View style={styles.detailGrid}>
+          <DetailPair label="Base salary" value={formatINR(item.base_salary ?? item.net_salary)} colors={colors} />
+          <DetailPair label="Deductions" value={deduction.text} negative={deduction.negative} muted={deduction.muted} colors={colors} />
+          <DetailPair label="Adjustments" value={adjustment.text} negative={adjustment.negative} positive={adjustment.positive} muted={adjustment.muted} colors={colors} />
+        </View>
+      ) : null}
+      {lines.length === 0 && !includeBreakdown ? (
+        <Text style={[styles.detailEmpty, { color: colors.secondary }]}>No additional notes for this salary.</Text>
+      ) : (
+        lines.map((line) => (
+          <View key={line.label} style={styles.detailLine}>
+            <Text style={[styles.detailKey, { color: colors.secondary }]}>{line.label}</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{line.value}</Text>
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
+function DetailPair({
+  label,
+  value,
+  negative,
+  positive,
+  muted,
+  colors,
+}: {
+  label: string;
+  value: string;
+  negative?: boolean;
+  positive?: boolean;
+  muted?: boolean;
+  colors: Palette;
+}) {
+  const color = negative ? colors.dangerFg : positive ? colors.paidFg : muted ? colors.muted : colors.text;
+  return (
+    <View style={styles.detailPair}>
+      <Text style={[styles.detailKey, { color: colors.secondary }]}>{label}</Text>
+      <Text style={[styles.money, { color }]}>{value}</Text>
+    </View>
+  );
+}
+
+type RowProps = {
+  item: PayrollEntry;
+  colors: Palette;
+  table: boolean;
+  expanded: boolean;
+  isLast: boolean;
+  canProcess: boolean;
+  canAdjust: boolean;
+  onToggle: () => void;
+  onPay: () => void;
+  onAdjust: () => void;
+  onView: () => void;
 };
 
-const AdjustSalaryModal = ({ visible, item, isDark, onClose, onSave, saving }: AdjustModalProps) => {
-  const [direction, setDirection] = useState<'increase' | 'decrease'>('increase');
-  const [amount, setAmount] = useState('');
-  const [remarks, setRemarks] = useState('');
+function webTitle(title: string) {
+  return Platform.OS === 'web' ? ({ title } as object) : null;
+}
 
-  useEffect(() => {
-    if (!item) return;
-    const adj = Number(item.salary_adjustment ?? 0);
-    if (adj < 0) {
-      setDirection('decrease');
-      setAmount(String(Math.abs(adj)));
-    } else if (adj > 0) {
-      setDirection('increase');
-      setAmount(String(adj));
-    } else {
-      setDirection('increase');
-      setAmount('');
-    }
-    setRemarks(item.remarks || '');
-  }, [item, visible]);
+function PayrollRow({
+  item,
+  colors,
+  table,
+  expanded,
+  isLast,
+  canProcess,
+  canAdjust,
+  onToggle,
+  onPay,
+  onAdjust,
+  onView,
+}: RowProps) {
+  const name = staffName(item);
+  const role = staffRole(item);
+  const paid = item.status === 'paid';
+  const review = !paid && needsPaySetup(item);
+  const deduction = formatDeduction(item.deductions);
+  const adjustment = formatAdjustment(item.salary_adjustment);
+  const payDate = formatPayDate(item.payment_date);
+  const netZero = Math.abs(Number(item.net_salary) || 0) === 0;
+  const baseZero = Math.abs(Number(item.base_salary ?? item.net_salary) || 0) === 0;
+  const expandable = detailLines(item).length > 0 || !table;
 
-  const person = item?.staff?.person;
-  const name = person?.display_name || person?.first_name || 'Staff';
-  const surface = isDark ? Surfaces.dark.raised : Surfaces.light.raised;
-  const ink = isDark ? '#F8FAFC' : '#0F172A';
-  const muted = isDark ? '#94A3B8' : '#64748B';
-  const border = isDark ? '#334155' : '#E2E8F0';
+  const actions = (
+    <View style={[styles.actionCol, !table && styles.actionColCard]}>
+      {paid ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View payment details for ${name}`}
+          onPress={onView}
+          style={(state) => [styles.secondaryBtn, styles.compactBtn, { borderColor: colors.border, backgroundColor: colors.surface }, pressStyle(state)]}
+        >
+          <Ionicons name="receipt-outline" size={15} color={colors.text} />
+          <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{table ? 'Receipt' : 'View payment details'}</Text>
+        </Pressable>
+      ) : (
+        <>
+          {canAdjust ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Edit adjustments for ${name}`}
+              onPress={onAdjust}
+              style={(state) => [styles.secondaryBtn, styles.compactBtn, { borderColor: colors.border, backgroundColor: colors.surface }, pressStyle(state)]}
+            >
+              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{table ? 'Adjust' : 'Edit adjustments'}</Text>
+            </Pressable>
+          ) : null}
+          {canProcess ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Pay salary for ${name}, ${formatINR(item.net_salary)}`}
+              onPress={onPay}
+              style={(state) => [styles.primaryBtn, styles.compactBtn, { backgroundColor: colors.primary }, pressStyle(state)]}
+            >
+              <Text style={[styles.primaryBtnText, { color: colors.onPrimary }]}>Pay salary</Text>
+            </Pressable>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+
+  if (!table) {
+    return (
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, expanded && { borderColor: colors.primary }]}>
+        <View style={styles.cardTop}>
+          <StaffAvatar url={item.staff?.person?.photo_url} name={name} colors={colors} />
+          <View style={styles.cardIdentity}>
+            <Text style={[styles.staffName, { color: colors.text }]} numberOfLines={2}>{name}</Text>
+            <Text style={[styles.roleText, { color: colors.secondary }]} numberOfLines={1}>{role}</Text>
+          </View>
+          <View style={styles.cardNet}>
+            <Text style={[styles.cardNetLabel, { color: colors.secondary }]}>Net payable</Text>
+            <MoneyText
+              value={formatINR(item.net_salary)}
+              emphasis
+              muted={netZero}
+              positive={paid && !netZero}
+              colors={colors}
+            />
+          </View>
+        </View>
+        <View style={styles.cardStatusRow}>
+          <StatusBadge paid={paid} review={review} colors={colors} date={payDate} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${expanded ? 'Hide' : 'Show'} salary details for ${name}`}
+            accessibilityState={{ expanded }}
+            onPress={onToggle}
+            style={(state) => [styles.textBtn, pressStyle(state)]}
+          >
+            <Text style={[styles.textBtnLabel, { color: colors.primary }]}>{expanded ? 'Hide details' : 'Salary details'}</Text>
+          </Pressable>
+        </View>
+        {actions}
+        {expanded ? <DetailBlock item={item} colors={colors} includeBreakdown /> : null}
+      </View>
+    );
+  }
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={modalSt.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Animated.View entering={FadeIn.duration(200)} style={[modalSt.card, { backgroundColor: surface }, Shadows.lg]}>
-          <View style={modalSt.header}>
-            <View>
-              <Text style={[modalSt.title, { color: ink }]}>Adjust salary</Text>
-              <Text style={[modalSt.sub, { color: muted }]}>{name}</Text>
+    <View
+      style={[
+        styles.tableRowWrap,
+        {
+          backgroundColor: expanded ? colors.selectedWash : colors.surface,
+          borderColor: colors.border,
+        },
+        isLast && styles.tableRowLast,
+        Platform.OS === 'web' && !expanded
+          ? ({ ':hover': { backgroundColor: colors.hover } } as object)
+          : null,
+      ]}
+    >
+      <View style={styles.tableRow}>
+        <View style={[styles.cell, styles.colStaff]}>
+          <StaffAvatar url={item.staff?.person?.photo_url} name={name} colors={colors} />
+          <View style={styles.staffText}>
+            <View style={styles.nameLine}>
+              <Text style={[styles.staffName, styles.nameLineText, { color: colors.text }]} numberOfLines={1}>{name}</Text>
+              {expandable ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${expanded ? 'Hide' : 'Show'} salary details for ${name}`}
+                  accessibilityState={{ expanded }}
+                  onPress={onToggle}
+                  {...webTitle(expanded ? 'Hide details' : 'Salary details')}
+                  style={(state) => [styles.detailToggle, pressStyle(state)]}
+                >
+                  <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary} />
+                </Pressable>
+              ) : null}
             </View>
-            <PressScale onPress={onClose} style={[modalSt.close, { backgroundColor: isDark ? Surfaces.dark.overlay : CLAY.slateTint }]}>
-              <Ionicons name="close" size={18} color={muted} />
-            </PressScale>
+            {item.staff?.staff_code ? (
+              <Text style={[styles.staffCode, { color: colors.muted }]} numberOfLines={1}>{item.staff.staff_code}</Text>
+            ) : null}
           </View>
+        </View>
+        <View style={[styles.cell, styles.colRole]}>
+          <Text style={[styles.roleText, { color: colors.secondary }]} numberOfLines={2}>{role}</Text>
+        </View>
+        <View style={[styles.cell, styles.colMoney]}>
+          <MoneyText value={formatINR(item.base_salary ?? item.net_salary)} muted={baseZero} colors={colors} />
+        </View>
+        <View style={[styles.cell, styles.colMoney]}>
+          <MoneyText value={deduction.text} negative={deduction.negative} muted={deduction.muted} colors={colors} />
+        </View>
+        <View style={[styles.cell, styles.colMoney]}>
+          <MoneyText value={adjustment.text} negative={adjustment.negative} positive={adjustment.positive} muted={adjustment.muted} colors={colors} />
+        </View>
+        <View style={[styles.cell, styles.colMoney]}>
+          <MoneyText value={formatINR(item.net_salary)} emphasis muted={netZero} positive={paid && !netZero} colors={colors} />
+          {netZero && !paid ? (
+            <Text style={[styles.netHint, { color: colors.muted }]}>Nothing due</Text>
+          ) : null}
+        </View>
+        <View style={[styles.cell, styles.colStatus]}>
+          <StatusBadge paid={paid} review={review} colors={colors} date={payDate} />
+        </View>
+        <View style={[styles.cell, styles.colActions]}>{actions}</View>
+      </View>
+      {expanded ? <DetailBlock item={item} colors={colors} includeBreakdown={false} /> : null}
+    </View>
+  );
+}
 
-          <View style={modalSt.dirRow}>
-            {(['increase', 'decrease'] as const).map((d) => {
-              const active = direction === d;
-              const up = d === 'increase';
-              return (
-                <PressScale key={d} onPress={() => setDirection(d)} style={{ flex: 1 }}>
-                  <View
-                    style={[
-                      modalSt.dirBtn,
-                      {
-                        backgroundColor: active
-                          ? up
-                            ? isDark
-                              ? 'rgba(16,185,129,0.16)'
-                              : CLAY.emeraldTint
-                            : isDark
-                              ? 'rgba(239,68,68,0.14)'
-                              : CLAY.roseTint
-                          : isDark
-                            ? Surfaces.dark.overlay
-                            : Surfaces.light.overlay,
-                        borderColor: active ? (up ? '#22C55E' : '#EF4444') : border,
-                      },
-                    ]}
-                  >
-                    <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={14} color={up ? '#16A34A' : '#DC2626'} />
-                    <Text style={{ fontWeight: '700', color: up ? '#16A34A' : '#DC2626', textTransform: 'capitalize' }}>
-                      {d}
-                    </Text>
-                  </View>
-                </PressScale>
-              );
-            })}
-          </View>
+function pressStyle(state: PressState) {
+  return [
+    state.pressed && { opacity: 0.86 },
+    focusRing(state.focused),
+    Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
+  ];
+}
 
-          <AppTextInput
-            style={[modalSt.input, { color: ink, borderColor: border, backgroundColor: isDark ? Surfaces.dark.muted : Surfaces.light.overlay }]}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="numeric"
-            placeholder="Amount in ₹"
-            placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-          />
-          <AppTextInput
-            style={[
-              modalSt.input,
-              {
-                color: ink,
-                borderColor: border,
-                backgroundColor: isDark ? Surfaces.dark.muted : Surfaces.light.overlay,
-                minHeight: 72,
-                textAlignVertical: 'top',
-              },
-            ]}
-            value={remarks}
-            onChangeText={setRemarks}
-            placeholder="Reason (optional)"
-            placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-            multiline
-          />
+function PayDialog({
+  item,
+  phase,
+  error,
+  reference,
+  isAdmin,
+  colors,
+  onChangeReference,
+  onClose,
+  onConfirm,
+}: {
+  item: PayrollEntry | null;
+  phase: PayPhase;
+  error: string;
+  reference: string;
+  isAdmin: boolean;
+  colors: Palette;
+  onChangeReference: (value: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!item) return null;
+  const name = staffName(item);
+  const month = periodLabel(item.payroll_month, item.payroll_year);
+  const amount = formatINR(item.net_salary);
+  const deduction = formatDeduction(item.deductions);
+  const adjustment = formatAdjustment(item.salary_adjustment);
+  const teacher = item.calculation_engine === 'teacher-salary-v1';
+  const blocked = needsPaySetup(item);
+  const force = blocked && isAdmin;
+  const canConfirm = !blocked || isAdmin;
+  const showReference = teacher && !blocked;
+  const submitting = phase === 'submitting';
+  const success = phase === 'success';
+  const confirmLabel = force ? `Record forced payment of ${amount}` : `Confirm payment of ${amount}`;
 
-          <View style={modalSt.actions}>
-            <PressScale onPress={onClose} disabled={saving} style={modalSt.cancelBtn}>
-              <Text style={{ fontWeight: '700', color: muted }}>Cancel</Text>
-            </PressScale>
-            <PressScale
-              onPress={() => onSave(direction, Number(amount) || 0, remarks)}
-              disabled={saving}
-              style={modalSt.saveWrap}
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!submitting) onClose();
+      }}
+      accessibilityViewIsModal
+    >
+      <View style={styles.backdrop}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close dialog"
+          disabled={submitting}
+          onPress={() => {
+            if (!submitting) onClose();
+          }}
+          style={styles.backdropHit}
+        />
+        <View
+          style={[styles.dialog, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          accessibilityLabel={success ? `Payment recorded for ${name}` : `Review salary payment for ${name}`}
+        >
+          <View style={styles.dialogHead}>
+            <Text style={[styles.dialogTitle, { color: colors.text }]} accessibilityRole="header">
+              {success ? 'Payment recorded' : 'Review salary payment'}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              disabled={submitting}
+              onPress={onClose}
+              style={(state) => [styles.iconBtn, pressStyle(state)]}
             >
-              <LinearGradient colors={['#4F46E5', '#6366F1']} style={modalSt.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Text style={{ fontWeight: '800', color: '#fff' }}>{saving ? 'Saving…' : 'Save adjustment'}</Text>
-              </LinearGradient>
-            </PressScale>
+              <Ionicons name="close" size={20} color={colors.text} />
+            </Pressable>
           </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
+
+          {success ? (
+            <View style={[styles.notice, { backgroundColor: colors.paidBg }]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.paidFg} />
+              <Text style={[styles.noticeText, { color: colors.paidFg }]}>
+                {name} is marked paid for {month}. {amount} is recorded in the payroll register.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={styles.dialogScroll} keyboardShouldPersistTaps="handled">
+              <Text style={[styles.dialogLead, { color: colors.secondary }]}>
+                Check this salary before recording the payment for {month}.
+              </Text>
+              <Text style={[styles.dialogName, { color: colors.text }]}>{name}</Text>
+              <Text style={[styles.dialogRole, { color: colors.secondary }]}>{staffRole(item)} · {month}</Text>
+
+              <View style={[styles.breakdown, { borderColor: colors.border }]}>
+                <BreakdownRow label="Base salary" value={formatINR(item.base_salary ?? item.net_salary)} colors={colors} />
+                <BreakdownRow label="Deductions" value={deduction.text} negative={deduction.negative} muted={deduction.muted} colors={colors} />
+                <BreakdownRow label="Adjustments" value={adjustment.text} negative={adjustment.negative} positive={adjustment.positive} muted={adjustment.muted} colors={colors} />
+                <BreakdownRow label="Net payable" value={amount} emphasis colors={colors} />
+              </View>
+
+              <Text style={[styles.dialogNote, { color: colors.secondary }]}>
+                Confirming marks this salary as paid in the payroll register.
+              </Text>
+
+              {blocked ? (
+                <View style={[styles.notice, { backgroundColor: colors.pendingBg }]} accessibilityLiveRegion="polite">
+                  <Ionicons name="alert-circle" size={18} color={colors.pendingFg} />
+                  <Text style={[styles.noticeText, { color: colors.pendingFg }]}>
+                    {item.review_reason || 'Validate, approve, and lock this payslip before it can be paid.'}
+                    {force ? ' You can still record a forced payment.' : ' An administrator needs to resolve this before payment.'}
+                  </Text>
+                </View>
+              ) : null}
+
+              {showReference ? (
+                <View style={styles.field}>
+                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Transaction reference</Text>
+                  <AppTextInput
+                    value={reference}
+                    onChangeText={onChangeReference}
+                    editable={!submitting}
+                    placeholder="Reference for this payment"
+                    placeholderTextColor={colors.secondary}
+                    accessibilityLabel="Transaction reference"
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    style={[styles.fieldInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+                  />
+                  <Text style={[styles.fieldHelp, { color: colors.secondary }]}>Required to record this payment.</Text>
+                </View>
+              ) : null}
+
+              {phase === 'error' && error ? (
+                <View style={[styles.notice, { backgroundColor: colors.dangerBg }]} accessibilityLiveRegion="polite">
+                  <Ionicons name="alert-circle" size={18} color={colors.dangerFg} />
+                  <Text style={[styles.noticeText, { color: colors.dangerFg }]}>{error}</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          )}
+
+          <View style={styles.dialogActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={success ? 'Done' : 'Cancel'}
+              disabled={submitting}
+              onPress={onClose}
+              style={(state) => [styles.secondaryBtn, styles.dialogBtn, { borderColor: colors.border }, pressStyle(state)]}
+            >
+              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{success ? 'Done' : 'Cancel'}</Text>
+            </Pressable>
+            {!success && canConfirm ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={confirmLabel}
+                accessibilityState={{ disabled: submitting, busy: submitting }}
+                disabled={submitting}
+                onPress={onConfirm}
+                style={(state) => [
+                  styles.primaryBtn,
+                  styles.dialogBtn,
+                  { backgroundColor: colors.primary },
+                  submitting && { opacity: 0.7 },
+                  pressStyle(state),
+                ]}
+              >
+                {submitting ? <ActivityIndicator color={colors.onPrimary} size="small" /> : null}
+                <Text style={[styles.primaryBtnText, { color: colors.onPrimary }]}>
+                  {submitting ? 'Recording payment…' : confirmLabel}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </View>
     </Modal>
   );
-};
+}
 
-const modalSt = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.52)',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  card: { borderRadius: Radii.xxl, padding: Spacing.lg, gap: Spacing.sm },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
-  title: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-  sub: { fontSize: 13, marginTop: 2, fontWeight: '500' },
-  close: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  dirRow: { flexDirection: 'row', gap: 10 },
-  dirBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    minHeight: 44,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginTop: 4 },
-  cancelBtn: { paddingHorizontal: 16, height: 44, justifyContent: 'center' },
-  saveWrap: { borderRadius: Radii.md, overflow: 'hidden' },
-  saveBtn: { paddingHorizontal: 18, height: 44, borderRadius: Radii.md, alignItems: 'center', justifyContent: 'center' },
-});
+function BreakdownRow({
+  label,
+  value,
+  negative,
+  positive,
+  muted,
+  emphasis,
+  colors,
+}: {
+  label: string;
+  value: string;
+  negative?: boolean;
+  positive?: boolean;
+  muted?: boolean;
+  emphasis?: boolean;
+  colors: Palette;
+}) {
+  const color = negative ? colors.dangerFg : positive ? colors.paidFg : muted ? colors.muted : colors.text;
+  return (
+    <View style={[styles.breakdownRow, emphasis && styles.breakdownEmphasisRow, emphasis && { borderTopColor: colors.border, backgroundColor: colors.neutralBg }]}>
+      <Text style={[styles.breakdownLabel, emphasis && styles.breakdownEmphasis, { color: emphasis ? colors.text : colors.secondary }]}>{label}</Text>
+      <Text style={[styles.money, emphasis && styles.moneyEmphasis, { color }]}>{value}</Text>
+    </View>
+  );
+}
 
-/* ─── Screen ─── */
+function PaymentDetailsDialog({
+  item,
+  colors,
+  onClose,
+}: {
+  item: PayrollEntry | null;
+  colors: Palette;
+  onClose: () => void;
+}) {
+  if (!item) return null;
+  const name = staffName(item);
+  const month = periodLabel(item.payroll_month, item.payroll_year);
+  const deduction = formatDeduction(item.deductions);
+  const adjustment = formatAdjustment(item.salary_adjustment);
+  const payDate = formatPayDate(item.payment_date);
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose} accessibilityViewIsModal>
+      <View style={styles.backdrop}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close dialog" onPress={onClose} style={styles.backdropHit} />
+        <View
+          style={[styles.dialog, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          accessibilityLabel={`Payment details for ${name}`}
+        >
+          <View style={styles.dialogHead}>
+            <Text style={[styles.dialogTitle, { color: colors.text }]} accessibilityRole="header">Payment details</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              onPress={onClose}
+              style={(state) => [styles.iconBtn, pressStyle(state)]}
+            >
+              <Ionicons name="close" size={20} color={colors.text} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.dialogScroll}>
+            <Text style={[styles.dialogName, { color: colors.text }]}>{name}</Text>
+            <Text style={[styles.dialogRole, { color: colors.secondary }]}>{staffRole(item)} · {month}</Text>
+            <View style={styles.cardStatusRow}>
+              <StatusBadge paid colors={colors} date={payDate} />
+            </View>
+            <View style={[styles.breakdown, { borderColor: colors.border }]}>
+              <BreakdownRow label="Base salary" value={formatINR(item.base_salary ?? item.net_salary)} colors={colors} />
+              <BreakdownRow label="Deductions" value={deduction.text} negative={deduction.negative} muted={deduction.muted} colors={colors} />
+              <BreakdownRow label="Adjustments" value={adjustment.text} negative={adjustment.negative} positive={adjustment.positive} muted={adjustment.muted} colors={colors} />
+              <BreakdownRow label="Amount recorded" value={formatINR(item.net_salary)} emphasis positive={item.status === 'paid'} colors={colors} />
+            </View>
+            {payDate ? <DetailLine label="Payment date" value={payDate} colors={colors} /> : null}
+            {item.payment_method ? <DetailLine label="Payment method" value={item.payment_method} colors={colors} /> : null}
+            {item.payment_reference ? <DetailLine label="Transaction reference" value={item.payment_reference} colors={colors} /> : null}
+            {item.remarks ? <DetailLine label="Remarks" value={item.remarks} colors={colors} /> : null}
+          </ScrollView>
+          <View style={styles.dialogActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close payment details"
+              onPress={onClose}
+              style={(state) => [styles.primaryBtn, styles.dialogBtn, { backgroundColor: colors.primary }, pressStyle(state)]}
+            >
+              <Text style={[styles.primaryBtnText, { color: colors.onPrimary }]}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function DetailLine({ label, value, colors }: { label: string; value: string; colors: Palette }) {
+  return (
+    <View style={styles.detailLine}>
+      <Text style={[styles.detailKey, { color: colors.secondary }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
+    </View>
+  );
+}
+
 export interface PayrollScreenProps {
   isAdmin?: boolean;
   title?: string;
   showHeader?: boolean;
 }
 
-export default function PayrollScreen({ isAdmin = false, title = 'Payroll', showHeader = true }: PayrollScreenProps) {
-  const { theme, isDark } = useTheme();
+export default function PayrollScreen({ isAdmin = false, showHeader = true }: PayrollScreenProps) {
+  const { isDark } = useTheme();
+  const colors = palette(isDark);
   const { shellActive } = useAccountsWebChrome();
   const { width } = useWindowDimensions();
-  const compact = width < 420;
-  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+  const table = width >= 1100;
+  const headerRow = width >= 1100;
 
   const {
     payrollData,
@@ -1095,7 +977,6 @@ export default function PayrollScreen({ isAdmin = false, title = 'Payroll', show
     setSelectedYear,
     fetchPayroll,
     markAsPaid,
-    adjustSalary,
     distributionBlocked,
     accountsDistributionBlocked,
     distributionLoading,
@@ -1103,7 +984,12 @@ export default function PayrollScreen({ isAdmin = false, title = 'Payroll', show
   } = usePayroll({ isAdmin });
 
   const [adjustTarget, setAdjustTarget] = useState<PayrollEntry | null>(null);
-  const [adjustSaving, setAdjustSaving] = useState(false);
+  const [detailsTarget, setDetailsTarget] = useState<PayrollEntry | null>(null);
+  const [payTarget, setPayTarget] = useState<PayrollEntry | null>(null);
+  const [payPhase, setPayPhase] = useState<PayPhase>('review');
+  const [payError, setPayError] = useState('');
+  const [payReference, setPayReference] = useState('');
+  const submitLock = useRef(false);
   const [toggleSaving, setToggleSaving] = useState(false);
   const [staffPayslipsEnabled, setStaffPayslipsEnabled] = useState(true);
   const [payslipsToggleLoading, setPayslipsToggleLoading] = useState(false);
@@ -1111,6 +997,8 @@ export default function PayrollScreen({ isAdmin = false, title = 'Payroll', show
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPayroll();
@@ -1135,67 +1023,73 @@ export default function PayrollScreen({ isAdmin = false, title = 'Payroll', show
     };
   }, [isAdmin]);
 
-  // Auto-open settings briefly if accounts are blocked (so they notice)
   useEffect(() => {
     if (!isAdmin && distributionBlocked) setSettingsOpen(true);
   }, [isAdmin, distributionBlocked]);
 
   const canProcess = isAdmin || !accountsDistributionBlocked;
+  const now = new Date();
+  const isCurrentMonth = selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear();
 
-  const handlePrevMonth = () => {
-    if (selectedMonth === 1) {
-      setSelectedMonth(12);
-      setSelectedYear((y: number) => y - 1);
-    } else setSelectedMonth((m: number) => m - 1);
-  };
-  const handleNextMonth = () => {
-    if (selectedMonth === 12) {
-      setSelectedMonth(1);
-      setSelectedYear((y: number) => y + 1);
-    } else setSelectedMonth((m: number) => m + 1);
+  const shiftMonth = (delta: number) => {
+    const date = new Date(selectedYear, selectedMonth - 1 + delta, 1);
+    setSelectedMonth(date.getMonth() + 1);
+    setSelectedYear(date.getFullYear());
   };
 
-  const handleProcessPay = useCallback(
-    (item: PayrollEntry) => {
-      const name = item.staff?.person?.first_name || 'this staff member';
-      alertCompat('Confirm Payment', `Release ${fmtINR(item.net_salary)} to ${name}?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Release',
-          onPress: async () => {
-            const res = await markAsPaid(item.id);
-            if (!res.ok) alertCompat('Error', res.message || 'Failed to update payment status.');
-          },
-        },
-      ]);
-    },
-    [markAsPaid],
-  );
+  const goCurrentMonth = () => {
+    setSelectedMonth(now.getMonth() + 1);
+    setSelectedYear(now.getFullYear());
+  };
 
-  const handleSaveAdjustment = async (direction: 'increase' | 'decrease', amount: number, remarks: string) => {
-    if (!adjustTarget) return;
-    if (amount < 0) {
-      alertCompat('Invalid amount', 'Enter a valid amount.');
+  const openPay = (item: PayrollEntry) => {
+    submitLock.current = false;
+    setPayTarget(item);
+    setPayPhase('review');
+    setPayError('');
+    setPayReference('');
+  };
+
+  const closePay = () => {
+    if (payPhase === 'submitting') return;
+    setPayTarget(null);
+    setPayPhase('review');
+    setPayError('');
+  };
+
+  const confirmPay = async () => {
+    if (!payTarget || submitLock.current || payPhase === 'submitting' || payPhase === 'success') return;
+    const teacher = payTarget.calculation_engine === 'teacher-salary-v1';
+    const blocked = needsPaySetup(payTarget);
+    if (blocked && !isAdmin) return;
+    if (teacher && !blocked && !payReference.trim()) {
+      setPayPhase('error');
+      setPayError('Enter the transaction reference for this payment.');
       return;
     }
-    const signed = direction === 'increase' ? amount : -amount;
-    setAdjustSaving(true);
-    const res = await adjustSalary(adjustTarget.id, signed, remarks.trim() || undefined);
-    setAdjustSaving(false);
-    if (res.ok) {
-      setAdjustTarget(null);
-    } else {
-      alertCompat('Error', res.message || 'Failed to save adjustment.');
+    submitLock.current = true;
+    setPayPhase('submitting');
+    setPayError('');
+    const result = await markAsPaid(payTarget.id, {
+      engine: payTarget.calculation_engine,
+      paymentReference: payReference.trim() || undefined,
+      force: blocked,
+    });
+    submitLock.current = false;
+    if (!result.ok) {
+      setPayPhase('error');
+      setPayError(result.message || 'Payment was not recorded.');
+      return;
     }
+    setPayPhase('success');
+    fetchPayroll();
   };
 
   const handleToggleDistribution = async (blocked: boolean) => {
     setToggleSaving(true);
     const res = await setDistributionBlockedForAccounts(blocked);
     setToggleSaving(false);
-    if (!res.ok) {
-      alertCompat('Error', res.message || 'Failed to update setting.');
-    }
+    if (!res.ok) alertCompat('Error', res.message || 'Failed to update setting.');
   };
 
   const handleToggleStaffPayslips = async (enabled: boolean) => {
@@ -1210,172 +1104,589 @@ export default function PayrollScreen({ isAdmin = false, title = 'Payroll', show
     }
   };
 
-  const paidCount = payrollData.filter((e) => e.status === 'paid').length;
-  const pendingCount = payrollData.filter((e) => e.status === 'pending').length;
-  const count = { paid: paidCount, total: payrollData.length };
-  const filterCounts = { all: payrollData.length, pending: pendingCount, paid: paidCount };
+  const paidCount = payrollData.filter((entry) => entry.status === 'paid').length;
+  const pendingCount = payrollData.filter((entry) => entry.status === 'pending').length;
+  const totalAmount = summary.total_paid + summary.total_pending;
+  const amountPercent = totalAmount > 0 ? Math.round((summary.total_paid / totalAmount) * 100) : 0;
+  const monthName = periodLabel(selectedMonth, selectedYear);
+  const statusLine = payrollData.length === 0
+    ? `Salaries for ${monthName}`
+    : pendingCount === 0
+      ? `Every salary for ${monthName} is paid.`
+      : `${pendingCount} of ${payrollData.length} ${payrollData.length === 1 ? 'salary' : 'salaries'} still to pay for ${monthName}.`;
+
+  const toggleSort = (key: SortKey) => {
+    setSort((current) => {
+      if (current?.key !== key) {
+        const dir: SortDir = key === 'name' || key === 'role' ? 'asc' : 'desc';
+        return { key, dir };
+      }
+      return { key, dir: current.dir === 'asc' ? 'desc' : 'asc' };
+    });
+  };
 
   const filteredData = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return payrollData.filter((item) => {
+    const needle = query.trim().toLowerCase();
+    const matched = payrollData.filter((item) => {
       if (statusFilter !== 'all' && item.status !== statusFilter) return false;
-      if (!q) return true;
-      const person = item.staff?.person;
-      const name =
-        person?.display_name ||
-        `${person?.first_name || ''} ${person?.last_name || ''}`.trim() ||
-        '';
-      const role = item.staff?.designation?.name || '';
-      return name.toLowerCase().includes(q) || role.toLowerCase().includes(q);
+      if (!needle) return true;
+      const code = item.staff?.staff_code || '';
+      return staffName(item).toLowerCase().includes(needle)
+        || staffRole(item).toLowerCase().includes(needle)
+        || code.toLowerCase().includes(needle);
     });
-  }, [payrollData, statusFilter, query]);
+    if (!sort) return matched;
+    return [...matched].sort((a, b) => comparePayroll(a, b, sort.key, sort.dir));
+  }, [payrollData, statusFilter, query, sort]);
 
-  const renderItem = useCallback(
-    ({ item }: { item: PayrollEntry }) => (
-      <PayrollCard
-        item={item}
-        onPay={() => handleProcessPay(item)}
-        onAdjust={() => setAdjustTarget(item)}
-        isDark={isDark}
-        canProcess={canProcess}
-        compact={compact}
-      />
-    ),
-    [handleProcessPay, isDark, canProcess, compact],
-  );
+  const resetFilters = () => {
+    setQuery('');
+    setStatusFilter('all');
+  };
+
+  const filtersActive = query.trim().length > 0 || statusFilter !== 'all';
 
   const listHeader = (
-    <>
-      <MonthNav
-        month={selectedMonth}
-        year={selectedYear}
-        onPrev={handlePrevMonth}
-        onNext={handleNextMonth}
-        isDark={isDark}
-        showSettings={isAdmin || distributionBlocked}
-        settingsOpen={settingsOpen}
-        onToggleSettings={() => setSettingsOpen((v) => !v)}
+    <View style={styles.headerBlock}>
+      <View style={[styles.titleRow, headerRow && styles.titleRowWide]}>
+        <View style={styles.titleCopy}>
+          <Text style={[styles.crumb, { color: colors.secondary }]} accessibilityLabel="Breadcrumb, Finance, Payroll">
+            Finance  /  Payroll
+          </Text>
+          <Text style={[styles.pageTitle, { color: colors.text }]} accessibilityRole="header">Staff Payroll</Text>
+          <Text style={[styles.pageSub, { color: colors.secondary }]}>{statusLine}</Text>
+        </View>
+
+        <View style={styles.monthCluster}>
+          <View style={[styles.monthBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Previous month"
+              onPress={() => shiftMonth(-1)}
+              style={(state) => [styles.iconBtn, pressStyle(state)]}
+            >
+              <Ionicons name="chevron-back" size={18} color={colors.text} />
+            </Pressable>
+            <Text style={[styles.monthLabel, { color: colors.text }]} accessibilityLabel={monthName}>{monthName}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Next month"
+              onPress={() => shiftMonth(1)}
+              style={(state) => [styles.iconBtn, pressStyle(state)]}
+            >
+              <Ionicons name="chevron-forward" size={18} color={colors.text} />
+            </Pressable>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Current month"
+            accessibilityState={{ disabled: isCurrentMonth }}
+            disabled={isCurrentMonth}
+            onPress={goCurrentMonth}
+            style={(state) => [
+              styles.secondaryBtn,
+              { borderColor: colors.border, backgroundColor: colors.surface },
+              isCurrentMonth && { opacity: 0.45 },
+              pressStyle(state),
+            ]}
+          >
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Current month</Text>
+          </Pressable>
+          {(isAdmin || distributionBlocked) && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Payroll controls"
+              accessibilityState={{ expanded: settingsOpen }}
+              onPress={() => setSettingsOpen((open) => !open)}
+              style={(state) => [
+                styles.secondaryBtn,
+                { borderColor: colors.border, backgroundColor: settingsOpen ? colors.selectedWash : colors.surface },
+                pressStyle(state),
+              ]}
+            >
+              <Ionicons name="options-outline" size={16} color={colors.text} />
+            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>Controls</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {settingsOpen && isAdmin ? (
+        <View style={[styles.panel, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.panelTitle, { color: colors.text }]}>Payroll controls</Text>
+          <ControlRow
+            label="Accounts can release pay"
+            help={distributionBlocked ? 'Blocked. Accounts cannot record salary payments.' : 'Open. Accounts can record salary payments.'}
+            value={!distributionBlocked}
+            disabled={toggleSaving || distributionLoading}
+            colors={colors}
+            onChange={(next) => { void handleToggleDistribution(!next); }}
+          />
+          <ControlRow
+            label="Staff portal payslips"
+            help={staffPayslipsEnabled ? 'Visible to staff.' : 'Hidden from staff.'}
+            value={staffPayslipsEnabled}
+            disabled={payslipsToggleLoading || payslipsToggleSaving}
+            colors={colors}
+            onChange={(next) => { void handleToggleStaffPayslips(next); }}
+          />
+        </View>
+      ) : null}
+
+      {!isAdmin && distributionBlocked ? (
+        <View style={[styles.notice, { backgroundColor: colors.dangerBg }]}>
+          <Ionicons name="lock-closed" size={18} color={colors.dangerFg} />
+          <View style={styles.noticeCopy}>
+            <Text style={[styles.noticeTitle, { color: colors.dangerFg }]}>Distribution paused</Text>
+            <Text style={[styles.noticeText, { color: colors.dangerFg }]}>You can review payroll, but you cannot record salary payments.</Text>
+          </View>
+        </View>
+      ) : null}
+
+      <DisbursementHero
+        totalAmount={totalAmount}
+        paidAmount={summary.total_paid}
+        pendingAmount={summary.total_pending}
+        staffCount={payrollData.length}
+        paidCount={paidCount}
+        pendingCount={pendingCount}
+        amountPercent={amountPercent}
+        stacked={width < 760}
+        colors={colors}
       />
 
-      {(settingsOpen || (!isAdmin && distributionBlocked)) && (
-        <SettingsPanel
-          isAdmin={isAdmin}
-          distributionBlocked={distributionBlocked}
-          staffPayslipsEnabled={staffPayslipsEnabled}
-          isDark={isDark}
-          onToggleDistribution={handleToggleDistribution}
-          onTogglePayslips={handleToggleStaffPayslips}
-          togglingDist={toggleSaving || distributionLoading}
-          togglingPayslips={payslipsToggleLoading || payslipsToggleSaving}
-        />
-      )}
+      <View style={[styles.toolbar, width >= 900 && styles.toolbarWide]}>
+        <View style={[styles.segment, { backgroundColor: colors.neutralBg, borderColor: colors.border }]} accessibilityRole="tablist">
+          {([
+            ['all', 'All', payrollData.length],
+            ['pending', 'Pending', pendingCount],
+            ['paid', 'Paid', paidCount],
+          ] as const).map(([key, label, count]) => {
+            const selected = statusFilter === key;
+            return (
+              <Pressable
+                key={key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${label}, ${count}`}
+                onPress={() => setStatusFilter(key)}
+                style={(state) => [
+                  styles.segmentBtn,
+                  selected && { backgroundColor: colors.surface, ...Shadows.sm },
+                  pressStyle(state),
+                ]}
+              >
+                <Text style={[styles.filterText, { color: selected ? colors.text : colors.secondary }]}>{label}</Text>
+                <View style={[styles.countPill, { backgroundColor: selected ? colors.selectedWash : 'transparent' }]}>
+                  <Text style={[styles.countPillText, { color: selected ? colors.primary : colors.secondary }]}>{count}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="search" size={18} color={colors.muted} />
+          <AppTextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search name, role, or staff code"
+            placeholderTextColor={colors.muted}
+            accessibilityLabel="Search by staff name, role, or staff code"
+            autoCorrect={false}
+            autoCapitalize="none"
+            style={[styles.searchInput, { color: colors.text }]}
+          />
+          {query.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              onPress={() => setQuery('')}
+              style={(state) => [styles.iconBtn, pressStyle(state)]}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.secondary} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+      {filtersActive ? (
+        <Text style={[styles.resultCount, { color: colors.secondary }]}>
+          Showing {filteredData.length} of {payrollData.length} staff
+        </Text>
+      ) : null}
+    </View>
+  );
 
-      <SummaryHero summary={summary} count={count} isDark={isDark} />
+  const tableHead = table && filteredData.length > 0 ? (
+    <View style={[styles.tableHead, { backgroundColor: colors.neutralBg, borderColor: colors.border }]}>
+      <SortHeader label="Staff member" column="name" sort={sort} columnStyle={styles.colStaff} colors={colors} onSort={toggleSort} />
+      <SortHeader label="Role" column="role" sort={sort} columnStyle={styles.colRole} colors={colors} onSort={toggleSort} />
+      <SortHeader label="Base salary" column="base" sort={sort} align="right" columnStyle={styles.colMoney} colors={colors} onSort={toggleSort} />
+      <SortHeader label="Deductions" column="deductions" sort={sort} align="right" columnStyle={styles.colMoney} colors={colors} onSort={toggleSort} />
+      <SortHeader label="Adjustments" column="adjustment" sort={sort} align="right" columnStyle={styles.colMoney} colors={colors} onSort={toggleSort} />
+      <SortHeader label="Net payable" column="net" sort={sort} align="right" columnStyle={styles.colMoney} colors={colors} onSort={toggleSort} />
+      <SortHeader label="Status" column="status" sort={sort} columnStyle={styles.colStatus} colors={colors} onSort={toggleSort} />
+      <Text style={[styles.headText, styles.colActions, styles.headRight, { color: colors.secondary }]}>Actions</Text>
+    </View>
+  ) : null;
 
-      <ListToolbar
-        filter={statusFilter}
-        onFilter={setStatusFilter}
-        counts={filterCounts}
-        query={query}
-        onQuery={setQuery}
-        isDark={isDark}
-      />
-    </>
+  const emptyState = (
+    <View style={[styles.empty, table && styles.emptyInTable, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.neutralBg }]}>
+        <Ionicons name={filtersActive ? 'search-outline' : 'people-outline'} size={22} color={colors.secondary} />
+      </View>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
+        {filtersActive ? 'No matching staff' : `No payroll for ${monthName}`}
+      </Text>
+      <Text style={[styles.emptyBody, { color: colors.secondary }]}>
+        {filtersActive
+          ? 'No staff match this search or status. Reset to see the full list.'
+          : 'Salaries appear here once they are generated for this month.'}
+      </Text>
+      {filtersActive ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reset search and filters"
+          onPress={resetFilters}
+          style={(state) => [styles.primaryBtn, pressStyle(state), { backgroundColor: colors.primary }]}
+        >
+          <Text style={[styles.primaryBtnText, { color: colors.onPrimary }]}>Reset search and filters</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? Surfaces.dark.base : Surfaces.light.base}
+    <View style={[styles.page, { backgroundColor: colors.page }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.page} />
+      {showHeader && !shellActive ? <AdminHeader title="Staff Payroll" hideTitle showBackButton /> : null}
+
+      <ScrollView
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading && payrollData.length > 0} onRefresh={fetchPayroll} />}
+      >
+        {listHeader}
+        {loading && payrollData.length === 0 ? (
+          <View style={[styles.tableCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {[0, 1, 2, 3].map((key) => (
+              <View key={key} style={[styles.skeleton, { backgroundColor: colors.neutralBg }]} />
+            ))}
+          </View>
+        ) : (
+          <View style={table ? [styles.tableCard, { backgroundColor: colors.surface, borderColor: colors.border }] : styles.cardList}>
+            {tableHead}
+            {filteredData.map((item, index) => (
+              <PayrollRow
+                key={item.id}
+                item={item}
+                colors={colors}
+                table={table}
+                expanded={expandedId === item.id}
+                isLast={index === filteredData.length - 1}
+                canProcess={canProcess}
+                canAdjust={!['APPROVED', 'LOCKED', 'PAID'].includes(item.workflow_status || '')}
+                onToggle={() => setExpandedId((current) => (current === item.id ? null : item.id))}
+                onPay={() => openPay(item)}
+                onAdjust={() => setAdjustTarget(item)}
+                onView={() => setDetailsTarget(item)}
+              />
+            ))}
+            {filteredData.length === 0 ? emptyState : null}
+          </View>
+        )}
+      </ScrollView>
+
+      <PayDialog
+        item={payTarget}
+        phase={payPhase}
+        error={payError}
+        reference={payReference}
+        isAdmin={isAdmin}
+        colors={colors}
+        onChangeReference={setPayReference}
+        onClose={closePay}
+        onConfirm={() => { void confirmPay(); }}
       />
-      {showHeader && !shellActive && <AdminHeader title={title} showBackButton />}
-
-      {loading ? (
-        <FlatList
-          data={[1, 2, 3, 4]}
-          keyExtractor={(i) => String(i)}
-          ListHeaderComponent={listHeader}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          renderItem={() => <CardSkeleton isDark={isDark} />}
-        />
-      ) : (
-        <FlatList
-          data={filteredData}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ListHeaderComponent={listHeader}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshing={loading}
-          onRefresh={fetchPayroll}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          windowSize={7}
-          removeClippedSubviews={Platform.OS !== 'web'}
-          ListEmptyComponent={
-            <Animated.View entering={FadeIn.duration(320)} style={styles.emptyWrap}>
-              <View style={[styles.emptyIconWrap, { backgroundColor: isDark ? Surfaces.dark.overlay : CLAY.indigoTint }]}>
-                <Ionicons name="people-outline" size={30} color={isDark ? '#64748B' : '#818CF8'} />
-              </View>
-              <Text style={[styles.emptyTitle, { color: isDark ? '#94A3B8' : '#475569' }]}>
-                {query || statusFilter !== 'all' ? 'No matches' : 'No payroll records'}
-              </Text>
-              <Text style={[styles.emptySub, { color: isDark ? '#64748B' : '#94A3B8' }]}>
-                {query || statusFilter !== 'all'
-                  ? 'Try another filter or search term'
-                  : 'Records will appear once generated for this month'}
-              </Text>
-              {(query || statusFilter !== 'all') && (
-                <PressScale
-                  onPress={() => {
-                    setQuery('');
-                    setStatusFilter('all');
-                  }}
-                  style={[styles.clearBtn, { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : CLAY.indigoTint }]}
-                >
-                  <Text style={{ fontWeight: '700', color: isDark ? '#C7D2FE' : CLAY.indigoInk }}>Clear filters</Text>
-                </PressScale>
-              )}
-            </Animated.View>
-          }
-        />
-      )}
-
-      <AdjustSalaryModal
+      <PaymentDetailsDialog item={detailsTarget} colors={colors} onClose={() => setDetailsTarget(null)} />
+      <PayrollAttendanceAdjustModal
         visible={!!adjustTarget}
         item={adjustTarget}
         isDark={isDark}
         onClose={() => setAdjustTarget(null)}
-        onSave={handleSaveAdjustment}
-        saving={adjustSaving}
+        onSaved={() => {
+          fetchPayroll();
+        }}
       />
     </View>
   );
 }
 
-const getStyles = (_theme: Theme, _isDark: boolean) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: 'transparent' },
-    listContent: { paddingHorizontal: Spacing.md, paddingTop: 4, paddingBottom: 48 },
-    emptyWrap: { alignItems: 'center', paddingTop: 56, gap: 8, paddingHorizontal: 24 },
-    emptyIconWrap: {
-      width: 72,
-      height: 72,
-      borderRadius: 22,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 6,
-    },
-    emptyTitle: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
-    emptySub: { fontSize: 13, fontWeight: '500', textAlign: 'center', lineHeight: 18 },
-    clearBtn: {
-      marginTop: 12,
-      paddingHorizontal: 16,
-      height: 40,
-      borderRadius: Radii.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-  });
+function ControlRow({
+  label,
+  help,
+  value,
+  disabled,
+  colors,
+  onChange,
+}: {
+  label: string;
+  help: string;
+  value: boolean;
+  disabled?: boolean;
+  colors: Palette;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <View style={[styles.controlRow, { borderTopColor: colors.border }]}>
+      <View style={styles.controlCopy}>
+        <Text style={[styles.controlLabel, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.controlHelp, { color: colors.secondary }]}>{help}</Text>
+      </View>
+      <Switch
+        accessibilityLabel={label}
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        trackColor={{ false: '#CBD5E1', true: '#C7D2FE' }}
+        thumbColor={value ? colors.primary : '#FFFFFF'}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { flex: 1 },
+  listContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 48 },
+  headerBlock: { gap: 16, marginBottom: 16 },
+  titleRow: { gap: 16 },
+  titleRowWide: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  titleCopy: { flexShrink: 1, gap: 4, minWidth: 220 },
+  crumb: { fontSize: 14, fontWeight: '600' },
+  pageTitle: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.4 },
+  pageSub: { fontSize: 16, lineHeight: 22 },
+  monthCluster: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  monthBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    minHeight: 44,
+    paddingHorizontal: 2,
+  },
+  monthLabel: { fontSize: 16, fontWeight: '700', minWidth: 148, textAlign: 'center' },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hero: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 14,
+    gap: 14,
+    ...Shadows.sm,
+  },
+  heroStats: { flexDirection: 'row', alignItems: 'stretch' },
+  heroStatsStack: { flexDirection: 'column' },
+  heroDivider: { width: 1, marginVertical: 10 },
+  heroStat: { flex: 1, minWidth: 0, paddingHorizontal: 14, paddingVertical: 10, gap: 2 },
+  heroStatLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  heroStatValue: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.4, fontVariant: ['tabular-nums'] },
+  heroStatHint: { fontSize: 13, fontWeight: '600' },
+  heroMeter: { gap: 8, paddingHorizontal: 14 },
+  heroMeterCaption: { fontSize: 13, fontWeight: '600' },
+  meterTrack: { height: 8, borderRadius: 999, overflow: 'hidden' },
+  meterFill: { height: 8, borderRadius: 999 },
+  toolbar: { gap: 10 },
+  toolbarWide: { flexDirection: 'row', alignItems: 'center' },
+  segment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 4,
+    gap: 2,
+  },
+  segmentBtn: {
+    minHeight: 36,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countPill: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  countPillText: { fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  filterText: { fontSize: 14, fontWeight: '700' },
+  resultCount: { fontSize: 13, fontWeight: '600', marginTop: -6 },
+  search: {
+    flex: 1,
+    minWidth: 220,
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingLeft: 12,
+    paddingRight: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 8 },
+  tableCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  cardList: { gap: 10 },
+  tableHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  headBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 40,
+    paddingHorizontal: 8,
+  },
+  headBtnRight: { justifyContent: 'flex-end' },
+  headText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
+  headRight: { textAlign: 'right', paddingRight: 8 },
+  tableRowWrap: { borderBottomWidth: StyleSheet.hairlineWidth },
+  tableRowLast: { borderBottomWidth: 0 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
+  cell: { paddingHorizontal: 8, justifyContent: 'center' },
+  colStaff: { flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 180 },
+  colRole: { flex: 1, minWidth: 88 },
+  colMoney: { flex: 1, alignItems: 'flex-end', minWidth: 92 },
+  colStatus: { flex: 1.05, minWidth: 118 },
+  colActions: { flex: 1.55, minWidth: 210, alignItems: 'flex-end' },
+  staffText: { flex: 1, minWidth: 0, gap: 1 },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 2, minWidth: 0 },
+  nameLineText: { flexShrink: 1 },
+  detailToggle: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
+  staffName: { fontSize: 15, fontWeight: '700' },
+  staffCode: { fontSize: 12, fontWeight: '600' },
+  roleText: { fontSize: 14, lineHeight: 18 },
+  netHint: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  money: { fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'], textAlign: 'right' },
+  moneyEmphasis: { fontSize: 16, fontWeight: '700' },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: 36, height: 36, borderRadius: 18 },
+  avatarText: { fontSize: 13, fontWeight: '700' },
+  badgeWrap: { gap: 4, alignItems: 'flex-start' },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+  },
+  badgeText: { fontSize: 13, fontWeight: '700' },
+  paidDate: { fontSize: 13, fontWeight: '600' },
+  actionCol: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', justifyContent: 'flex-end', width: '100%' },
+  actionColCard: { marginTop: 4, justifyContent: 'flex-start' },
+  primaryBtn: {
+    minHeight: 44,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  compactBtn: { minHeight: 36, paddingHorizontal: 10, borderRadius: 10 },
+  primaryBtnText: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  secondaryBtn: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: 'transparent',
+  },
+  secondaryBtnText: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  iconBtnBorder: { borderWidth: 1, borderRadius: 10, width: 36, height: 36 },
+  textBtn: { minHeight: 36, justifyContent: 'center', alignSelf: 'flex-start', paddingRight: 8 },
+  textBtnInline: { minHeight: 28 },
+  textBtnLabel: { fontSize: 13, fontWeight: '700' },
+  card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 12, ...Shadows.sm },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardIdentity: { flex: 1, minWidth: 0, gap: 2 },
+  cardNet: { alignItems: 'flex-end', gap: 2 },
+  cardNetLabel: { fontSize: 13, fontWeight: '600' },
+  cardStatusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  detailBlock: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  detailPair: { minWidth: 120, gap: 2 },
+  detailLine: { gap: 2 },
+  detailKey: { fontSize: 13, fontWeight: '600' },
+  detailValue: { fontSize: 14, lineHeight: 20 },
+  detailEmpty: { fontSize: 14 },
+  panel: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingBottom: 8 },
+  panelTitle: { fontSize: 16, fontWeight: '700', paddingTop: 14, paddingBottom: 4 },
+  controlRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth },
+  controlCopy: { flex: 1, gap: 2 },
+  controlLabel: { fontSize: 15, fontWeight: '700' },
+  controlHelp: { fontSize: 13, lineHeight: 18 },
+  notice: { flexDirection: 'row', gap: 8, borderRadius: 8, padding: 12, alignItems: 'flex-start' },
+  noticeCopy: { flex: 1, gap: 2 },
+  noticeTitle: { fontSize: 15, fontWeight: '700' },
+  noticeText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  empty: { borderWidth: 1, borderRadius: 16, padding: 28, alignItems: 'flex-start', gap: 8, ...Shadows.sm },
+  emptyInTable: { borderWidth: 0, borderRadius: 0, shadowOpacity: 0, elevation: 0, alignItems: 'flex-start' },
+  emptyIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emptyTitle: { fontSize: 18, fontWeight: '700' },
+  emptyBody: { fontSize: 15, lineHeight: 22, maxWidth: 460 },
+  skeleton: { height: 64, marginHorizontal: 12, marginVertical: 8, borderRadius: 10 },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.48)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  backdropHit: { ...StyleSheet.absoluteFillObject },
+  dialog: {
+    width: '100%',
+    maxWidth: 520,
+    maxHeight: '88%',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    gap: 12,
+    zIndex: 2,
+  },
+  dialogHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  dialogTitle: { flex: 1, fontSize: 20, fontWeight: '700' },
+  dialogScroll: { flexGrow: 0 },
+  dialogLead: { fontSize: 14, lineHeight: 20, marginBottom: 8 },
+  dialogName: { fontSize: 18, fontWeight: '700' },
+  dialogRole: { fontSize: 14, marginTop: 2, marginBottom: 12 },
+  dialogNote: { fontSize: 14, lineHeight: 20, marginTop: 10 },
+  breakdown: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
+  breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, alignItems: 'center' },
+  breakdownEmphasisRow: { borderTopWidth: 1, marginHorizontal: -12, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4, borderBottomLeftRadius: 10, borderBottomRightRadius: 10 },
+  breakdownLabel: { fontSize: 14, fontWeight: '600' },
+  breakdownEmphasis: { fontSize: 15, fontWeight: '700' },
+  field: { marginTop: 12, gap: 6 },
+  fieldLabel: { fontSize: 14, fontWeight: '700' },
+  fieldInput: { minHeight: 44, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, fontSize: 15 },
+  fieldHelp: { fontSize: 13 },
+  dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 8 },
+  dialogBtn: { paddingHorizontal: 14, flexShrink: 1 },
+});

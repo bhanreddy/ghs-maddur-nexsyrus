@@ -112,6 +112,35 @@ function getFileName(payslip: PayslipPdfRow): string {
   return `payslip-${fileSafe(payslip.month)}.pdf`;
 }
 
+export function payslipAttendanceRows(
+  attendance?: Record<string, string | number | null> | null,
+  perDaySalary?: string | null,
+): { label: string; value: string }[] {
+  if (!attendance) return [];
+  const source = attendance.source === 'MANUAL_SUMMARY'
+    ? 'Manual / Third-Party Summary'
+    : String(attendance.sourceLabel || 'SchoolIMS Attendance');
+  const row = (label: string, value: string | number | null | undefined) => ({
+    label,
+    value: value == null || value === '' ? '—' : String(value),
+  });
+  return [
+    row('Attendance source', source),
+    row('Calendar days', attendance.calendarDays),
+    row('Per-day salary', perDaySalary),
+    row('CL entitlement', attendance.paidClEntitlement),
+    row('CL used', attendance.clUsed),
+    row('Excess CL', attendance.excessClDays),
+    row('Non-CL unpaid leave', attendance.nonClUnpaidDays),
+    row('Total lates', attendance.totalLates),
+    row('Permitted lates', attendance.permittedLates),
+    row('Excess lates', attendance.excessLates),
+    row('Late-deduction days', attendance.lateDeductionDays),
+    row('Payroll holiday count', attendance.payrollHolidayCount ?? attendance.officialHolidays),
+    row('Attendance bonus', attendance.attendanceBonusDays == null ? null : `${attendance.attendanceBonusDays} day`),
+  ];
+}
+
 // ─── HTML Template (expo-print / native) ─────────────────────────────────────
 // Premium light "document-grade" payslip. Designed at A4 proportions
 // (794 × 1123 px @ 96dpi) so jsPDF fills the page without vertical squish.
@@ -175,6 +204,12 @@ function buildPayslipHtml({ payslip, employee, school }: PayslipPdfOptions): str
     : '';
   const bank = payslip.identity?.bankMasked
     ? `<div class="row"><span>Bank</span><strong>${escapeHtml(payslip.identity.bankMasked)}</strong></div>`
+    : '';
+  const attendanceRows = payslipAttendanceRows(payslip.attendance, payslip.per_day_salary).map((item) => (
+    `<tr><td class="t-desc">${escapeHtml(item.label)}</td><td class="t-note">${escapeHtml(item.value)}</td><td class="t-amt"></td></tr>`
+  )).join('');
+  const attendanceSection = attendanceRows
+    ? `<div class="ledger-wrap"><div class="section-label">Attendance</div><table class="ledger"><tbody>${attendanceRows}</tbody></table></div>`
     : '';
 
   const logoBlock = logoUri
@@ -515,6 +550,8 @@ function buildPayslipHtml({ payslip, employee, school }: PayslipPdfOptions): str
           <div class="row"><span>Payslip ID</span><strong>#${payslipId}</strong></div>
         </div>
       </div>
+
+      ${attendanceSection}
 
       <div class="ledger-wrap">
         <div class="section-label">Salary Breakdown</div>
