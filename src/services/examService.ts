@@ -62,6 +62,10 @@ export interface ExamPaper {
     subject_name: string;
     subject_name_te?: string | null;
     has_marks: boolean;
+    is_exam_only?: boolean;
+    marks_responsibility?: 'subject_teacher' | 'class_teacher';
+    /** False when an exam-only paper still has a section with no class teacher. */
+    class_teacher_assigned?: boolean | null;
     syllabus?: ExamSyllabusItem[] | null;
     /** True when a subject teacher is assigned (they can self-serve the syllabus). */
     has_teacher?: boolean;
@@ -94,6 +98,8 @@ export interface ExamResultReadinessPaper {
 export interface ExamResultReadinessSection {
     section_id: string;
     section_name: string;
+    /** Set for exam-only papers whose marks belong to the class teacher. */
+    responsibility?: 'class_teacher' | 'subject_teacher';
 }
 
 export interface ExamResultReadinessTeacher {

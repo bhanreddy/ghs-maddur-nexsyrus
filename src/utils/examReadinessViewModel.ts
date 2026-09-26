@@ -120,7 +120,9 @@ export function buildFollowUpItems(readiness?: ExamResultReadiness | null): Foll
         subject_name: paper.subject_name || '',
         section_id: section.section_id,
         section_name: section.section_name || '',
-        status_label: 'Teacher not assigned',
+        status_label: section.responsibility === 'class_teacher'
+          ? 'Class teacher not assigned'
+          : 'Teacher not assigned',
         raw_paper: paper,
         raw_section: section,
       });

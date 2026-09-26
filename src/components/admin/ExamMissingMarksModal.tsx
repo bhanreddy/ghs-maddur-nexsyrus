@@ -151,7 +151,7 @@ export function ExamMissingMarksModal({
               <View style={styles.itemHeaderLine}>
                 <Text style={styles.itemTitleText}>
                   {isUnassigned
-                    ? 'Teacher not assigned'
+                    ? (item.status_label || 'Teacher not assigned')
                     : isUnresolved
                       ? 'Assignment unresolved'
                       : item.teacher_name}

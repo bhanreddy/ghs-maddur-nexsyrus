@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Slate School Kosgi",
-    "slug": "slateschool",
+    "name": "Geetanjali High School Maddur",
+    "slug": "geetanjalihighschoolmaddur",
     "version": "3.1.2",
     "platforms": [
       "android",
@@ -16,14 +16,15 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": false,
-      "bundleIdentifier": "com.nexsyrussims.slateschool",
+      "bundleIdentifier": "com.nexsyrussims.geetanjalihighschool",
       "buildNumber": "1",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "fetch",
-          "remote-notification"
+          "remote-notification",
+          "location"
         ]
       },
       "entitlements": {
@@ -31,9 +32,9 @@
       }
     },
     "android": {
-      "package": "com.nexsyrussims.slateschool",
+      "package": "com.nexsyrussims.geetanjalihighschool",
       "jsEngine": "hermes",
-      "versionCode": 1,
+      "versionCode": 5,
       "googleServicesFile": "./google-services.json",
       "enableShrinkResources": true,
       "adaptiveIcon": {
@@ -48,15 +49,19 @@
         "VIBRATE",
         "POST_NOTIFICATIONS",
         "WAKE_LOCK",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "web": {
-      "bundler": "metro",
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon-v2.png"
     },
     "notification": {
-      "icon": "./assets/images/icon.png",
+      "icon": "./assets/images/icon-v2.png",
       "color": "#3535A8"
     },
     "plugins": [
@@ -80,6 +85,15 @@
           "image": "./assets/images/icon.png",
           "backgroundColor": "#FFFFFF",
           "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "locationWhenInUsePermission": "This app shares the school bus location with parents while a trip is in progress.",
+          "locationAlwaysAndWhenInUsePermission": "This app shares the school bus location with parents while a trip is in progress, including when the screen is off."
         }
       ],
       "expo-secure-store",
@@ -119,7 +133,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "092e54fd-6629-4c8c-ab8d-a21a3ea7633c"
+        "projectId": "5e99bce0-6c29-4767-9f70-10ea0ea9582f"
       }
     },
     "owner": "nexsyrus"

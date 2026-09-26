@@ -454,7 +454,20 @@ export const ResultService = {
     getExams: async (params?: { academic_year_id?: string; status?: string }): Promise<Exam[]> => {
         return api.get<Exam[]>('/results/exams', params);
     },
-    createExam: async (data: { name: string; academic_year_id: string; exam_type: string; start_date?: string; end_date?: string; status?: string }): Promise<Exam> => {
+    createExam: async (data: {
+        name: string;
+        academic_year_id: string;
+        exam_type: string;
+        start_date?: string;
+        end_date?: string;
+        status?: string;
+        special_subjects?: {
+            name: string;
+            max_marks: number;
+            passing_marks: number;
+            targets: { class_id: string; class_section_id: string | null }[];
+        }[];
+    }): Promise<Exam> => {
         return api.post<Exam>('/results/exams', data);
     },
     updateExam: async (id: string, data: Partial<Exam>): Promise<Exam> => {

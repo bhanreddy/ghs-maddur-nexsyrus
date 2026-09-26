@@ -129,6 +129,21 @@ describe('examReadinessViewModel', () => {
     expect(unassigned?.status_label).toBe('Teacher not assigned');
   });
 
+  test('exam-only sections say the class teacher is not assigned', () => {
+    const items = buildFollowUpItems({
+      ...sampleReadiness,
+      papers: [{
+        ...sampleReadiness.papers[1],
+        unassigned_sections: [{
+          section_id: 'sec-c',
+          section_name: 'C',
+          responsibility: 'class_teacher',
+        }],
+      }],
+    });
+    expect(items.find((item) => item.type === 'unassigned')?.status_label).toBe('Class teacher not assigned');
+  });
+
   test('filterFollowUpItems filters by category', () => {
     const items = buildFollowUpItems(sampleReadiness);
 

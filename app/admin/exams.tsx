@@ -25,6 +25,8 @@ import { useTranslation } from 'react-i18next';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import AdminHeader from '../../src/components/AdminHeader';
 import { ExamMarksReadinessCard } from '../../src/components/admin/ExamMarksReadinessCard';
+import { SpecialExamSubjectsCard } from '../../src/components/admin/SpecialExamSubjectsCard';
+import { SpecialSubjectSpec } from '../../src/utils/specialExamSubjects';
 import { ExamMissingMarksModal } from '../../src/components/admin/ExamMissingMarksModal';
 import { useAccountsWebChrome } from '../../src/contexts/AccountsWebChromeContext';
 import AppTextInput from '../../src/components/AppTextInput';
@@ -677,6 +679,9 @@ export default function AdminExams() {
             onOpenRoom={setRoomDetail}
             onAddRoomToSitting={setAddRoomSitting}
             onHallTickets={() => setHallTicketExam(detail.exam)}
+            onSpecialSubjectsSaved={() => {
+              if (selectedExamId) void openDetail(selectedExamId);
+            }}
             onDeleteExam={handleDeleteExam}
           />
         )
@@ -2133,6 +2138,7 @@ function ExamDetailView({
   onAddRoomToSitting,
   onHallTickets,
   onDeleteExam,
+  onSpecialSubjectsSaved,
 }: {
   styles: Styles;
   theme: Theme;
@@ -2154,6 +2160,7 @@ function ExamDetailView({
   onAddRoomToSitting: (s: { exam_date: string; session_start: string }) => void;
   onHallTickets: () => void;
   onDeleteExam: () => void;
+  onSpecialSubjectsSaved?: () => void;
 }) {
   const { exam, papers } = detail;
   const category = examCategoryFor(exam.exam_type);
@@ -2163,7 +2170,7 @@ function ExamDetailView({
   const resultsPublished = !!exam.results_published;
   const resultReadiness = detail.result_readiness;
   const resultsPublishable = resultReadiness.publishable ?? resultReadiness.entered_entries > 0;
-  const missingTeachers = scheduledPapers.filter((p) => p.has_teacher === false).length;
+  const missingTeachers = scheduledPapers.filter((p) => p.has_teacher === false && !p.is_exam_only).length;
   const hasSeating = allocations.length > 0;
   const [seatingOpen, setSeatingOpen] = useState(!published || !hasSeating);
   const [missingMarksModalVisible, setMissingMarksModalVisible] = useState(false);
@@ -2483,6 +2490,16 @@ function ExamDetailView({
           onAssignTeacher={onAssignTeacher}
           examName={t_field(exam.name, exam.name_te)}
         />
+
+        {exam.exam_type === 'special' && (
+          <SpecialExamSubjectsCard
+            academicYearId={exam.academic_year_id}
+            examId={exam.id}
+            papers={papers}
+            resultsPublished={resultsPublished}
+            onSaved={onSpecialSubjectsSaved}
+          />
+        )}
 
         {/* Schedule first — the thing people actually read */}
         {groups.length > 0 && (
@@ -2864,6 +2881,7 @@ function CreateExamModal({
   const [category, setCategory] = useState<ExamCategory>(EXAM_CATEGORIES[1]);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [specialSubjects, setSpecialSubjects] = useState<SpecialSubjectSpec[]>([]);
 
   const suggestions = (category.subExams || []).filter(
     (s) => !existingNames.includes(`${category.key}|${s}`)
@@ -2883,18 +2901,31 @@ function CreateExamModal({
       alertCompat('Already exists', 'An exam with this name already exists for this category.');
       return;
     }
+    if (
+      category.key === 'special'
+      && specialSubjects.some((subject) => !subject.name || subject.targets.length === 0)
+    ) {
+      alertCompat(
+        'Special subjects',
+        'Each special subject needs a name, maximum marks, and at least one class or section.',
+      );
+      return;
+    }
     try {
       setBusy(true);
       const created = await ResultService.createExam({
         name: finalName,
         academic_year_id: currentYear.id,
         exam_type: category.key,
+        ...(category.key === 'special' && specialSubjects.length > 0
+          ? { special_subjects: specialSubjects }
+          : {}),
       });
       const examId = (created as any)?.exam?.id || (created as any)?.id;
       setName('');
       onCreated(examId);
-    } catch {
-      alertCompat('Error', 'Failed to create exam');
+    } catch (error: any) {
+      alertCompat('Error', error?.message || 'Failed to create exam');
     } finally {
       setBusy(false);
     }
@@ -2957,6 +2988,13 @@ function CreateExamModal({
             {currentYear && (
               <Text style={styles.helperText}>Academic year: {currentYear.code}</Text>
             )}
+            {category.key === 'special' && currentYear && (
+              <SpecialExamSubjectsCard
+                academicYearId={currentYear.id}
+                papers={[]}
+                onSpecsChange={setSpecialSubjects}
+              />
+            )}
           </ScrollView>
           <TouchableOpacity
             style={[styles.modalPrimaryBtn, busy && styles.disabledBtn]}
@@ -2964,7 +3002,13 @@ function CreateExamModal({
             disabled={busy}
             activeOpacity={0.85}
           >
-            <Text style={styles.modalPrimaryBtnText}>{busy ? 'Creating…' : 'Create & set up timetable'}</Text>
+            <Text style={styles.modalPrimaryBtnText}>
+              {busy
+                ? 'Creating…'
+                : category.key === 'special' && specialSubjects.length > 0
+                  ? 'Create exam'
+                  : 'Create & set up timetable'}
+            </Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

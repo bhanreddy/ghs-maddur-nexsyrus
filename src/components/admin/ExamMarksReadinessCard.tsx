@@ -279,7 +279,7 @@ export function ExamMarksReadinessCard({
                 <View style={styles.previewInfo}>
                   <Text style={styles.previewTeacherName} numberOfLines={1}>
                     {item.type === 'unassigned'
-                      ? 'Teacher not assigned'
+                      ? (item.status_label || 'Teacher not assigned')
                       : item.type === 'unresolved'
                         ? 'Assignment unresolved'
                         : item.teacher_name}
