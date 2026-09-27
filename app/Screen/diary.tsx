@@ -646,9 +646,10 @@ function DiaryPhoto({ src }: { src: string }) {
   const { theme, isDark } = useTheme();
   const { t } = useTranslation();
   const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+  const imageSource = useMemo(() => ({ uri: src }), [src]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerStatus, setViewerStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [viewerFailed, setViewerFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [viewerAttempt, setViewerAttempt] = useState(0);
 
@@ -672,10 +673,9 @@ function DiaryPhoto({ src }: { src: string }) {
           <Pressable onPress={() => setViewerOpen(true)} disabled={status !== 'ready'} accessibilityRole="button" accessibilityLabel={t('studentDiary.openPhoto')} style={styles.photoFill}>
             <Image
               key={`${src}:${attempt}`}
-              source={{ uri: src }}
+              source={imageSource}
               style={styles.photoFill}
               resizeMode="contain"
-              onLoadStart={() => setStatus('loading')}
               onLoad={() => setStatus('ready')}
               onError={() => setStatus('failed')}
             />
@@ -685,25 +685,22 @@ function DiaryPhoto({ src }: { src: string }) {
       </View>
       <Modal visible={viewerOpen} transparent animationType="fade" onRequestClose={() => setViewerOpen(false)}>
         <Pressable style={styles.photoViewerOverlay} onPress={() => setViewerOpen(false)}>
-          {viewerStatus === 'failed' ? (
+          {viewerFailed ? (
             <View style={styles.photoStatus}>
               <Text style={[styles.photoStatusText, { color: '#FFFFFF' }]}>{t('studentDiary.photoUnavailable')}</Text>
-              <Pressable onPress={(event) => { event.stopPropagation(); setViewerStatus('loading'); setViewerAttempt((value) => value + 1); }} accessibilityRole="button" accessibilityLabel={t('studentDiary.retryPhoto')} style={styles.photoRetry}>
+              <Pressable onPress={(event) => { event.stopPropagation(); setViewerFailed(false); setViewerAttempt((value) => value + 1); }} accessibilityRole="button" accessibilityLabel={t('studentDiary.retryPhoto')} style={styles.photoRetry}>
                 <Text style={styles.photoViewerRetryText}>{t('studentDiary.retry')}</Text>
               </Pressable>
             </View>
           ) : (
             <Image
               key={`${src}:viewer:${viewerAttempt}`}
-              source={{ uri: src }}
+              source={imageSource}
               style={styles.photoViewerImage}
               resizeMode="contain"
-              onLoadStart={() => setViewerStatus('loading')}
-              onLoad={() => setViewerStatus('ready')}
-              onError={() => setViewerStatus('failed')}
+              onError={() => setViewerFailed(true)}
             />
           )}
-          {viewerStatus === 'loading' ? <ActivityIndicator style={styles.photoViewerLoading} color="#FFFFFF" /> : null}
         </Pressable>
       </Modal>
     </>
@@ -1355,7 +1352,6 @@ const getStyles = (theme: SchoolTheme, isDark: boolean) =>
     photoRetryText: { fontSize: 13, fontWeight: '700' },
     photoViewerOverlay: { flex: 1, backgroundColor: 'rgba(11,16,32,0.92)', alignItems: 'center', justifyContent: 'center', padding: 16 },
     photoViewerImage: { width: '100%', height: '80%' },
-    photoViewerLoading: { position: 'absolute', alignSelf: 'center' },
     photoViewerRetryText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 
     // Empty state
