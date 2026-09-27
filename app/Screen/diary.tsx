@@ -12,6 +12,7 @@ import {
   RefreshControl,
   TouchableWithoutFeedback,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -641,13 +642,80 @@ function HistoryOverview({
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
 
+function DiaryPhoto({ src }: { src: string }) {
+  const { theme, isDark } = useTheme();
+  const { t } = useTranslation();
+  const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerStatus, setViewerStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [attempt, setAttempt] = useState(0);
+  const [viewerAttempt, setViewerAttempt] = useState(0);
+
+  const retry = () => {
+    setStatus('loading');
+    setAttempt((value) => value + 1);
+  };
+
+  return (
+    <>
+      <View style={styles.attachmentThumb}>
+        {status === 'failed' ? (
+          <View style={styles.photoStatus}>
+            <Ionicons name="image-outline" size={24} color={theme.colors.textMuted} />
+            <Text style={styles.photoStatusText}>{t('studentDiary.photoUnavailable')}</Text>
+            <Pressable onPress={retry} accessibilityRole="button" accessibilityLabel={t('studentDiary.retryPhoto')} style={styles.photoRetry}>
+              <Text style={[styles.photoRetryText, { color: theme.colors.primary }]}>{t('studentDiary.retry')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable onPress={() => setViewerOpen(true)} disabled={status !== 'ready'} accessibilityRole="button" accessibilityLabel={t('studentDiary.openPhoto')} style={styles.photoFill}>
+            <Image
+              key={`${src}:${attempt}`}
+              source={{ uri: src }}
+              style={styles.photoFill}
+              resizeMode="contain"
+              onLoadStart={() => setStatus('loading')}
+              onLoad={() => setStatus('ready')}
+              onError={() => setStatus('failed')}
+            />
+            {status === 'loading' ? <ActivityIndicator style={styles.photoLoading} color={theme.colors.primary} /> : null}
+          </Pressable>
+        )}
+      </View>
+      <Modal visible={viewerOpen} transparent animationType="fade" onRequestClose={() => setViewerOpen(false)}>
+        <Pressable style={styles.photoViewerOverlay} onPress={() => setViewerOpen(false)}>
+          {viewerStatus === 'failed' ? (
+            <View style={styles.photoStatus}>
+              <Text style={[styles.photoStatusText, { color: '#FFFFFF' }]}>{t('studentDiary.photoUnavailable')}</Text>
+              <Pressable onPress={(event) => { event.stopPropagation(); setViewerStatus('loading'); setViewerAttempt((value) => value + 1); }} accessibilityRole="button" accessibilityLabel={t('studentDiary.retryPhoto')} style={styles.photoRetry}>
+                <Text style={styles.photoViewerRetryText}>{t('studentDiary.retry')}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Image
+              key={`${src}:viewer:${viewerAttempt}`}
+              source={{ uri: src }}
+              style={styles.photoViewerImage}
+              resizeMode="contain"
+              onLoadStart={() => setViewerStatus('loading')}
+              onLoad={() => setViewerStatus('ready')}
+              onError={() => setViewerStatus('failed')}
+            />
+          )}
+          {viewerStatus === 'loading' ? <ActivityIndicator style={styles.photoViewerLoading} color="#FFFFFF" /> : null}
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 function TaskCard({ item, index, hideAttachments }: { item: DiaryEntry; index: number; hideAttachments?: boolean }) {
   const { t, i18n: translationI18n } = useTranslation();
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   const subj = getSubjectStyle(item.subjectName || item.title);
   const pressed = useSharedValue(0);
-  const [viewerUri, setViewerUri] = useState<string | null>(null);
   const dateLocale = isTelugu(translationI18n.language) ? 'te-IN' : 'en-IN';
   const localizedTitle = t_field(item.title, item.titleTe);
   const localizedContent = t_field(item.content, item.contentTe);
@@ -702,22 +770,13 @@ function TaskCard({ item, index, hideAttachments }: { item: DiaryEntry; index: n
             {!photoOnly && localizedContent ? <Text style={styles.taskBody}>{localizedContent}</Text> : null}
             {!hideAttachments && photos.length > 0 ? (
               <View style={styles.attachmentRow}>
-                {photos.slice(0, 3).map((src) => (
-                  <Pressable key={src} onPress={() => setViewerUri(src)}>
-                    <Image source={{ uri: src }} style={styles.attachmentThumb} resizeMode="cover" />
-                  </Pressable>
-                ))}
+                {photos.map((src) => <DiaryPhoto key={src} src={src} />)}
                 <Text style={styles.attachmentHint}>{t('studentDiary.originalPhoto', 'Original diary photo')}</Text>
               </View>
             ) : null}
           </View>
         </View>
       </Pressable>
-      <Modal visible={!!viewerUri} transparent animationType="fade" onRequestClose={() => setViewerUri(null)}>
-        <Pressable style={styles.photoViewerOverlay} onPress={() => setViewerUri(null)}>
-          {viewerUri ? <Image source={{ uri: viewerUri }} style={styles.photoViewerImage} resizeMode="contain" /> : null}
-        </Pressable>
-      </Modal>
     </Animated.View>
   );
 }
@@ -778,14 +837,14 @@ function DiaryTaskList({
   return (
     <View style={styles.taskList}>
       {groupClassDiaryTasks(tasks).bundles.map((bundle) => {
-        const photo = normalizeDiaryAttachments(bundle[0].attachments)[0] || null;
+        const photos = normalizeDiaryAttachments(bundle[0].attachments);
         return (
-          <View key={photo || bundle[0].id} style={{ gap: 8, marginBottom: 8 }}>
+          <View key={photos[0] || bundle[0].id} style={{ gap: 8, marginBottom: 8 }}>
             <Text style={styles.taskTitle}>{t('studentDiary.classDiary', "Today's Class Diary")}</Text>
             {bundle.map((item, i) => <TaskCard key={item.id} item={item} index={i} hideAttachments />)}
-            {photo ? (
+            {photos.length ? (
               <View style={styles.attachmentRow}>
-                <Image source={{ uri: photo }} style={styles.attachmentThumb} resizeMode="cover" />
+                {photos.map((src) => <DiaryPhoto key={src} src={src} />)}
                 <Text style={styles.attachmentHint}>{t('studentDiary.originalPhoto', 'Original diary photo')}</Text>
               </View>
             ) : null}
@@ -1286,10 +1345,18 @@ const getStyles = (theme: SchoolTheme, isDark: boolean) =>
     taskTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.textStrong, letterSpacing: -0.3, lineHeight: 21 },
     taskBody: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 19 },
     attachmentRow: { marginTop: 10, gap: 6 },
-    attachmentThumb: { width: '100%', height: 220, borderRadius: 16, backgroundColor: 'rgba(15,23,42,0.06)' },
+    attachmentThumb: { width: '100%', height: 220, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(15,23,42,0.06)' },
     attachmentHint: { fontSize: 11, fontWeight: '600', color: theme.colors.textTertiary },
+    photoFill: { width: '100%', height: '100%' },
+    photoLoading: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
+    photoStatus: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16 },
+    photoStatusText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+    photoRetry: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.primary },
+    photoRetryText: { fontSize: 13, fontWeight: '700' },
     photoViewerOverlay: { flex: 1, backgroundColor: 'rgba(11,16,32,0.92)', alignItems: 'center', justifyContent: 'center', padding: 16 },
     photoViewerImage: { width: '100%', height: '80%' },
+    photoViewerLoading: { position: 'absolute', alignSelf: 'center' },
+    photoViewerRetryText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 
     // Empty state
     emptyCard: {

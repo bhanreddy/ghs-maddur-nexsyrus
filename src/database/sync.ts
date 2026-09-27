@@ -3,6 +3,7 @@ import { Q } from '@nozbe/watermelondb';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import database from './index';
 import { api } from '../services/apiClient';
+import { mapDiaryEntryForSync } from './diarySyncMapper';
 
 /** Match server DIARY_RETENTION_DAYS: keep today + prior (n-1) days in local DB. */
 const DIARY_LOCAL_RETENTION_DAYS = 15;
@@ -220,22 +221,7 @@ export async function sync(activeUserId?: string | null) {
         changes: {
           diary_entries: {
             created: [], // If we can't distinguish, we can treat all as updated (upsert)
-            updated: Array.isArray(diaryEntries) ? diaryEntries.map((d) => ({
-              id: d.id,
-              class_section_id: d.class_section_id,
-              entry_date: new Date(d.entry_date).toISOString().split('T')[0],
-              subject_id: d.subject_id,
-              title: d.title,
-              title_te: d.title_te,
-              content: d.content,
-              content_te: d.content_te,
-              homework_due_date: d.homework_due_date,
-              attachments: d.attachments,
-              subject_name: d.subject_name,
-              created_by: d.created_by,
-              created_at: new Date(d.created_at).getTime(),
-              updated_at: new Date(d.updated_at || d.created_at).getTime()
-            })) : [],
+            updated: Array.isArray(diaryEntries) ? diaryEntries.map(mapDiaryEntryForSync) : [],
             deleted: deletedIds
           },
           users: {

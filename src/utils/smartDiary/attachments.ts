@@ -21,6 +21,11 @@ export function normalizeDiaryAttachments(raw: unknown): string[] {
     .filter(isRemoteImageUrl);
 }
 
+/** WatermelonDB sync writes raw columns, so its string column needs JSON text. */
+export function serializeDiaryAttachmentsForSync(raw: unknown): string {
+  return JSON.stringify(normalizeDiaryAttachments(raw));
+}
+
 export function isRemoteImageUrl(uri: string): boolean {
   return /^https?:\/\//i.test(uri);
 }

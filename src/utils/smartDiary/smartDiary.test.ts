@@ -1,6 +1,6 @@
 import { detectCurrentClass, formatClock } from './currentClass';
 import { composeDiaryContent, composeHomeworkLine, mergeTemplateCatalog, renderTemplateContent, SYSTEM_TEMPLATES } from './compose';
-import { isPhotoFallbackContent, normalizeDiaryAttachments } from './attachments';
+import { isPhotoFallbackContent, normalizeDiaryAttachments, serializeDiaryAttachmentsForSync } from './attachments';
 import { retryDelayMs, shouldAttempt } from './queuePolicy';
 
 describe('smart diary current class', () => {
@@ -61,6 +61,17 @@ describe('smart diary templates and compose', () => {
     expect(normalizeDiaryAttachments([{ url: 'https://cdn.example/diary.jpg' }])).toEqual(['https://cdn.example/diary.jpg']);
     expect(normalizeDiaryAttachments(JSON.stringify(['https://cdn.example/diary.jpg']))).toEqual(['https://cdn.example/diary.jpg']);
     expect(normalizeDiaryAttachments('not-a-url')).toEqual([]);
+  });
+
+  it('serializes API attachments for the WatermelonDB string column', () => {
+    const urls = ['https://cdn.example/one.jpg', 'https://cdn.example/two.jpg'];
+    for (const value of [urls, JSON.stringify(urls), urls.map((url) => ({ url }))]) {
+      const stored = serializeDiaryAttachmentsForSync(value);
+      expect(typeof stored).toBe('string');
+      expect(normalizeDiaryAttachments(stored)).toEqual(urls);
+    }
+    expect(serializeDiaryAttachmentsForSync(null)).toBe('[]');
+    expect(serializeDiaryAttachmentsForSync('not-a-url')).toBe('[]');
   });
 
   it('replaces local system template ids with server uuids by name', () => {

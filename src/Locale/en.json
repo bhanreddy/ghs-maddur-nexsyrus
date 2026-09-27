@@ -446,6 +446,10 @@
     "classLoadingTitle": "Loading diary",
     "noClassAssigned": "We're still loading this student's class. Pull down or reopen in a moment.",
     "originalPhoto": "Original diary photo",
+    "photoUnavailable": "Photo unavailable",
+    "retry": "Retry",
+    "retryPhoto": "Retry loading diary photo",
+    "openPhoto": "Open diary photo",
     "classDiary": "Today's Class Diary"
   },
   "studentHome": {
