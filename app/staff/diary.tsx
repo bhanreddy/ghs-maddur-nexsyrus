@@ -407,7 +407,7 @@ export default function StaffDiary() {
       await enqueueDiary(teacherId, payload, input.localUris || []);
       const netResult = await flushDiaryQueue(teacherId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (netResult.flushed > 0) toast(classSectionIds.length > 1 ? 'Diary sent to selected classes.' : 'Diary posted successfully.');
+      if (netResult.flushed > 0) toast(classSectionIds.length > 1 ? 'Diary posted to selected classes. Parent alerts: 5:30 PM IST.' : 'Diary posted. Parent alerts: 5:30 PM IST.');
       else toast('Saved. Will sync automatically.', 'info');
       resetFlows();
       void loadLive();
@@ -837,7 +837,7 @@ export default function StaffDiary() {
       setClassDiaryReviewOpen(false);
       setClassDiaryFailedOpen(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast(sendOriginal ? 'Original class diary sent.' : 'Class diary published.');
+      toast(sendOriginal ? 'Class diary photo posted. Parent alerts: 5:30 PM IST.' : 'Class diary published. Parent alerts: 5:30 PM IST.');
       void loadLive();
     } catch {
       await enqueueDiary(teacherId, {
@@ -948,7 +948,7 @@ export default function StaffDiary() {
                     </View>
                     <Text style={styles.photoCtaTitle}>Photo diary</Text>
                     <Text style={styles.photoCtaHint}>
-                      {isWide ? 'Parents receive this photo now · kept 1 month' : 'Parents receive this photo now'}
+                      {isWide ? 'Parent alert at 5:30 PM IST · kept 1 month' : 'Parent alert at 5:30 PM IST'}
                     </Text>
                     {isWide ? null : <Text style={styles.photoCtaKeep}>Kept for 1 month</Text>}
                   </View>
@@ -1166,7 +1166,7 @@ export default function StaffDiary() {
           <ClaySheen isDark={isDark} radius={Radii.xl} />
           <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
           <Text style={[styles.retentionText, { color: theme.colors.textSecondary }]}>
-            Parents see this photo now. We keep it for 1 month, then delete it.
+            Parents can view the photo after upload. Diary alerts go out daily at 5:30 PM IST. Photos are kept for 1 month.
           </Text>
         </View>
         <Text style={[styles.reviewLabel, { color: theme.colors.textTertiary }]}>Optional note</Text>

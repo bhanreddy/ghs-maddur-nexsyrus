@@ -51,12 +51,15 @@ export default function PlanningSlotCard({
       style={(state) => {
         const focused = Boolean((state as { focused?: boolean }).focused);
         const hovered = Boolean((state as { hovered?: boolean }).hovered);
+        const pressed = Boolean((state as { pressed?: boolean }).pressed);
         return [
           styles.card,
           { flexBasis: basis as never, borderColor: highlighted ? c.teal : status === 'unavailable' ? c.border : c.border },
+          Platform.OS === 'web' && ({ cursor: selectable ? 'pointer' : 'default' } as any),
           status === 'unavailable' && styles.unavailable,
           highlighted && styles.highlighted,
           selectable && hovered && styles.hovered,
+          selectable && pressed && styles.pressed,
           focused && styles.focused,
         ];
       }}
@@ -153,6 +156,7 @@ function makeStyles(c: ReturnType<typeof planningColors>) {
     unavailable: { borderStyle: 'dashed' },
     highlighted: { borderWidth: 2, backgroundColor: c.tealSoft },
     hovered: { backgroundColor: c.cardAlt },
+    pressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
     focused: Platform.OS === 'web'
       ? ({ outlineStyle: 'solid', outlineWidth: 2, outlineColor: c.focus, outlineOffset: 2 } as object)
       : { borderColor: c.focus },

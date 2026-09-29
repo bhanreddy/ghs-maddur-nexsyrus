@@ -155,7 +155,7 @@ class NotificationManager {
     if (this.channelsReady) return;   // skip if already created this session
     if (Platform.OS !== 'android') return;
 
-    const NOTIFICATION_CHANNEL_VERSION = '3';
+    const NOTIFICATION_CHANNEL_VERSION = '4';
     const savedVersion = await AsyncStorage.getItem('notification_channel_version');
 
     if (savedVersion === NOTIFICATION_CHANNEL_VERSION) {
@@ -165,17 +165,12 @@ class NotificationManager {
 
     if (__DEV__) console.log('[NotificationManager] Creating fresh notification channels (Version ' + NOTIFICATION_CHANNEL_VERSION + ')');
 
-    // Delete existing channels for a clean slate
-    const existingChannels = await Notifications.getNotificationChannelsAsync();
-    for (const channel of existingChannels ?? []) {
-      await Notifications.deleteNotificationChannelAsync(channel.id);
-    }
-
-    // Base sets of channels for the 5 categories
+    // Add new channels without deleting existing channels or their user settings.
     const categories = [
       { id: 'emergency', name: 'Emergency Alerts', sound: 'emergency.wav', vibrate: [0, 500, 500, 500] },
       { id: 'fee_reminder', name: 'Fee Reminders', sound: 'fee_reminder.wav', vibrate: [0, 250, 250, 250] },
       { id: 'voice_alert', name: 'General Alerts', sound: 'voice_alert.wav', vibrate: [0, 250, 250, 250] },
+      { id: 'diary_alert', name: 'Diary Alerts', sound: 'diary_alert.wav', vibrate: [0, 250, 250, 250] },
       { id: 'attendance_absent_alert', name: 'Absent Alerts', sound: 'attendance_absent_alert.wav', vibrate: [0, 500, 500, 500] },
       { id: 'bus_present', name: 'Bus Boarding', sound: 'bus_present.wav', vibrate: [0, 250, 250, 250] },
       { id: 'bus_confirmation', name: 'Bus One Stop Away', sound: 'busconfirmation.wav', vibrate: [0, 250, 250, 250] },
@@ -381,7 +376,7 @@ class NotificationManager {
    *   3. In-memory dedup (nanoseconds)
    *   4. Extract fields
    *   5. Resolve channel
-   *   6. scheduleNotificationAsync with trigger:null — NOTHING async before this
+   *   6. Ensure the diary channel exists and display the notification
    *   7. Fire-and-forget persist + translation
    */
   async displayNotification(remoteMessage: any, source: 'foreground' | 'background') {
@@ -420,7 +415,7 @@ class NotificationManager {
     // 6. Resolve channelId
     const knownCategories = [
       'emergency', 'fee_reminder',
-      'voice_alert', 'attendance_absent_alert', 'bus_present', 'bus_confirmation',
+      'voice_alert', 'diary_alert', 'attendance_absent_alert', 'bus_present', 'bus_confirmation',
       'notification_default'
     ];
     const base = channelId.replace('_custom', '').replace('_default', '');
@@ -445,9 +440,17 @@ class NotificationManager {
       channelId = 'attendance_absent_alert_custom';
     }
 
+    if (type === 'DIARY_UPDATED') {
+      finalSound = 'diary_alert.wav';
+      channelId = 'diary_alert_custom';
+    }
+
     // 8. ONE display call — the only scheduleNotificationAsync in this method
     // In background, if remoteMessage.notification exists, the OS automatically handles the display!
     if (source === 'foreground' || !remoteMessage.notification) {
+      if (type === 'DIARY_UPDATED' && Platform.OS === 'android') {
+        await this.createChannels();
+      }
       await Notifications.scheduleNotificationAsync({
         content: {
           title: title || 'Notification',

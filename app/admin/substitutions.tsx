@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -393,53 +394,66 @@ export default function DailySubstitutionsScreen() {
           />
         }
       >
-        <LinearGradient
-          colors={isDark ? ['#1E1B4B', '#172554'] : ['#312E81', '#4F46E5']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View style={styles.heroGlowOne} />
-          <View style={styles.heroGlowTwo} />
-          <View style={styles.heroTop}>
-            <View style={styles.heroCopy}>
-              <View style={styles.eyebrow}>
-                <Ionicons name="sparkles" size={13} color="#C7D2FE" />
-                <Text style={styles.eyebrowText}>SMART COVER DESK</Text>
+        {!planningOpen ? (
+          <LinearGradient
+            colors={isDark ? ['#1E1B4B', '#172554'] : ['#312E81', '#4F46E5']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <View style={styles.heroGlowOne} />
+            <View style={styles.heroGlowTwo} />
+            <View style={styles.heroTop}>
+              <View style={styles.heroCopy}>
+                <View style={styles.eyebrow}>
+                  <Ionicons name="sparkles" size={13} color="#C7D2FE" />
+                  <Text style={styles.eyebrowText}>SMART COVER DESK</Text>
+                </View>
+                <Text style={styles.heroTitle}>Keep every class moving.</Text>
+                <Text style={styles.heroSubtitle}>
+                  Find genuinely free teachers, balance cover duties, and grant attendance access for one day only.
+                </Text>
               </View>
-              <Text style={styles.heroTitle}>Keep every class moving.</Text>
-              <Text style={styles.heroSubtitle}>
-                Find genuinely free teachers, balance cover duties, and grant attendance access for one day only.
-              </Text>
-            </View>
-            <View style={styles.resetBadge}>
-              <Ionicons name="refresh-circle" size={22} color="#A7F3D0" />
-              <View>
-                <Text style={styles.resetTitle}>Auto resets</Text>
-                <Text style={styles.resetText}>Regular timetable resumes next day</Text>
+              <View style={styles.resetBadge}>
+                <Ionicons name="refresh-circle" size={22} color="#A7F3D0" />
+                <View>
+                  <Text style={styles.resetTitle}>Auto resets</Text>
+                  <Text style={styles.resetText}>Regular timetable resumes next day</Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          <View style={styles.heroStats}>
-            <Stat value={board?.summary.covered_slots || 0} label="Covered today" />
-            <View style={styles.statDivider} />
-            <Stat
-              value={board?.summary.uncovered_slots ?? (board ? board.summary.total_slots - board.summary.covered_slots : 0)}
-              label="Uncovered classes"
-            />
-            <View style={styles.statDivider} />
-            <Stat
-              value={board?.summary.unavailable_teachers_count ?? (board?.unavailable_teachers?.length || 0)}
-              label="Unavailable staff"
-            />
-          </View>
-        </LinearGradient>
+            <View style={styles.heroStats}>
+              <Stat value={board?.summary.covered_slots || 0} label="Covered today" />
+              <View style={styles.statDivider} />
+              <Stat
+                value={board?.summary.uncovered_slots ?? (board ? board.summary.total_slots - board.summary.covered_slots : 0)}
+                label="Uncovered classes"
+              />
+              <View style={styles.statDivider} />
+              <Stat
+                value={board?.summary.unavailable_teachers_count ?? (board?.unavailable_teachers?.length || 0)}
+                label="Unavailable staff"
+              />
+            </View>
+          </LinearGradient>
+        ) : null}
 
-        <View style={styles.controlCard}>
-          <View style={styles.controlTop}>
-            <View style={styles.dateCell}>
-              <Text style={styles.controlLabel}>COVER DATE</Text>
+        {planningOpen ? (
+          <View style={styles.planningTopBar}>
+            <TouchableOpacity
+              onPress={closePlanning}
+              activeOpacity={0.8}
+              style={styles.planningBackTopBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Back to daily substitutions overview"
+            >
+              <Ionicons name="arrow-back" size={18} color={c.primary} />
+              <Text style={styles.planningBackTopText}>Back to overview</Text>
+            </TouchableOpacity>
+
+            <View style={styles.planningDateWrap}>
+              <Text style={styles.planningDateLabel}>COVER DATE</Text>
               <AppDatePicker
                 value={date}
                 onChange={setDate}
@@ -450,108 +464,115 @@ export default function DailySubstitutionsScreen() {
                 accentColor={c.primary}
               />
             </View>
-            {!planningOpen ? (
-            <View style={styles.viewCell}>
-              <Text style={styles.controlLabel}>ORGANISE BY</Text>
-              <View style={styles.segment}>
-                <SegmentButton
-                  active={view === 'time'}
-                  icon="time-outline"
-                  label="Time wise"
-                  onPress={() => setView('time')}
-                  c={c}
-                />
-                <SegmentButton
-                  active={view === 'class'}
-                  icon="school-outline"
-                  label="Class wise"
-                  onPress={() => setView('class')}
-                  c={c}
+          </View>
+        ) : (
+          <View style={styles.controlCard}>
+            <View style={styles.controlTop}>
+              <View style={styles.dateCell}>
+                <Text style={styles.controlLabel}>COVER DATE</Text>
+                <AppDatePicker
+                  value={date}
+                  onChange={setDate}
+                  label={selectedDateLabel}
+                  isDark={isDark}
+                  containerStyle={{ marginBottom: 0 }}
+                  wrapperStyle={styles.datePicker}
+                  accentColor={c.primary}
                 />
               </View>
+              <View style={styles.viewCell}>
+                <Text style={styles.controlLabel}>ORGANISE BY</Text>
+                <View style={styles.segment}>
+                  <SegmentButton
+                    active={view === 'time'}
+                    icon="time-outline"
+                    label="Time wise"
+                    onPress={() => setView('time')}
+                    c={c}
+                  />
+                  <SegmentButton
+                    active={view === 'class'}
+                    icon="school-outline"
+                    label="Class wise"
+                    onPress={() => setView('class')}
+                    c={c}
+                  />
+                </View>
+              </View>
             </View>
-            ) : null}
-          </View>
 
-          {!planningOpen ? (
-          <View style={styles.searchWrap}>
-            <Ionicons name="search-outline" size={18} color={c.muted} />
-            <AppTextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search class, subject or teacher"
-              placeholderTextColor={c.muted}
-              style={styles.searchInput}
-            />
-            {query ? (
-              <TouchableOpacity onPress={() => setQuery('')} style={styles.clearSearch}>
-                <Ionicons name="close" size={15} color={c.muted} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          ) : null}
+            <View style={styles.searchWrap}>
+              <Ionicons name="search-outline" size={18} color={c.muted} />
+              <AppTextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search class, subject or teacher"
+                placeholderTextColor={c.muted}
+                style={styles.searchInput}
+              />
+              {query ? (
+                <TouchableOpacity onPress={() => setQuery('')} style={styles.clearSearch}>
+                  <Ionicons name="close" size={15} color={c.muted} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
 
-          {!planningOpen ? (
-          <>
-          <Text style={[styles.controlLabel, { marginTop: 18 }]}>UNAVAILABLE TEACHER</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teacherChips}>
-            <FilterChip
-              label="All teachers"
-              active={!teacherFilter}
-              onPress={() => setTeacherFilter('')}
-              c={c}
-            />
-            {(board?.unavailable_teachers && board.unavailable_teachers.length > 0
-              ? board.unavailable_teachers
-              : (board?.teachers || []).map((t) => ({ id: t.id, teacher_name: t.teacher_name, source_label: 'Unavailable' }))
-            ).map((teacher) => (
+            <Text style={[styles.controlLabel, { marginTop: 18 }]}>UNAVAILABLE TEACHER</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teacherChips}>
               <FilterChip
-                key={teacher.id}
-                label={teacher.teacher_name}
-                sublabel={teacher.source_label}
-                active={teacherFilter === teacher.id}
-                onPress={() => setTeacherFilter(teacherFilter === teacher.id ? '' : teacher.id)}
+                label="All teachers"
+                active={!teacherFilter}
+                onPress={() => setTeacherFilter('')}
                 c={c}
               />
-            ))}
-          </ScrollView>
-          </>
-          ) : null}
+              {(board?.unavailable_teachers && board.unavailable_teachers.length > 0
+                ? board.unavailable_teachers
+                : (board?.teachers || []).map((t) => ({ id: t.id, teacher_name: t.teacher_name, source_label: 'Unavailable' }))
+              ).map((teacher) => (
+                <FilterChip
+                  key={teacher.id}
+                  label={teacher.teacher_name}
+                  sublabel={teacher.source_label}
+                  active={teacherFilter === teacher.id}
+                  onPress={() => setTeacherFilter(teacherFilter === teacher.id ? '' : teacher.id)}
+                  c={c}
+                />
+              ))}
+            </ScrollView>
 
-          <TouchableOpacity
-            onPress={planningOpen ? closePlanning : openPlanning}
-            activeOpacity={0.85}
-            style={[styles.manualButton, planningOpen && styles.manualButtonSecondary]}
-            accessibilityRole="button"
-            accessibilityLabel={planningOpen ? 'Back to substitutions overview' : 'Add manual substitution'}
-          >
-            <Ionicons name={planningOpen ? 'arrow-back' : 'add-circle-outline'} size={18} color={planningOpen ? c.primary : '#FFFFFF'} />
-            <Text style={[styles.manualButtonText, planningOpen && styles.manualButtonSecondaryText]}>
-              {planningOpen ? 'Back to substitutions' : 'Add manual substitution'}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.reportCallout}>
-            <View style={styles.reportCalloutIcon}>
-              <Ionicons name="document-text-outline" size={20} color={c.primary} />
-            </View>
-            <View style={styles.reportCalloutCopy}>
-              <Text style={styles.reportCalloutTitle}>Substitution duty register</Text>
-              <Text style={styles.reportCalloutText}>
-                Download all {assignedSlots.length} confirmed {assignedSlots.length === 1 ? 'assignment' : 'assignments'} as a branded PDF or CSV.
-              </Text>
-            </View>
             <TouchableOpacity
-              onPress={() => setReportVisible(true)}
-              disabled={loading || assignedSlots.length === 0}
-              activeOpacity={0.82}
-              style={[styles.reportButton, (loading || assignedSlots.length === 0) && styles.reportButtonDisabled]}
+              onPress={openPlanning}
+              activeOpacity={0.85}
+              style={styles.manualButton}
+              accessibilityRole="button"
+              accessibilityLabel="Add manual substitution"
             >
-              <Ionicons name="download-outline" size={17} color="#FFFFFF" />
-              <Text style={styles.reportButtonText}>Download list</Text>
+              <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.manualButtonText}>Add manual substitution</Text>
             </TouchableOpacity>
+
+            <View style={styles.reportCallout}>
+              <View style={styles.reportCalloutIcon}>
+                <Ionicons name="document-text-outline" size={20} color={c.primary} />
+              </View>
+              <View style={styles.reportCalloutCopy}>
+                <Text style={styles.reportCalloutTitle}>Substitution duty register</Text>
+                <Text style={styles.reportCalloutText}>
+                  Download all {assignedSlots.length} confirmed {assignedSlots.length === 1 ? 'assignment' : 'assignments'} as a branded PDF or CSV.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setReportVisible(true)}
+                disabled={loading || assignedSlots.length === 0}
+                activeOpacity={0.82}
+                style={[styles.reportButton, (loading || assignedSlots.length === 0) && styles.reportButtonDisabled]}
+              >
+                <Ionicons name="download-outline" size={17} color="#FFFFFF" />
+                <Text style={styles.reportButtonText}>Download list</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         {planningOpen ? (
           <ManualPlanningBoard
@@ -1187,135 +1208,160 @@ function CandidateSheet({
   const styles = makeStyles(c);
 
   return (
-    <Modal transparent visible animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <Animated.View
-        entering={SlideInDown.springify().damping(24).stiffness(260)}
-        exiting={SlideOutDown.duration(180)}
-        style={styles.sheet}
+    <Modal transparent visible animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel="Close candidate sheet" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.sheetContainer}
       >
-        <View style={styles.sheetHandle} />
-        <View style={styles.sheetHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.sheetEyebrow}>ASSIGN ONE-DAY COVER</Text>
-            <Text style={styles.sheetTitle}>{classLabel(target)} · {target.subject_name}</Text>
-            <Text style={styles.sheetSubtitle}>
-              {timeLabel(target.start_time)}–{timeLabel(target.end_time)} · replacing {target.regular_teacher_name}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onClose} disabled={saving} style={styles.sheetClose}>
-            <Ionicons name="close" size={19} color={c.text} />
-          </TouchableOpacity>
-        </View>
-
-        {loading ? (
-          <View style={styles.candidateLoading}>
-            <LogoLoader size={46} color={c.primary} />
-            <Text style={styles.loadingText}>Checking every teacher’s timetable…</Text>
-          </View>
-        ) : (data?.candidates.length || 0) === 0 ? (
-          <View style={styles.noCandidate}>
-            <View style={styles.emptyIcon}>
-              <Ionicons name="people-outline" size={28} color={c.primary} />
-            </View>
-            <Text style={styles.emptyTitle}>No teacher is free</Text>
-            <Text style={styles.emptyText}>
-              Everyone eligible is teaching, on leave, marked absent, or already covering another class in this period.
-            </Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.rankExplainer}>
-              <Ionicons name="analytics-outline" size={16} color={c.primary} />
-              <Text style={styles.rankExplainerText}>
-                Ranked by subject match, class familiarity, workload and recent cover fairness. Unavailable and conflicting teachers are automatically excluded.
+        <Animated.View
+          entering={SlideInDown.springify().damping(24).stiffness(260)}
+          exiting={SlideOutDown.duration(180)}
+          style={styles.sheet}
+        >
+          {/* Header */}
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.sheetEyebrow}>ASSIGN ONE-DAY COVER</Text>
+              <Text style={styles.sheetTitle} numberOfLines={1}>{classLabel(target)} · {target.subject_name}</Text>
+              <Text style={styles.sheetSubtitle} numberOfLines={1}>
+                {timeLabel(target.start_time)}–{timeLabel(target.end_time)} · replacing {target.regular_teacher_name}
               </Text>
             </View>
-            <ScrollView style={styles.candidateList} contentContainerStyle={{ gap: 10 }}>
-              {data?.candidates.map((candidate, index) => {
-                const active = selected?.id === candidate.id;
-                const accent = scoreColor(candidate.score);
-                return (
-                  <Pressable
-                    key={candidate.id}
-                    onPress={() => onSelect(candidate)}
-                    style={[
-                      styles.candidateCard,
-                      active && { borderColor: c.primary, backgroundColor: c.primarySoft },
-                    ]}
-                  >
-                    <View style={[styles.rankBadge, index === 0 && { backgroundColor: '#FEF3C7' }]}>
-                      <Text style={[styles.rankText, index === 0 && { color: '#B45309' }]}>#{index + 1}</Text>
-                    </View>
-                    <View style={[styles.candidateAvatar, { backgroundColor: `${accent}20` }]}>
-                      <Text style={[styles.candidateAvatarText, { color: accent }]}>
-                        {initials(candidate.teacher_name)}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <View style={styles.candidateNameRow}>
-                        <Text style={styles.candidateName} numberOfLines={1}>{candidate.teacher_name}</Text>
-                        <Text style={[styles.recommendation, { color: accent }]}>{candidate.recommendation}</Text>
-                      </View>
-                      <View style={styles.reasonChips}>
-                        {candidate.reasons.map((item) => (
-                          <View key={item} style={styles.reasonChip}>
-                            <Text style={styles.reasonChipText}>{item}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                    <View style={[styles.scoreRing, { borderColor: accent }]}>
-                      <Text style={[styles.scoreText, { color: accent }]}>{candidate.score}</Text>
-                    </View>
-                    <Ionicons
-                      name={active ? 'radio-button-on' : 'radio-button-off'}
-                      size={21}
-                      color={active ? c.primary : c.muted}
-                    />
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            <View style={styles.reasonField}>
-              <Text style={styles.controlLabel}>NOTE / REASON (OPTIONAL)</Text>
-              <AppTextInput
-                value={reason}
-                onChangeText={onReasonChange}
-                placeholder="e.g. Called into a parent meeting"
-                placeholderTextColor={c.muted}
-                maxLength={500}
-                style={styles.reasonInput}
-                accessibilityLabel="Optional note or reason"
-              />
-            </View>
-
-            <TouchableOpacity
-              onPress={onAssign}
-              disabled={!selected || saving}
-              activeOpacity={0.85}
-              style={{ opacity: !selected || saving ? 0.55 : 1 }}
-            >
-              <LinearGradient colors={['#4F46E5', '#6366F1']} style={styles.confirmButton}>
-                {saving ? (
-                  <LogoLoader size={22} color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="shield-checkmark-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.confirmText}>
-                      Assign {selected?.teacher_name || 'selected teacher'}
-                    </Text>
-                  </>
-                )}
-              </LinearGradient>
+            <TouchableOpacity onPress={onClose} disabled={saving} style={styles.sheetClose} accessibilityLabel="Close">
+              <Ionicons name="close" size={19} color={c.text} />
             </TouchableOpacity>
-            <Text style={styles.expiryNote}>
-              <Ionicons name="information-circle-outline" size={12} /> Attendance access applies only to this class and date.
-            </Text>
-          </>
-        )}
-      </Animated.View>
+          </View>
+
+          {/* Middle Body */}
+          <ScrollView
+            style={styles.sheetBody}
+            contentContainerStyle={styles.sheetBodyContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {loading ? (
+              <View style={styles.candidateLoading}>
+                <LogoLoader size={46} color={c.primary} />
+                <Text style={styles.loadingText}>Checking every teacher’s timetable…</Text>
+              </View>
+            ) : (data?.candidates.length || 0) === 0 ? (
+              <View style={styles.noCandidate}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="people-outline" size={28} color={c.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>No teacher is free</Text>
+                <Text style={styles.emptyText}>
+                  Everyone eligible is teaching, on leave, marked absent, or already covering another class in this period.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.rankExplainer}>
+                  <Ionicons name="analytics-outline" size={16} color={c.primary} />
+                  <Text style={styles.rankExplainerText}>
+                    Ranked by subject match, class familiarity, workload and recent cover fairness. Unavailable and conflicting teachers are automatically excluded.
+                  </Text>
+                </View>
+
+                <View style={styles.candidateList}>
+                  {data?.candidates.map((candidate, index) => {
+                    const active = selected?.id === candidate.id;
+                    const accent = scoreColor(candidate.score);
+                    return (
+                      <Pressable
+                        key={candidate.id}
+                        onPress={() => onSelect(candidate)}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={`Select ${candidate.teacher_name}, match score ${candidate.score}`}
+                        style={[
+                          styles.candidateCard,
+                          active && { borderColor: c.primary, backgroundColor: c.primarySoft },
+                        ]}
+                      >
+                        <View style={[styles.rankBadge, index === 0 && { backgroundColor: '#FEF3C7' }]}>
+                          <Text style={[styles.rankText, index === 0 && { color: '#B45309' }]}>#{index + 1}</Text>
+                        </View>
+                        <View style={[styles.candidateAvatar, { backgroundColor: `${accent}20` }]}>
+                          <Text style={[styles.candidateAvatarText, { color: accent }]}>
+                            {initials(candidate.teacher_name)}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <View style={styles.candidateNameRow}>
+                            <Text style={styles.candidateName} numberOfLines={1}>{candidate.teacher_name}</Text>
+                            <Text style={[styles.recommendation, { color: accent }]}>{candidate.recommendation}</Text>
+                          </View>
+                          <View style={styles.reasonChips}>
+                            {candidate.reasons.map((item) => (
+                              <View key={item} style={styles.reasonChip}>
+                                <Text style={styles.reasonChipText}>{item}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                        <View style={[styles.scoreRing, { borderColor: accent }]}>
+                          <Text style={[styles.scoreText, { color: accent }]}>{candidate.score}</Text>
+                        </View>
+                        <Ionicons
+                          name={active ? 'radio-button-on' : 'radio-button-off'}
+                          size={21}
+                          color={active ? c.primary : c.muted}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.reasonField}>
+                  <Text style={styles.controlLabel}>NOTE / REASON (OPTIONAL)</Text>
+                  <AppTextInput
+                    value={reason}
+                    onChangeText={onReasonChange}
+                    placeholder="e.g. Called into a parent meeting"
+                    placeholderTextColor={c.muted}
+                    maxLength={500}
+                    style={styles.reasonInput}
+                    accessibilityLabel="Optional note or reason"
+                  />
+                </View>
+              </>
+            )}
+          </ScrollView>
+
+          {/* Pinned Bottom Footer (Always visible) */}
+          {Boolean(data?.candidates?.length) && !loading ? (
+            <View style={styles.sheetFooter}>
+              <TouchableOpacity
+                onPress={onAssign}
+                disabled={!selected || saving}
+                activeOpacity={0.85}
+                style={{ opacity: !selected || saving ? 0.55 : 1 }}
+                accessibilityRole="button"
+                accessibilityLabel={selected ? `Assign ${selected.teacher_name}` : 'Select a teacher to assign'}
+              >
+                <LinearGradient colors={['#4F46E5', '#6366F1']} style={styles.confirmButton}>
+                  {saving ? (
+                    <LogoLoader size={22} color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="shield-checkmark-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.confirmText}>
+                        {selected ? `Assign ${selected.teacher_name}` : 'Select teacher to assign'}
+                      </Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+              <Text style={styles.expiryNote}>
+                <Ionicons name="information-circle-outline" size={12} /> Attendance access applies only to this class and date.
+              </Text>
+            </View>
+          ) : null}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1384,6 +1430,47 @@ function makeStyles(c: ReturnType<typeof colors>) {
     manualButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
     manualButtonSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.primary },
     manualButtonSecondaryText: { color: c.primary },
+    planningTopBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      backgroundColor: c.card,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: c.border,
+      padding: 14,
+      marginBottom: 16,
+      flexWrap: 'wrap',
+    },
+    planningBackTopBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      backgroundColor: c.primarySoft,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    planningBackTopText: {
+      color: c.primary,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    planningDateWrap: {
+      flex: 1,
+      minWidth: 200,
+      maxWidth: 320,
+    },
+    planningDateLabel: {
+      color: c.muted,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 1.1,
+      marginBottom: 4,
+    },
     attendanceBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.infoSoft, borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', marginBottom: 16 },
     attendanceBannerTitle: { color: c.infoText, fontSize: 13, fontWeight: '800' },
     attendanceBannerText: { color: c.subtext, fontSize: 11, marginTop: 2, lineHeight: 16 },
@@ -1450,11 +1537,15 @@ function makeStyles(c: ReturnType<typeof colors>) {
     cancelButton: { width: 31, height: 31, borderRadius: 10, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center' },
     reasonHint: { color: c.muted, fontSize: 10, marginTop: 6 },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2,6,23,0.58)' },
-    sheet: { position: 'absolute', bottom: 0, alignSelf: 'center', width: '100%', maxWidth: 820, maxHeight: '92%', backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 22, paddingBottom: Platform.OS === 'ios' ? 34 : 24, borderWidth: 1, borderColor: c.border },
-    reportSheet: { maxWidth: 680 },
+    sheetContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'transparent' },
+    sheet: { width: '100%', maxWidth: 820, height: '88%', maxHeight: '92%', alignSelf: 'center', backgroundColor: c.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, borderColor: c.border, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+    sheetBody: { flex: 1 },
+    sheetBodyContent: { padding: 18, gap: 12, paddingBottom: 24 },
+    sheetFooter: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 34 : 18, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.border, shadowColor: c.shadow, shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: -3 }, elevation: 6 },
+    reportSheet: { maxWidth: 680, height: 'auto', maxHeight: '92%', padding: 22, paddingBottom: Platform.OS === 'ios' ? 34 : 24 },
     reportSheetBody: { flexShrink: 1 },
-    sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginBottom: 18 },
-    sheetHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 },
+    sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, alignSelf: 'center', marginTop: 12, marginBottom: 12 },
+    sheetHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: c.border },
     reportSheetHeading: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
     reportSheetIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: c.primarySoft, alignItems: 'center', justifyContent: 'center' },
     sheetEyebrow: { color: c.primary, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },

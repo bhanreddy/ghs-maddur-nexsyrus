@@ -36,7 +36,6 @@
       "jsEngine": "hermes",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
-      "enableShrinkResources": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#E6F4FE",
@@ -85,18 +84,25 @@
             "./assets/sounds/notification_default.wav",
             "./assets/sounds/emergency.wav",
             "./assets/sounds/fee_reminder.wav",
-            "./assets/sounds/voice_alert.wav"
+            "./assets/sounds/voice_alert.wav",
+            "./assets/sounds/diary_alert.wav"
           ]
         }
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "@react-native-community/datetimepicker",
+      "./plugins/withAndroidReleaseOptimization.js",
       "./plugins/withManifestMerger.js",
       "./plugins/withAndroidSounds.js",
       [
         "expo-build-properties",
         {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "# Retain source locations for retracing release crashes with mapping.txt.\n-keepattributes SourceFile,LineNumberTable"
+          },
           "ios": {
             "useFrameworks": "static",
             "deploymentTarget": "15.1"

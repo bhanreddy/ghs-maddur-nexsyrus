@@ -148,7 +148,11 @@ export default function ManualPlanningBoard({
           accessibilityRole="button"
           accessibilityLabel="Back to substitutions overview"
           testID="planning-back"
-          style={(state) => [styles.backButton, Boolean((state as { focused?: boolean }).focused) && styles.focused]}
+          style={(state) => [
+            styles.backButton,
+            Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+            Boolean((state as { focused?: boolean }).focused) && styles.focused,
+          ]}
         >
           <Ionicons name="arrow-back" size={16} color={c.indigo} />
           <Text style={styles.backText}>Back to overview</Text>
