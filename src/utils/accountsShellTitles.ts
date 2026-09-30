@@ -20,6 +20,7 @@ const EXACT: Record<string, string> = {
   '/accounts/certificate-generator': 'Certificates',
   '/accounts/expenses': 'Expense Tracker',
   '/accounts/payroll': 'Staff Payroll',
+  '/accounts/leaves': 'Leave Applications',
   '/accounts/addStaff': 'Add Staff',
   '/accounts/addStudent': 'Add Student',
   '/accounts/addAdmin': 'Add Admin',

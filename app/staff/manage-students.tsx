@@ -11,6 +11,7 @@ import {
   LayoutAnimation,
   UIManager,
   ViewStyle,
+  Modal,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -228,6 +229,8 @@ export default function ManageStudents() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [clearingDay, setClearingDay] = useState(false);
+  const [dayMenuOpen, setDayMenuOpen] = useState(false);
   const [detectedClassId, setDetectedClassId] = useState<string | null>(null);
   const [detectedClassLabel, setDetectedClassLabel] = useState<string | null>(null);
   const [session, setSession] = useState<AttendanceSession>(requestedSession || currentSession());
@@ -270,6 +273,9 @@ export default function ManageStudents() {
   const total = students.length;
   const completionPct = total > 0 ? Math.round((marked / total) * 100) : 0;
   const canSubmit = total > 0 && marked > 0;
+  const dayHasRecords = students.some(
+    (s) => s.morningStatus !== 'unmarked' || s.afternoonStatus !== 'unmarked'
+  );
 
   const chronicAbsentStudents = useMemo(
     () => students.filter((s) => (s.consecutiveAbsenceDays || 0) >= 3),
@@ -530,6 +536,38 @@ export default function ManageStudents() {
     void submitMarkedAttendance();
   };
 
+  const clearDayAttendance = async () => {
+    if (!detectedClassId || clearingDay) return;
+    setClearingDay(true);
+    try {
+      const result = await AttendanceService.clearDayAttendance(detectedClassId, selectedDate);
+      triggerHaptic('success');
+      alertCompat(
+        'Attendance cleared',
+        result.count > 0
+          ? `Removed ${result.count} record${result.count === 1 ? '' : 's'} for ${selectedDateLabel}. You can mark this day again if needed.`
+          : `No saved attendance was found for ${selectedDateLabel}.`
+      );
+      await loadStudents();
+    } catch (error: any) {
+      alertCompat('Could not clear attendance', error?.message || 'Try again in a moment.');
+    } finally {
+      setClearingDay(false);
+    }
+  };
+
+  const confirmClearDay = () => {
+    setDayMenuOpen(false);
+    alertCompat(
+      'Clear this day?',
+      `This removes morning and afternoon attendance for every student on ${selectedDateLabel}. Use this when the day was marked by mistake, such as a general holiday.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear day', style: 'destructive', onPress: () => void clearDayAttendance() },
+      ]
+    );
+  };
+
   const SessionTab = ({ value, label, icon }: { value: AttendanceSession; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }) => {
     const active = session === value;
     const marked = students.filter((s) => (value === 'morning' ? s.morningStatus : s.afternoonStatus) !== 'unmarked').length;
@@ -560,17 +598,30 @@ export default function ManageStudents() {
           <Ionicons name="calendar-outline" size={16} color={ACCENT.indigo} />
           <Text style={styles.datePickerLabel}>Attendance date</Text>
         </View>
-        {!isToday && (
-          <TouchableOpacity
-            onPress={() => handleDateChange(todayYMD)}
-            hitSlop={8}
-            style={styles.todayChip}
-            accessibilityRole="button"
-            accessibilityLabel="Jump back to today"
-          >
-            <Text style={styles.todayChipText}>Today</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.datePickerActions}>
+          {!isToday && (
+            <TouchableOpacity
+              onPress={() => handleDateChange(todayYMD)}
+              hitSlop={8}
+              style={styles.todayChip}
+              accessibilityRole="button"
+              accessibilityLabel="Jump back to today"
+            >
+              <Text style={styles.todayChipText}>Today</Text>
+            </TouchableOpacity>
+          )}
+          {dayHasRecords && (
+            <TouchableOpacity
+              onPress={() => setDayMenuOpen(true)}
+              hitSlop={8}
+              style={styles.moreBtn}
+              accessibilityRole="button"
+              accessibilityLabel="More attendance actions"
+            >
+              <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <AppDatePicker
         value={selectedDate}
@@ -850,6 +901,38 @@ export default function ManageStudents() {
           })()
         )}
 
+        <Modal
+          visible={dayMenuOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDayMenuOpen(false)}
+        >
+          <TouchableOpacity
+            style={styles.menuBackdrop}
+            activeOpacity={1}
+            onPress={() => setDayMenuOpen(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
+          >
+            <View style={[styles.dayMenu, { marginTop: insets.top + 108 }]}>
+              <Text style={styles.dayMenuLabel}>This day</Text>
+              <TouchableOpacity
+                style={styles.dayMenuItem}
+                onPress={confirmClearDay}
+                disabled={clearingDay}
+                accessibilityRole="button"
+                accessibilityLabel="Clear attendance for this day"
+              >
+                <Ionicons name="trash-outline" size={18} color={ACCENT.rose} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dayMenuTitle}>Clear this day's attendance</Text>
+                  <Text style={styles.dayMenuHint}>Removes every mark for {selectedDateLabel}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         <AbsenceInsightBottomSheet
           visible={!!selectedInsightStudent}
           student={selectedInsightStudent}
@@ -882,6 +965,39 @@ const getStyles = (theme: SchoolTheme, isDark: boolean) => StyleSheet.create({
 
   datePickerCard: { marginHorizontal: 16, marginTop: 16, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, gap: 10 },
   datePickerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  datePickerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  moreBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)',
+  },
+  menuBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', alignItems: 'flex-end' },
+  dayMenu: {
+    marginRight: 16,
+    width: 280,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)',
+  },
+  dayMenuLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: theme.colors.textSecondary,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 4,
+  },
+  dayMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 12 },
+  dayMenuTitle: { fontSize: 14, fontWeight: '700', color: ACCENT.rose },
+  dayMenuHint: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
   datePickerLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   datePickerLabel: { fontSize: 13, fontWeight: '800', color: theme.colors.textPrimary, letterSpacing: -0.1 },
   datePickerField: { flex: 0 },

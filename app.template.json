@@ -92,16 +92,14 @@
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "@react-native-community/datetimepicker",
-      "./plugins/withAndroidReleaseOptimization.js",
       "./plugins/withManifestMerger.js",
       "./plugins/withAndroidSounds.js",
       [
         "expo-build-properties",
         {
           "android": {
-            "enableMinifyInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true,
-            "extraProguardRules": "# Retain source locations for retracing release crashes with mapping.txt.\n-keepattributes SourceFile,LineNumberTable"
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
           },
           "ios": {
             "useFrameworks": "static",

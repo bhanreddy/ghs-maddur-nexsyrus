@@ -2327,6 +2327,7 @@ export default function AccountsDashboard() {
     { id: 'student_login_qr', title: 'Student login QR', description: 'Printable private login cards', icon: 'qr-code-outline', route: '/accounts/student-login-qr', library: Ionicons, group: 'people' },
     { id: 'expenses', title: 'Expenses', description: 'School spend & vouchers', icon: 'receipt', route: '/accounts/expenses', library: Ionicons, permission: 'expenses.view', semantic: 'danger' as const, group: 'control' },
     { id: 'payroll', title: 'Payroll', description: 'Salary & staff attendance', icon: 'people', route: '/accounts/payroll', library: Ionicons, permission: 'payroll.process', group: 'people' },
+    { id: 'leaves', title: 'Leave applications', description: 'Review staff leave requests', icon: 'document-text-outline', route: '/accounts/leaves', library: Ionicons, permission: 'leaves.approve', group: 'people' },
     { id: 'staff', title: 'Add staff', description: 'Register a new employee', icon: 'person-add', route: '/accounts/addStaff', library: Ionicons, permission: 'staff.create', group: 'people' },
     { id: 'student', title: 'Add student', description: 'Enroll a new student', icon: 'school', route: '/accounts/addStudent', library: Ionicons, group: 'people' },
     { id: 'defaulters', title: 'Defaulters', description: 'Previous-year pending fees', icon: 'alert-circle', route: '/accounts/defaulters', library: Ionicons, semantic: 'danger' as const, group: 'control' },

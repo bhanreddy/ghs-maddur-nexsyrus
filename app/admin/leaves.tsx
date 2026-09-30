@@ -12,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { usePathname } from 'expo-router';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AdminHeader from '../../src/components/AdminHeader';
@@ -36,6 +37,8 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; ic
 };
 
 export default function AdminLeaves() {
+  const pathname = usePathname();
+  const inAccounts = (pathname || '').startsWith('/accounts');
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   const [tab, setTab] = useState<AdminTab>('pending');
@@ -134,7 +137,8 @@ export default function AdminLeaves() {
     return null;
   };
 
-  const calculateDuration = (start: string, end: string) => {
+  const calculateDuration = (start: string, end: string, halfDay?: boolean) => {
+    if (halfDay) return 'Half day';
     const startDate = new Date(start);
     const endDate = new Date(end);
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
@@ -188,7 +192,7 @@ export default function AdminLeaves() {
             </Text>
           </View>
           <View style={styles.durationBadge}>
-            <Text style={styles.durationText}>{calculateDuration(item.start_date, item.end_date)}</Text>
+            <Text style={styles.durationText}>{calculateDuration(item.start_date, item.end_date, item.half_day)}</Text>
           </View>
         </View>
         <View style={styles.reasonBox}>
@@ -259,7 +263,7 @@ export default function AdminLeaves() {
             <Text style={styles.leaveType}>
               {leaveTypeLabel(item.leave_type).toUpperCase()} • {formatDateRange(item.start_date, item.end_date)}
             </Text>
-            <Text style={styles.metaMuted}>{calculateDuration(item.start_date, item.end_date)}</Text>
+            <Text style={styles.metaMuted}>{calculateDuration(item.start_date, item.end_date, item.half_day)}</Text>
             <Text style={styles.reasonText}>&quot;{item.reason}&quot;</Text>
             {payrollTreatmentLabel(item.payroll_treatment) ? (
               <View style={styles.payrollDecisionPill}>
@@ -308,7 +312,7 @@ export default function AdminLeaves() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <AdminHeader title="Leave Management" showBackButton={true} />
+      {inAccounts ? null : <AdminHeader title="Leave Management" showBackButton={true} />}
 
       <View style={styles.tabRow}>
         <TouchableOpacity
@@ -378,7 +382,7 @@ export default function AdminLeaves() {
                 <Text style={styles.modalTitle}>{reviewing?.applicant_name || 'Staff member'}</Text>
                 {reviewing ? (
                   <Text style={styles.modalSubtitle}>
-                    {formatDateRange(reviewing.start_date, reviewing.end_date)} · {calculateDuration(reviewing.start_date, reviewing.end_date)}
+                    {formatDateRange(reviewing.start_date, reviewing.end_date)} · {calculateDuration(reviewing.start_date, reviewing.end_date, reviewing.half_day)}
                   </Text>
                 ) : null}
               </View>

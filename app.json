@@ -2,7 +2,7 @@
   "expo": {
     "name": "Geetanjali High School Maddur",
     "slug": "geetanjalihighschoolmaddur",
-    "version": "3.1.2",
+    "version": "5.1.9",
     "platforms": [
       "android",
       "ios",
@@ -68,9 +68,8 @@
         "expo-build-properties",
         {
           "android": {
-            "enableMinifyInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true,
-            "extraProguardRules": "# Retain source locations for retracing release crashes with mapping.txt.\n-keepattributes SourceFile,LineNumberTable"
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
           },
           "ios": {
             "useFrameworks": "static",
@@ -122,7 +121,6 @@
       "@react-native-firebase/messaging",
       "@react-native-community/datetimepicker",
       "@maplibre/maplibre-react-native",
-      "./plugins/withAndroidReleaseOptimization.js",
       "./plugins/withManifestMerger.js",
       "./plugins/withAndroidSounds.js"
     ],

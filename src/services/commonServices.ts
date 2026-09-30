@@ -140,6 +140,7 @@ export interface LeaveApplication {
     leave_type: 'casual' | 'sick' | 'earned' | 'maternity' | 'paternity' | 'unpaid' | 'other';
     start_date: string;
     end_date: string;
+    half_day?: boolean;
     reason: string;
     status: 'pending' | 'approved' | 'rejected';
     applied_by?: string;
@@ -192,6 +193,7 @@ export interface CreateLeaveRequest {
     leave_type: string;
     start_date: string;
     end_date: string;
+    half_day?: boolean;
     reason: string;
 }
 

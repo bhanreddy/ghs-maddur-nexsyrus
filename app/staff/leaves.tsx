@@ -110,6 +110,7 @@ function calcDayCount(start: string, end: string) {
 
 function formatDaysLabel(n: number) {
   if (n <= 0) return '';
+  if (n === 0.5) return 'Half day';
   return `${n} Day${n !== 1 ? 's' : ''}`;
 }
 
@@ -557,6 +558,7 @@ export default function ApplyLeave() {
   const [reason, setReason] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [halfDay, setHalfDay] = useState(false);
   const [leaves, setLeaves] = useState<StaffLeaveRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -578,7 +580,7 @@ export default function ApplyLeave() {
               ? 'Emergency'
               : code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
       const formatted: StaffLeaveRow[] = data.map((l: LeaveApplication) => {
-        const dayCount = calcDayCount(l.start_date, l.end_date);
+        const dayCount = l.half_day ? 0.5 : calcDayCount(l.start_date, l.end_date);
         return {
           id: l.id,
           type: typeLabel(l.leave_type),
@@ -605,7 +607,11 @@ export default function ApplyLeave() {
     loadLeaves();
   }, [loadLeaves]);
 
-  const durationDays = useMemo(() => calcDayCount(fromDate, toDate), [fromDate, toDate]);
+  const sameDay = !!(fromDate && toDate && fromDate === toDate);
+  const durationDays = useMemo(() => {
+    const days = calcDayCount(fromDate, toDate);
+    return halfDay && sameDay ? 0.5 : days;
+  }, [fromDate, toDate, halfDay, sameDay]);
   const dateInvalid = !!(fromDate && toDate && new Date(toDate) < new Date(fromDate));
 
   const counts = useMemo(() => {
@@ -631,11 +637,13 @@ export default function ApplyLeave() {
     if (toDate && v && new Date(toDate) < new Date(v)) {
       setToDate(v);
     }
+    if (halfDay && toDate && v !== toDate) setHalfDay(false);
   };
 
   const onToChange = (v: string) => {
     setToDate(v);
     setFieldErrors((e) => ({ ...e, to: undefined }));
+    if (halfDay && fromDate && v !== fromDate) setHalfDay(false);
   };
 
   const handleApply = async () => {
@@ -663,12 +671,14 @@ export default function ApplyLeave() {
           leave_type: typeMap[leaveType] || 'other',
           start_date: fromDate,
           end_date: toDate,
+          half_day: halfDay && fromDate === toDate,
           reason: reason.trim(),
         });
         alertCompat('Submitted', 'Your leave request is in — we’ll notify you when it’s reviewed.');
         setReason('');
         setFromDate('');
         setToDate('');
+        setHalfDay(false);
         setFieldErrors({});
         setHistoryFilter('pending');
         await loadLeaves();
@@ -861,6 +871,47 @@ export default function ApplyLeave() {
               {(fieldErrors.from || fieldErrors.to || dateInvalid) && (
                 <Text style={[mainStyles.errorText, { fontFamily: FONT }]}>
                   {fieldErrors.from || fieldErrors.to || 'End date can’t be before start'}
+                </Text>
+              )}
+
+              <Text style={[mainStyles.fieldLabel, { color: labelColor, fontFamily: FONT, marginTop: 14 }]}>
+                Duration
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {([
+                  { key: false, label: 'Full day' },
+                  { key: true, label: 'Half day' },
+                ] as const).map((option) => {
+                  const active = halfDay === option.key;
+                  const disabled = option.key && !sameDay;
+                  return (
+                    <Pressable
+                      key={option.label}
+                      disabled={disabled}
+                      onPress={() => setHalfDay(option.key)}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 12,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        opacity: disabled ? 0.45 : 1,
+                        backgroundColor: active
+                          ? isDark ? 'rgba(99,102,241,0.28)' : '#E0E7FF'
+                          : isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
+                        borderWidth: 1,
+                        borderColor: active ? ACCENT : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.22)',
+                      }}
+                    >
+                      <Text style={{ color: active ? ACCENT : titleColor, fontWeight: '700', fontFamily: FONT }}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {!sameDay && (
+                <Text style={{ color: mutedColor, fontSize: 12, marginTop: 6, fontFamily: FONT }}>
+                  Half day is available when the start and end dates are the same.
                 </Text>
               )}
             </View>

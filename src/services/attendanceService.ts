@@ -62,6 +62,17 @@ export const AttendanceService = {
     },
 
     /**
+     * Soft-delete every attendance record for one class on one day.
+     */
+    clearDayAttendance: async (
+        classSectionId: string,
+        date: string
+    ): Promise<{ message: string; date: string; count: number }> => {
+        const params = new URLSearchParams({ class_section_id: classSectionId, date });
+        return api.delete(`/attendance/day?${params.toString()}`, { silent: true });
+    },
+
+    /**
      * Update single attendance record
      */
     updateAttendance: async (

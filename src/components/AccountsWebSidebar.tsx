@@ -152,6 +152,14 @@ export const ACCOUNTS_SIDEBAR_NAV: AccountsSidebarNavItem[] = [
     permission: 'hostel.allocate',
   },
   {
+    title: 'Leave Applications',
+    icon: 'document-text-outline',
+    route: '/accounts/leaves',
+    gradient: ['#9A3412', '#FB923C'],
+    category: 'People',
+    permission: 'leaves.approve',
+  },
+  {
     title: 'Updates',
     icon: 'notifications-circle-outline',
     route: '/accounts/updates',
