@@ -27,6 +27,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import StaffHeader from '../../src/components/StaffHeader';
+import { useAccountsWebChrome } from '../../src/contexts/AccountsWebChromeContext';
 import ViewAsBanner from '../../src/components/ViewAsBanner';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useEffectiveStaffId } from '../../src/hooks/useEffectiveStaffId';
@@ -551,6 +552,7 @@ const sbStyles = StyleSheet.create({
 // ─── Main Screen ───────────────────────────────────────────────────
 export default function ApplyLeave() {
   const { isDark } = useTheme();
+  const { shellActive } = useAccountsWebChrome();
   const { user } = useAuth();
   const { isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
 
@@ -698,7 +700,7 @@ export default function ApplyLeave() {
     <View style={{ flex: 1, backgroundColor: isDark ? '#121824' : '#E9EDF6' }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
-      <StaffHeader title="Apply Leave" showBackButton={true} />
+      {shellActive ? null : <StaffHeader title="Apply Leave" showBackButton={true} />}
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
       <KeyboardAwareScreen

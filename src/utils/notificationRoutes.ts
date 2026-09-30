@@ -112,11 +112,11 @@ const SCREENS = {
   } satisfies PortalRoutes,
   leavesAdmin: {
     admin: '/admin/leaves',
-    accounts: '/accounts/leaves',
     staff: '/staff/leaves',
   } satisfies PortalRoutes,
   leavesStaff: {
     staff: '/staff/leaves',
+    accounts: '/accounts/leaves',
     admin: '/admin/leaves',
   } satisfies PortalRoutes,
   expensesAdmin: {
@@ -354,7 +354,7 @@ const PATH_PORTAL_ROUTES: Record<string, PortalRoutes> = {
   '/Screen/profile': SCREENS.profile,
   '/Screen/access': SCREENS.access,
   '/admin/leaves': SCREENS.leavesAdmin,
-  '/accounts/leaves': SCREENS.leavesAdmin,
+  '/accounts/leaves': SCREENS.leavesStaff,
   '/staff/leaves': SCREENS.leavesStaff,
   '/admin/expenses': SCREENS.expensesAdmin,
   '/accounts/expenses': SCREENS.expensesAccounts,

@@ -1,5 +1,5 @@
-import AdminLeaves from '../admin/leaves';
+import ApplyLeave from '../staff/leaves';
 
 export default function AccountsLeaves() {
-  return <AdminLeaves />;
+  return <ApplyLeave />;
 }

@@ -12,7 +12,6 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { usePathname } from 'expo-router';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AdminHeader from '../../src/components/AdminHeader';
@@ -37,8 +36,6 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string; ic
 };
 
 export default function AdminLeaves() {
-  const pathname = usePathname();
-  const inAccounts = (pathname || '').startsWith('/accounts');
   const { theme, isDark } = useTheme();
   const styles = useMemo(() => getStyles(theme, isDark), [theme, isDark]);
   const [tab, setTab] = useState<AdminTab>('pending');
@@ -312,7 +309,7 @@ export default function AdminLeaves() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      {inAccounts ? null : <AdminHeader title="Leave Management" showBackButton={true} />}
+      <AdminHeader title="Leave Management" showBackButton={true} />
 
       <View style={styles.tabRow}>
         <TouchableOpacity
