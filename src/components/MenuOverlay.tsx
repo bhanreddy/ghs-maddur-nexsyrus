@@ -9,6 +9,7 @@ import {
     Platform,
     Pressable,
     StatusBar,
+    ScrollView,
     StyleSheet,
     Text,
     useWindowDimensions,
@@ -244,6 +245,7 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
     /* ── Swipe gesture ── */
     const panGesture = Gesture.Pan()
         .activeOffsetX(-20)
+        .failOffsetY([-12, 12])
         .onUpdate((e) => {
             if (e.translationX < 0) {
                 translateX.value = e.translationX;
@@ -430,7 +432,13 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
                             </View>
 
                             {/* ── Menu Items ── */}
-                            <View style={styles.menuList}>
+                            <ScrollView
+                                style={{ flex: 1, minHeight: 0 }}
+                                contentContainerStyle={styles.menuList}
+                                showsVerticalScrollIndicator
+                                keyboardShouldPersistTaps="handled"
+                                nestedScrollEnabled
+                            >
                                 {itemsToRender.map((item, index) => (
                                     <MenuItemCard
                                         key={item.key}
@@ -440,10 +448,7 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
                                         onPress={() => handlePress(item.link)}
                                     />
                                 ))}
-                            </View>
-
-                            {/* ── Spacer ── */}
-                            <View style={{ flex: 1 }} />
+                            </ScrollView>
 
                             {/* ── Logout Button ── */}
                             <Animated.View entering={FadeInLeft.delay(80 + itemsToRender.length * 50).springify().damping(16).stiffness(150)}>

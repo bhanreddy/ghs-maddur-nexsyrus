@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   StatusBar,
   TouchableOpacity,
   Platform,
@@ -428,7 +428,6 @@ export default function ManageStudents() {
 
   const handleStatusChange = useCallback((id: string, newStatus: SessionStatus) => {
     triggerHaptic('light');
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setStudents((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, [session === 'morning' ? 'morningStatus' : 'afternoonStatus']: newStatus } : s
@@ -747,6 +746,11 @@ export default function ManageStudents() {
     </View>
   );
 
+  const attendanceRows = useMemo(
+    () => filteredStudents.map((student) => ({ ...student, status: statusOf(student) })),
+    [filteredStudents, statusOf],
+  );
+
   const renderFooter = () => (
     <View style={[styles.actionFooter, claySurface(isDark), { marginBottom: tabBarReserve + insets.bottom }]}>
       <View style={styles.quickActions}>
@@ -854,51 +858,30 @@ export default function ManageStudents() {
             </View>
           </View>
         ) : (
-          (() => {
-            const listBody = (
-              <>
-                {renderHeader()}
-                {filteredStudents.map((item) => (
-                  <SwipeableStudentCard
-                    key={item.id}
-                    student={{
-                      id: item.id,
-                      name: item.name,
-                      rollNo: item.rollNo,
-                      status: statusOf(item),
-                      photoUrl: item.photoUrl,
-                      consecutiveAbsenceDays: item.consecutiveAbsenceDays,
-                      absenceStreakStartDate: item.absenceStreakStartDate,
-                      absenceStreakEndDate: item.absenceStreakEndDate,
-                      absenceStreakDates: item.absenceStreakDates,
-                      monthlyAttendancePercentage: item.monthlyAttendancePercentage,
-                      absenceRiskLevel: item.absenceRiskLevel,
-                      isIrregular: item.isIrregular,
-                      monthlyAbsentCount: item.monthlyAbsentCount,
-                    }}
-                    onStatusChange={handleStatusChange}
-                    onPressStreak={setSelectedInsightStudent}
-                    isDark={isDark}
-                  />
-                ))}
-                {renderFooter()}
-              </>
-            );
-            const listProps = {
-              style: styles.scrollFlex,
-              contentContainerStyle: styles.listContent,
-              showsVerticalScrollIndicator: false as const,
-              keyboardShouldPersistTaps: 'handled' as const,
-              nestedScrollEnabled: true,
-            };
-            return Platform.OS === 'web' ? (
-              <ScrollView {...listProps}>{listBody}</ScrollView>
-            ) : (
-              <KeyboardAwareScrollView {...listProps} bottomOffset={24}>
-                {listBody}
-              </KeyboardAwareScrollView>
-            );
-          })()
+          <FlatList
+            data={attendanceRows}
+            keyExtractor={(item) => item.id}
+            style={styles.scrollFlex}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            initialNumToRender={10}
+            maxToRenderPerBatch={8}
+            windowSize={7}
+            ListHeaderComponent={renderHeader()}
+            ListFooterComponent={renderFooter()}
+            renderScrollComponent={Platform.OS === 'web' ? undefined : (props) => (
+              <KeyboardAwareScrollView {...props} bottomOffset={24} />
+            )}
+            renderItem={({ item }) => (
+              <SwipeableStudentCard
+                student={item}
+                onStatusChange={handleStatusChange}
+                onPressStreak={setSelectedInsightStudent}
+                isDark={isDark}
+              />
+            )}
+          />
         )}
 
         <Modal
@@ -925,7 +908,7 @@ export default function ManageStudents() {
               >
                 <Ionicons name="trash-outline" size={18} color={ACCENT.rose} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.dayMenuTitle}>Clear this day's attendance</Text>
+                  <Text style={styles.dayMenuTitle}>Clear this day&apos;s attendance</Text>
                   <Text style={styles.dayMenuHint}>Removes every mark for {selectedDateLabel}</Text>
                 </View>
               </TouchableOpacity>

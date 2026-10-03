@@ -638,4 +638,12 @@ const getStyles = (isDark: boolean) =>
         },
     });
 
-export default SwipeableStudentCard;
+export default React.memo(SwipeableStudentCard, (previous, next) =>
+    previous.isDark === next.isDark &&
+    previous.onStatusChange === next.onStatusChange &&
+    previous.onPressStreak === next.onPressStreak &&
+    Object.keys(previous.student).length === Object.keys(next.student).length &&
+    Object.keys(previous.student).every((key) =>
+        previous.student[key as keyof StudentCardData] === next.student[key as keyof StudentCardData]
+    )
+);

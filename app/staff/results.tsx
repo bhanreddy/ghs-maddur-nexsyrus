@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   AccessibilityInfo,
+  FlatList,
   Keyboard,
   Modal,
   Platform,
@@ -17,8 +18,7 @@ import {
   ViewStyle,
   useWindowDimensions,
 } from 'react-native';
-import { KeyboardStickyView } from 'react-native-keyboard-controller';
-import KeyboardAwareScreen from '@/components/keyboard/KeyboardAwareScreen';
+import { KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { styles as themeInputStyles } from '@/src/theme/styles';
 import { clayTokens } from '@/src/styles/clayTokens';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -72,6 +72,8 @@ import {
   stringifyComponentMaximums,
   updateComponentAssessmentInput,
 } from '../../src/utils/assessmentGrading';
+import { nextMarksInput } from '../../src/utils/marksEntryNavigation';
+import { AssessmentDraft, mergeStoredAssessmentMarks, prefillSlipTestFromConsolidated } from '../../src/utils/marksEntryDraft';
 import { SchoolSettingsService } from '../../src/services/schoolSettingsService';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,15 +82,10 @@ import { SchoolSettingsService } from '../../src/services/schoolSettingsService'
 
 import { ExamCategory, EXAM_CATEGORIES } from '@/src/constants/examCategories';
 
+const MarksRowSeparator = () => <View style={{ height: 12 }} />;
+
 const EXTRA_SUB_EXAMS_KEY = 'staffExtraSubExams';
 const ASSESSMENT_DRAFTS_KEY = 'staffAssessmentDraftsV1';
-
-interface AssessmentDraft {
-  consolidatedMaxMarks: string;
-  componentMaximums: Record<ComponentField, string>;
-  consolidatedByStudent: Record<string, string>;
-  componentByStudent: Record<string, ComponentAssessmentInput>;
-}
 
 interface PersistedAssessmentState {
   schemas: Record<string, AssessmentSchema>;
@@ -789,6 +786,7 @@ function MarkField({
   onFocus,
   inputRef,
   compact = false,
+  hint,
 }: {
   value: string;
   max: number | string;
@@ -802,9 +800,11 @@ function MarkField({
   onFocus: () => void;
   inputRef: (node: TextInput | null) => void;
   compact?: boolean;
+  hint?: string;
 }) {
   const [focused, setFocused] = useState(false);
   const fieldAbsent = isAbsentAssessmentInput(value);
+  const invalid = !isValidAssessmentInput(value, Number(max));
   return (
     <View style={{ flexGrow: 1, flexBasis: compact ? '46%' : 72, minWidth: compact ? 118 : 72 }}>
       {label ? (
@@ -834,6 +834,7 @@ function MarkField({
           filled && !fieldAbsent && { borderColor: `${accent}88`, backgroundColor: isDark ? `${accent}22` : `${accent}14` },
           fieldAbsent && markFieldStyles.inputAbsent,
           focused && { borderColor: fieldAbsent ? clayTokens.colors.absent.bg : accent },
+          invalid && { borderColor: clayTokens.colors.absent.bg },
         ]}
         placeholder="—"
         placeholderTextColor="#9AA3B8"
@@ -844,8 +845,8 @@ function MarkField({
         value={fieldAbsent ? 'AB' : value}
         selectTextOnFocus
         returnKeyType="next"
-        blurOnSubmit={false}
-        accessibilityHint="Enter marks, or tap AB if this component was missed"
+        submitBehavior="submit"
+        accessibilityHint={`${hint ? `${hint}. ` : ''}Enter marks from 0 to ${max}, or tap AB if this component was missed`}
         onChangeText={onChangeText}
         onSubmitEditing={onSubmitEditing}
         onFocus={() => {
@@ -854,11 +855,22 @@ function MarkField({
         }}
         onBlur={() => setFocused(false)}
       />
+      {invalid || hint ? (
+        <Text style={[markFieldStyles.hint, { color: invalid ? clayTokens.colors.absent.bg : accent }]}>
+          {invalid ? `Exceeds maximum ${max}` : hint}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const markFieldStyles = StyleSheet.create({
+  hint: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 5,
+    textAlign: 'center',
+  },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -929,6 +941,7 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
   student,
   assessmentSchema,
   componentMarks,
+  slipTestPrefilled,
   consolidatedValue,
   consolidatedMax,
   componentMaximums,
@@ -951,6 +964,7 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
   student: StudentWithDetails;
   assessmentSchema: AssessmentSchema;
   componentMarks: ComponentAssessmentInput;
+  slipTestPrefilled: boolean;
   consolidatedValue: string;
   consolidatedMax: string;
   componentMaximums: Record<ComponentField, number>;
@@ -1021,6 +1035,7 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
               value={componentMarks[field]}
               max={componentMaximums[field]}
               label={shortLabel}
+              hint={field === 'slipTest' && slipTestPrefilled ? 'Copied from consolidated' : undefined}
               accessibilityLabel={`${label}, maximum ${componentMaximums[field]}`}
               accent={accent}
               isDark={isDark}
@@ -1088,10 +1103,21 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
           ) : null}
         </View>
       ) : (
-        <Text style={styles.pendingHint}>Next: fill marks, tap AB on a missed part, or Absent for the whole exam</Text>
+        <Text style={styles.pendingHint}>
+          {assessmentSchema === 'component'
+            ? `Still to enter: ${COMPONENT_FIELDS.filter(({ field }) => componentMarks[field] === '').map(({ shortLabel }) => shortLabel).join(', ')}. Tap AB only for a missed part.`
+            : 'Enter the score, or tap Absent if the test was missed.'}
+        </Text>
       )}
     </View>
   );
+}, (previous, next) => {
+  const { result: previousResult, ...previousProps } = previous;
+  const { result: nextResult, ...nextProps } = next;
+  return (Object.keys(previousProps) as (keyof typeof previousProps)[])
+    .every((key) => previousProps[key] === nextProps[key]) &&
+    (Object.keys(previousResult) as (keyof typeof previousResult)[])
+      .every((key) => previousResult[key] === nextResult[key]);
 });
 
 function parseExamIndex(name: string, prefix: string): number | null {
@@ -1193,6 +1219,13 @@ export default function UploadMarks() {
   const [rosterFilter, setRosterFilter] = useState<RosterFilter>('all');
   const [setupCollapsed, setSetupCollapsed] = useState(false);
   const [focusedStudentId, setFocusedStudentId] = useState<string | null>(null);
+  const marksListRef = useRef<FlatList<StudentWithDetails>>(null);
+  const pendingFocusRef = useRef<MarksInputKey | null>(null);
+  const marksHeaderHeightRef = useRef(0);
+  const pendingScrollRef = useRef<MarksInputKey | null>(null);
+  const scrollRetryCountRef = useRef(0);
+  const focusRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [focusedField, setFocusedField] = useState<ComponentField | 'consolidated'>('consolidated');
   const inputRefs = useRef<Partial<Record<MarksInputKey, TextInput | null>>>({});
 
   // ── assignment / filter state ────────────────────────────────────────────────
@@ -1282,14 +1315,30 @@ export default function UploadMarks() {
   );
   const componentTotal = componentTotalMax(componentMaximums);
 
+  useEffect(() => {
+    if (!assessmentStorageReady || assessmentSchema !== 'component' || !draftKey) return;
+    setAssessmentDrafts((previous) => {
+      const draft = previous[draftKey];
+      if (!draft) return previous;
+      const next = prefillSlipTestFromConsolidated(draft);
+      return next === draft ? previous : { ...previous, [draftKey]: next };
+    });
+  }, [assessmentDrafts, assessmentSchema, assessmentStorageReady, draftKey]);
+
+  const prefilledSlipTestCount = students.filter((student) => {
+    const copied = currentDraft.prefilledSlipTestByStudent?.[student.id];
+    return copied != null && currentDraft.componentByStudent[student.id]?.slipTest === copied;
+  }).length;
+
   const filledCount = useMemo(() => {
-    if (assessmentSchema === 'component') {
-      return Object.values(currentDraft.componentByStudent).filter(
-        (entry) => isComponentAssessmentAbsent(entry) || isComponentAssessmentComplete(entry),
-      ).length;
-    }
-    return Object.values(currentDraft.consolidatedByStudent).filter((value) => value !== '').length;
-  }, [assessmentSchema, currentDraft]);
+    return students.filter((student) => {
+      if (assessmentSchema === 'component') {
+        const entry = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
+        return isComponentAssessmentAbsent(entry) || isComponentAssessmentComplete(entry);
+      }
+      return (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
+    }).length;
+  }, [assessmentSchema, currentDraft, students]);
 
   const fillPercent = students.length === 0 ? 0 : filledCount / students.length;
   const remainingCount = Math.max(0, students.length - filledCount);
@@ -1307,6 +1356,7 @@ export default function UploadMarks() {
 
   const visibleStudents = useMemo(() => {
     const query = studentQuery.trim().toLowerCase();
+    if (!query && rosterFilter === 'all') return students;
     return students.filter((student) => {
       const displayName = (student.person.display_name ??
         `${student.person.first_name} ${student.person.last_name}`).toLowerCase();
@@ -1321,12 +1371,14 @@ export default function UploadMarks() {
         ? isAbsent || isComponentAssessmentComplete(componentMarks)
         : (currentDraft.consolidatedByStudent[student.id] ?? '') !== '';
 
+      // Keep the active card mounted until the teacher explicitly moves on.
+      if (student.id === focusedStudentId) return true;
       if (rosterFilter === 'remaining') return !entered;
       if (rosterFilter === 'entered') return entered;
       if (rosterFilter === 'absent') return isAbsent;
       return true;
     });
-  }, [assessmentSchema, currentDraft, rosterFilter, studentQuery, students]);
+  }, [assessmentSchema, currentDraft, focusedStudentId, rosterFilter, studentQuery, students]);
 
   const studentResults = useMemo(() => {
     return students.reduce<Record<string, ReturnType<typeof calculateConsolidatedAssessment> & { rank: number }>>(
@@ -1533,61 +1585,21 @@ export default function UploadMarks() {
       }));
       setAssessmentDrafts((previous) => {
         const existing = previous[draftKey] ?? emptyAssessmentDraft(defaultConsolidatedMaximum);
-        const consolidatedByStudent = { ...existing.consolidatedByStudent };
-        const componentByStudent = { ...existing.componentByStudent };
-
-        data.marks?.forEach((mark) => {
-          if (mark.is_absent) {
-            consolidatedByStudent[mark.student_id] = 'A';
-            componentByStudent[mark.student_id] = {
-              participation: 'A',
-              writtenWork: 'A',
-              projectWork: 'A',
-              slipTest: 'A',
-            };
-          } else if (mark.consolidated_marks_obtained != null) {
-            consolidatedByStudent[mark.student_id] = String(mark.consolidated_marks_obtained);
-          } else if (serverSchema === 'consolidated' && mark.marks_obtained != null) {
-            consolidatedByStudent[mark.student_id] = String(mark.marks_obtained);
-          }
-
-          if (!mark.is_absent && (
-            mark.participation_marks != null ||
-            mark.written_work_marks != null ||
-            mark.project_work_marks != null ||
-            mark.slip_test_marks != null
-          )) {
-            const hasAnyComponentValue = [
-              mark.participation_marks,
-              mark.written_work_marks,
-              mark.project_work_marks,
-              mark.slip_test_marks,
-            ].some((value) => value != null);
-            const fromServer = (value: number | null | undefined) => {
-              if (value != null) return String(value);
-              return hasAnyComponentValue ? 'A' : '';
-            };
-            componentByStudent[mark.student_id] = {
-              participation: fromServer(mark.participation_marks),
-              writtenWork: fromServer(mark.written_work_marks),
-              projectWork: fromServer(mark.project_work_marks),
-              slipTest: fromServer(mark.slip_test_marks),
-            };
-          }
-        });
+        const merged = mergeStoredAssessmentMarks(existing, data.marks ?? [], serverSchema);
 
         return {
           ...previous,
           [draftKey]: {
-            consolidatedMaxMarks: String(data.consolidated_max_marks ?? DEFAULT_CONSOLIDATED_MAX),
+            ...merged,
+            consolidatedMaxMarks: String(data.consolidated_max_marks ?? data.max_marks ?? defaultConsolidatedMaximum),
             componentMaximums: stringifyComponentMaximums(parseComponentMaximums({
               participation: data.component_maximums?.participation,
               writtenWork: data.component_maximums?.written_work,
               projectWork: data.component_maximums?.project_work,
-              slipTest: data.component_maximums?.slip_test,
+              slipTest: serverSchema === 'consolidated' && Object.keys(existing.prefilledSlipTestByStudent ?? {}).length > 0
+                ? existing.componentMaximums.slipTest
+                : data.component_maximums?.slip_test,
             })),
-            consolidatedByStudent,
-            componentByStudent,
           },
         };
       });
@@ -1671,14 +1683,6 @@ export default function UploadMarks() {
     const maximum = Number(text);
     if (text !== '' && (maximum < 1 || maximum > 999)) return;
     updateCurrentDraft((draft) => {
-      const componentByStudent = { ...draft.componentByStudent };
-      if (text !== '') {
-        Object.entries(componentByStudent).forEach(([studentId, entry]) => {
-          if (entry[field] !== '' && Number(entry[field]) > maximum) {
-            componentByStudent[studentId] = { ...entry, [field]: String(maximum) };
-          }
-        });
-      }
       return {
         ...draft,
         componentMaximums: {
@@ -1686,7 +1690,6 @@ export default function UploadMarks() {
           ...draft.componentMaximums,
           [field]: text,
         },
-        componentByStudent,
       };
     });
   };
@@ -1752,8 +1755,23 @@ export default function UploadMarks() {
     if (Platform.OS !== 'web') void Haptics.selectionAsync();
   }, [assessmentSchema, updateCurrentDraft]);
 
+  useEffect(() => () => {
+    if (focusRetryRef.current) clearTimeout(focusRetryRef.current);
+  }, []);
+
+  useEffect(() => {
+    pendingFocusRef.current = null;
+    pendingScrollRef.current = null;
+    setFocusedStudentId(null);
+    if (focusRetryRef.current) clearTimeout(focusRetryRef.current);
+  }, [assessmentSchema, draftKey, studentQuery, rosterFilter]);
+
   const registerInput = useCallback((key: MarksInputKey, node: TextInput | null) => {
     inputRefs.current[key] = node;
+    if (node && pendingFocusRef.current === key) {
+      pendingFocusRef.current = null;
+      node.focus();
+    }
   }, []);
 
   const fieldOrder = useMemo<(ComponentField | 'consolidated')[]>(
@@ -1765,44 +1783,48 @@ export default function UploadMarks() {
 
   const focusField = useCallback((studentId: string, field: ComponentField | 'consolidated') => {
     setFocusedStudentId(studentId);
+    setFocusedField(field);
   }, []);
 
+  const moveToField = useCallback((studentId: string, field: ComponentField | 'consolidated') => {
+    const index = visibleStudents.findIndex((student) => student.id === studentId);
+    if (index < 0) return;
+    const key: MarksInputKey = `${studentId}:${field}`;
+    pendingFocusRef.current = key;
+    pendingScrollRef.current = key;
+    scrollRetryCountRef.current = 0;
+    // Scroll the student's entire card into view, including inputs below the focused one.
+    marksListRef.current?.scrollToIndex({ index, viewPosition: 0, animated: false });
+    const node = inputRefs.current[key];
+    if (node) {
+      pendingFocusRef.current = null;
+      node.focus();
+    }
+  }, [visibleStudents]);
+
   const submitField = useCallback((studentId: string, field: ComponentField | 'consolidated') => {
-    const fieldIndex = fieldOrder.indexOf(field);
-    const nextField = fieldOrder[fieldIndex + 1];
-    if (nextField) {
-      const nextNode = inputRefs.current[`${studentId}:${nextField}`];
-      if (nextNode) {
-        nextNode.focus();
-        return;
-      }
+    const next = nextMarksInput(visibleStudents, fieldOrder, studentId, field);
+    if (next) {
+      moveToField(next.studentId, next.field);
+    } else {
+      pendingFocusRef.current = null;
+      pendingScrollRef.current = null;
+      setFocusedStudentId(null);
+      Keyboard.dismiss();
     }
-    const startIndex = visibleStudents.findIndex((student) => student.id === studentId) + 1;
-    for (let index = startIndex; index < visibleStudents.length; index += 1) {
-      const nextNode = inputRefs.current[`${visibleStudents[index].id}:${fieldOrder[0]}`];
-      if (nextNode) {
-        nextNode.focus();
-        return;
-      }
-    }
-    Keyboard.dismiss();
-  }, [fieldOrder, visibleStudents]);
+  }, [fieldOrder, moveToField, visibleStudents]);
 
   const focusNextStudent = useCallback(() => {
-    const currentIndex = focusedStudentId
-      ? visibleStudents.findIndex((student) => student.id === focusedStudentId)
-      : -1;
-    const total = visibleStudents.length;
-    for (let offset = 1; offset <= total; offset += 1) {
-      const nextStudent = visibleStudents[(currentIndex + offset) % total];
-      if (!nextStudent) continue;
-      const nextNode = inputRefs.current[`${nextStudent.id}:${fieldOrder[0]}`];
-      if (nextNode) {
-        nextNode.focus();
-        return;
-      }
+    if (!focusedStudentId) return;
+    const next = nextMarksInput(visibleStudents, fieldOrder, focusedStudentId, fieldOrder[0], true);
+    if (next) moveToField(next.studentId, next.field);
+    else {
+      pendingFocusRef.current = null;
+      pendingScrollRef.current = null;
+      setFocusedStudentId(null);
+      Keyboard.dismiss();
     }
-  }, [fieldOrder, focusedStudentId, visibleStudents]);
+  }, [fieldOrder, focusedStudentId, moveToField, visibleStudents]);
 
   const handleAddSubExam = async () => {
     if (!selectedCategory) return;
@@ -1823,15 +1845,26 @@ export default function UploadMarks() {
 
   const handleSubmit = async () => {
     if (!selectedCategory || !selectedAssignment) return;
-    const partialComponentEntry = assessmentSchema === 'component' && Object.values(currentDraft.componentByStudent)
-      .some((entry) =>
-        hasAnyComponentMark(entry) &&
-        !isComponentAssessmentAbsent(entry) &&
-        !isComponentAssessmentComplete(entry),
-      );
-    if (partialComponentEntry) {
+    const invalidStudent = students.find((student) => assessmentSchema === 'component'
+      ? COMPONENT_FIELDS.some(({ field }) => !isValidAssessmentInput(
+        currentDraft.componentByStudent[student.id]?.[field] ?? '', componentMaximums[field],
+      ))
+      : !isValidAssessmentInput(
+        currentDraft.consolidatedByStudent[student.id] ?? '', Number(currentDraft.consolidatedMaxMarks),
+      ));
+    if (invalidStudent) {
+      alertCompat('Check maximum marks', `Review marks for ${invalidStudent.person.display_name ?? invalidStudent.person.first_name}. A score exceeds its maximum. Update the score or the maximum marks before uploading.`);
+      return;
+    }
+    const partialStudent = assessmentSchema === 'component' && students.find((student) => {
+      const entry = currentDraft.componentByStudent[student.id] ?? EMPTY_COMPONENT_MARKS;
+      return hasAnyComponentMark(entry) && !isComponentAssessmentAbsent(entry) && !isComponentAssessmentComplete(entry);
+    });
+    if (partialStudent) {
+      const entry = currentDraft.componentByStudent[partialStudent.id] ?? EMPTY_COMPONENT_MARKS;
+      const missing = COMPONENT_FIELDS.filter(({ field }) => entry[field] === '').map(({ shortLabel }) => shortLabel);
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      alertCompat('Incomplete components', 'Complete all four component fields for each student you started.');
+      alertCompat('Complete remaining marks', `${partialStudent.person.display_name ?? partialStudent.person.first_name}: enter ${missing.join(', ')}. Use the Left filter to find students with unfinished marks. Tap AB only for a missed component.`);
       return;
     }
 
@@ -2206,6 +2239,8 @@ export default function UploadMarks() {
         student={student}
         assessmentSchema={assessmentSchema}
         componentMarks={componentMarks}
+        slipTestPrefilled={currentDraft.prefilledSlipTestByStudent?.[student.id] != null &&
+          currentDraft.prefilledSlipTestByStudent[student.id] === componentMarks.slipTest}
         consolidatedValue={currentDraft.consolidatedByStudent[student.id] ?? ''}
         consolidatedMax={currentDraft.consolidatedMaxMarks}
         componentMaximums={componentMaximums}
@@ -2245,13 +2280,45 @@ export default function UploadMarks() {
 
   const renderUploadForm = () =>
     <>
-      <KeyboardAwareScreen
-        variant="scroll"
+      <FlatList
+        ref={marksListRef}
+        key={`marks-${studentColumns}`}
+        data={studentsLoading ? [] : visibleStudents}
+        numColumns={studentColumns}
+        keyExtractor={(student) => student.id}
+        renderItem={({ item }) => renderStudentAssessmentCard(item)}
         contentContainerStyle={styles.uploadScroll}
+        columnWrapperStyle={studentColumns > 1 ? { gap: 12 } : undefined}
+        ItemSeparatorComponent={MarksRowSeparator}
+        initialNumToRender={8}
+        maxToRenderPerBatch={6}
+        windowSize={7}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        bottomOffset={keyboardVisible ? 88 : 136}>
-
-        <Animated.View entering={reduceMotion ? undefined : FadeInDown.duration(260)} style={styles.workspace}>
+        renderScrollComponent={Platform.OS === 'web' ? undefined : (props) => (
+          <KeyboardAwareScrollView
+            {...props}
+            bottomOffset={assessmentSchema === 'component' && fieldOrder.indexOf(focusedField) < 2 ? 230 : 100}
+          />
+        )}
+        onScrollToIndexFailed={({ index, averageItemLength }) => {
+          marksListRef.current?.scrollToOffset({ offset: marksHeaderHeightRef.current + averageItemLength * Math.floor(index / studentColumns), animated: false });
+          if (focusRetryRef.current) clearTimeout(focusRetryRef.current);
+          focusRetryRef.current = setTimeout(() => {
+            const key = pendingScrollRef.current;
+            if (!key || scrollRetryCountRef.current >= 3) return;
+            scrollRetryCountRef.current += 1;
+            const studentIndex = visibleStudents.findIndex((student) => key.startsWith(`${student.id}:`));
+            if (studentIndex >= 0) marksListRef.current?.scrollToIndex({ index: studentIndex, viewPosition: 0, animated: false });
+          }, 100);
+        }}
+        ListHeaderComponent={
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeInDown.duration(260)}
+          style={styles.workspace}
+          onLayout={(event) => { marksHeaderHeightRef.current = event.nativeEvent.layout.height; }}
+        >
           <LinearGradient
             colors={isDark ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']}
             style={styles.cardSheen}
@@ -2292,6 +2359,20 @@ export default function UploadMarks() {
                 </View>
               )}
             </View>
+
+            {assessmentSchema === 'component' && prefilledSlipTestCount > 0 ? (
+              <View style={styles.prefillBanner} accessibilityLiveRegion="polite">
+                <Ionicons name="copy-outline" size={18} color={accentColor} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.prefillTitle, { color: accentColor }]}>
+                    Slip Test prefilled for {prefilledSlipTestCount} {prefilledSlipTestCount === 1 ? 'student' : 'students'}
+                  </Text>
+                  <Text style={styles.prefillHint}>
+                    Copied from consolidated marks for this class, subject and test. Complete Participation, Written and Project. Copied marks are editable. Slip Test maximum: {componentMaximums.slipTest}.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
 
             {students.length > 0 ? (
               <>
@@ -2337,13 +2418,11 @@ export default function UploadMarks() {
               </>
             ) : null}
 
-            {studentsLoading ? (
-              <StudentsSkeleton />
-            ) : visibleStudents.length > 0 ? (
-              <View style={styles.studentGrid}>
-                {visibleStudents.map(renderStudentAssessmentCard)}
-              </View>
-            ) : students.length > 0 ? (
+          </View>
+        </Animated.View>
+        }
+        ListEmptyComponent={studentsLoading ? <StudentsSkeleton /> : (
+          students.length > 0 ? (
               <View style={styles.emptyStudents}>
                 <View style={styles.emptyIcon}>
                   <Ionicons name="filter-outline" size={28} color={accentColor} />
@@ -2374,10 +2453,9 @@ export default function UploadMarks() {
                     : 'Select a class and subject above'}
                 </Text>
               </View>
-            )}
-          </View>
-        </Animated.View>
-      </KeyboardAwareScreen>
+            )
+        )}
+      />
 
       {keyboardVisible && Platform.OS !== 'web' ? (
         <KeyboardStickyView>
@@ -2394,9 +2472,17 @@ export default function UploadMarks() {
             <Text style={styles.accessoryMeta} numberOfLines={1}>
               {focusedName ?? `${filledCount}/${students.length}`}
             </Text>
+            <PressScale
+              onPress={() => focusedStudentId && submitField(focusedStudentId, focusedField)}
+              accessibilityLabel="Next marks field"
+            >
+              <View style={[styles.accessoryNext, { backgroundColor: accentColor }]}>
+                <Text style={styles.accessoryNextText}>Next field</Text>
+              </View>
+            </PressScale>
             <PressScale onPress={focusNextStudent} accessibilityLabel="Next student">
               <View style={[styles.accessoryNext, { backgroundColor: accentColor }]}>
-                <Text style={styles.accessoryNextText}>Next</Text>
+                <Text style={styles.accessoryNextText}>Next student</Text>
                 <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
               </View>
             </PressScale>
@@ -3156,7 +3242,7 @@ const getStyles = (
       color: '#7C3AED',
     },
     assessmentStudentCard: {
-      width: studentColumns === 2 ? '49.35%' : '100%',
+      flex: 1,
       padding: isPhone ? 12 : 14,
       borderRadius: clayTokens.radii.card,
       borderWidth: 1,
@@ -3264,6 +3350,25 @@ const getStyles = (
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
+    },
+    prefillBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      padding: 12,
+      marginBottom: 12,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(124,111,255,0.12)' : 'rgba(124,111,255,0.07)',
+    },
+    prefillTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    prefillHint: {
+      marginTop: 4,
+      color: theme.colors.textSecondary,
+      fontSize: 12,
+      lineHeight: 18,
     },
     componentField: {
       flexGrow: 1,
