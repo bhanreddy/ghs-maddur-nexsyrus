@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -211,10 +212,10 @@ export default function QuestionPapersScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0B0F17' : '#F8FAFC' }]}>
-      <AdminHeader title="PaperForge Question Papers" />
+      <TourTarget id="screen.admin-question-papers.overview"><AdminHeader title="PaperForge Question Papers" /></TourTarget>
 
       {/* Tabs */}
-      <View style={[styles.tabBar, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }]}>
+      <TourTarget id="screen.admin-question-papers.workspace" native><View style={[styles.tabBar, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0' }]}>
         <TouchableOpacity
           style={[styles.tabItem, tab === 'generator' && styles.tabItemActive]}
           onPress={() => setTab('generator')}
@@ -254,9 +255,9 @@ export default function QuestionPapersScreen() {
             Saved Papers ({savedPapers.length})
           </Text>
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {tab === 'generator' ? (
           <>
             {/* Header Description */}
@@ -584,7 +585,7 @@ export default function QuestionPapersScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+      </TourScrollView>
 
       {/* Edit Question Modal */}
       <Modal visible={editIndex !== null} transparent animationType="fade">

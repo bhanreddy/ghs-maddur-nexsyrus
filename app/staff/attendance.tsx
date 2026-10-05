@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     View,
@@ -557,13 +558,13 @@ export default function StaffMyAttendanceScreen() {
 
     // ── Render ───────────────────────────────────────────────────────────────
     return (
-        <View style={[styles.container, { backgroundColor: pageBg }]}>
+        <TourTarget id="screen.staff-attendance.workspace" native><View style={[styles.container, { backgroundColor: pageBg }]}>
             <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={pageBg} />
 
             <View style={[styles.orb1, { backgroundColor: orb1Color }]} />
             <View style={[styles.orb2, { backgroundColor: orb2Color }]} />
 
-            <StaffHeader title="Attendance" scrollY={scrollY} onBack={() => router.back()} showMenuButton={false} />
+            <TourTarget id="screen.staff-attendance.overview"><StaffHeader title="My Attendance" scrollY={scrollY} onBack={() => router.back()} showMenuButton={false} /></TourTarget>
             {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
             {loading && !refreshing ? (
@@ -684,7 +685,7 @@ export default function StaffMyAttendanceScreen() {
                     )}
                 </Animated.ScrollView>
             )}
-        </View>
+        </View></TourTarget>
     );
 }
 

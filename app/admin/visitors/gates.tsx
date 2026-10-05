@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -108,7 +109,7 @@ export default function AdminGatesManagementScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.admin-visitors-gates.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -119,9 +120,9 @@ export default function AdminGatesManagementScreen() {
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.admin-visitors-gates.workspace" native><FlatList
         data={gates}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -185,7 +186,7 @@ export default function AdminGatesManagementScreen() {
             </View>
           );
         }}
-      />
+      /></TourTarget>
 
       {/* Add Gate Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -198,7 +199,7 @@ export default function AdminGatesManagementScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <TourScrollView contentContainerStyle={styles.modalScroll}>
               <Text style={[styles.label, { color: subColor }]}>GATE NAME *</Text>
               <TextInput
                 style={[styles.input, { color: textColor, borderColor }]}
@@ -219,7 +220,7 @@ export default function AdminGatesManagementScreen() {
               />
 
               <Text style={[styles.label, { color: subColor }]}>GATE TYPE</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
                 {GATE_TYPES.map((t) => {
                   const isSelected = gateType === t;
                   return (
@@ -240,7 +241,7 @@ export default function AdminGatesManagementScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </TourScrollView>
 
               <Text style={[styles.label, { color: subColor }]}>PERMITTED TRAFFIC</Text>
               <View style={styles.switchRow}>
@@ -276,7 +277,7 @@ export default function AdminGatesManagementScreen() {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </SafeAreaView>
         </View>
       </Modal>

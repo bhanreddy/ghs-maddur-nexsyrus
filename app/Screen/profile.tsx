@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, SafeAreaView, Platform, StatusBar, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +80,7 @@ const ProfileScreen = () => {
 
   // Extract primary parent/guardian safely
   const primaryParent = student.parents?.find((p) => p.is_primary) || student.parents?.[0];
-  return <SafeAreaView style={styles.container}>
+  return <TourTarget id="screen.screen-profile.overview" style={{ flex: 1 }}><SafeAreaView style={styles.container}>
     <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
     {/* Header / Banner */}
     <Animated.View entering={FadeInDown.duration(600)} style={styles.headerContainer}>
@@ -130,7 +131,7 @@ const ProfileScreen = () => {
         </SafeAreaView>
       </LinearGradient>
     </Animated.View>
-    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />}>
+    <TourTarget id="screen.screen-profile.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />}>
       {refreshing &&
         <View style={{ width: '100%', alignItems: 'center', paddingVertical: 20 }}>
           <LogoLoader size={30} />
@@ -187,8 +188,8 @@ const ProfileScreen = () => {
       <View style={{
         height: 40
       }} />
-    </ScrollView>
-  </SafeAreaView>;
+    </TourScrollView></TourTarget>
+  </SafeAreaView></TourTarget>;
 };
 const InfoItem = ({
   label,

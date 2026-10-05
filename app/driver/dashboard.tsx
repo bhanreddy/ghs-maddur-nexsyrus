@@ -1,3 +1,4 @@
+import { AppTourQuickAction, TourTarget, TourCondition, TourScrollView } from '@/src/features/app-tour';
 import * as Crypto from 'expo-crypto';
 import { useTransportPolling } from '../../src/hooks/useTransportPolling';
 import DriverTrackingHealth from '../../src/components/DriverTrackingHealth';
@@ -513,9 +514,10 @@ export default function DriverDashboard() {
   return (
     <ScreenLayout>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1A" />
-      <StudentHeader title={t('driver_ui.route', 'My Route')} menuUserType="driver" showBackButton={false} />
+      <TourCondition name="driver.active-trip" available={isTracking || !!activeTripId} />
+      <TourTarget id="screen.driver-dashboard.overview"><StudentHeader title={t('driver_ui.route', 'My Route')} menuUserType="driver" showBackButton={false} /></TourTarget>
       <DriverTrackingHealth />
-      <ScrollView
+      <TourTarget id="screen.driver-dashboard.workspace" native><TourScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshDriverData} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />}>
@@ -555,7 +557,7 @@ export default function DriverDashboard() {
             <View style={[s.heroDecor, { top: -24, right: -20, width: 100, height: 100 }]} />
             <View style={[s.heroDecor, { bottom: -20, left: -16, width: 72, height: 72 }]} />
 
-            <View style={s.heroTop}>
+            <TourTarget id="driver.route" native><View style={s.heroTop}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <View style={s.heroDutyRow}>
                   <Animated.View style={[s.liveDot, { backgroundColor: locationSharingPaused ? '#FCA5A5' : isTracking ? GREEN : '#FCD34D' }, isTracking && !locationSharingPaused && pulseStyle]} />
@@ -578,7 +580,7 @@ export default function DriverDashboard() {
                 <Ionicons name="bus" size={16} color="#FFF" />
                 <Text style={s.heroBusText}>{selectedBus?.bus_no || buses[0]?.bus_no || '—'}</Text>
               </View>
-            </View>
+            </View></TourTarget>
 
             <View style={s.heroStats}>
               <View style={s.heroStat}>
@@ -874,7 +876,7 @@ export default function DriverDashboard() {
         {selectedBus &&
           <Animated.View entering={FadeInUp.delay(200).duration(360)} style={s.controlSection}>
             {!isTracking ?
-              <TouchableOpacity
+              <TourTarget id="driver.start" native><TouchableOpacity
                 style={[s.startWrap, (!selectedRoute || actionLoading || !tripControlsEnabled) && { opacity: 0.55 }]}
                 onPress={handleStartTrip}
                 activeOpacity={0.85}
@@ -889,7 +891,7 @@ export default function DriverDashboard() {
                     </>
                   }
                 </LinearGradient>
-              </TouchableOpacity> :
+              </TouchableOpacity></TourTarget> :
               <TouchableOpacity style={s.endBtn} onPress={handleEndTrip} activeOpacity={0.85} disabled={actionLoading || !tripControlsEnabled}>
                 {actionLoading ? <LogoLoader color="#FFF" /> :
                   <>
@@ -901,8 +903,9 @@ export default function DriverDashboard() {
             }
           </Animated.View>
         }
+        <AppTourQuickAction portal="driver" />
         <View style={{ height: 110 }} />
-      </ScrollView>
+      </TourScrollView></TourTarget>
       {disclosureModal}
     </ScreenLayout>);
 

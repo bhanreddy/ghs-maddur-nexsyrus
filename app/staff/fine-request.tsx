@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useState } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import KeyboardAwareScreen from '@/components/keyboard/KeyboardAwareScreen';
@@ -65,8 +66,8 @@ export default function StaffFineRequestScreen() {
 
   return (
     <KeyboardAwareScreen>
-      <StaffHeader title="Fine request" subtitle="Submit for accounts approval" showBackButton />
-      <ScrollView contentContainerStyle={st.content}>
+      <TourTarget id="screen.staff-fine-request.overview"><StaffHeader title="Fine request" subtitle="Submit for accounts approval" showBackButton /></TourTarget>
+      <TourTarget id="screen.staff-fine-request.workspace" native><TourScrollView contentContainerStyle={st.content}>
         <Text style={st.hint}>Teachers cannot debit a student directly. Your request stays pending until accounts approves it.</Text>
         <AppTextInput
           placeholder="Student name or admission number"
@@ -108,7 +109,7 @@ export default function StaffFineRequestScreen() {
             <Text style={st.meta}>{f.fine_no} · {FINE_STATUS_LABELS[f.status]}</Text>
           </View>
         ))}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </KeyboardAwareScreen>
   );
 }

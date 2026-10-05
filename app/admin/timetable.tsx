@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AppTextInput from '@/src/components/AppTextInput';
@@ -1485,16 +1486,16 @@ export default function TimetableManagement() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={c.statusBarBg} />
 
-      <AdminHeader
+      <TourTarget id="screen.admin-timetable.overview"><AdminHeader
         title="Timetable"
         showBackButton
         rightAction={{ icon: 'time-outline', onPress: openManagePeriods }}
-      />
+      /></TourTarget>
 
       {/* ── Premium single-line filter toolbar ── */}
       <View style={styles.contextBarOuter}>
-        <View style={styles.filterToolbar}>
-          <ScrollView
+        <TourTarget id="screen.admin-timetable.workspace" native><View style={styles.filterToolbar}>
+          <TourScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterToolbarRow}
@@ -1556,7 +1557,7 @@ export default function TimetableManagement() {
                 disabled={modeSwitching}
               />
             )}
-          </ScrollView>
+          </TourScrollView>
 
           {classSectionId && totalCount > 0 ? (
             <View style={styles.contextProgress}>
@@ -1576,11 +1577,11 @@ export default function TimetableManagement() {
               </Text>
             </View>
           )}
-        </View>
+        </View></TourTarget>
       </View>
 
       {/* ── Grid (single scroll region — teacher banner + progress now scroll too) ── */}
-      <ScrollView style={styles.gridContainer} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator={false}>
+      <TourScrollView style={styles.gridContainer} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.gridInner}>
           {metaLoading || periodsLoading ? (
             <View style={{ paddingVertical: 56, alignItems: 'center' }}>
@@ -1685,7 +1686,7 @@ export default function TimetableManagement() {
 
           <View style={{ height: 100 }} />
         </View>
-      </ScrollView>
+      </TourScrollView>
 
       {/* ════════════════ MODAL: Switch to Uniform (destructive) ════════════════ */}
       <Modal transparent visible={collapseDialogVisible} onRequestClose={() => setCollapseDialogVisible(false)} animationType="fade">
@@ -1701,7 +1702,7 @@ export default function TimetableManagement() {
             </Text>
 
             <Text style={[styles.modeHint, { marginTop: 14, marginBottom: 6 }]}>Source day (kept):</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+            <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
               {TIMETABLE_DAYS.map((d) => (
                 <TouchableOpacity
                   key={d}
@@ -1714,7 +1715,7 @@ export default function TimetableManagement() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </TourScrollView>
 
             <View style={styles.confirmActions}>
               <TouchableOpacity
@@ -1837,7 +1838,7 @@ export default function TimetableManagement() {
                       )}
                     </View>
                   )}
-                  <ScrollView
+                  <TourScrollView
                     style={styles.assignPanelScroll}
                     contentContainerStyle={styles.assignPanelScrollContent}
                     showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -1873,7 +1874,7 @@ export default function TimetableManagement() {
                         })
                       )}
                     </View>
-                  </ScrollView>
+                  </TourScrollView>
                 </View>
               )}
 
@@ -1904,7 +1905,7 @@ export default function TimetableManagement() {
                       )}
                     </View>
                   )}
-                  <ScrollView
+                  <TourScrollView
                     style={styles.assignPanelScroll}
                     contentContainerStyle={styles.assignPanelScrollContent}
                     showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -1965,7 +1966,7 @@ export default function TimetableManagement() {
                         })
                       )}
                     </View>
-                  </ScrollView>
+                  </TourScrollView>
                 </View>
               )}
             </View>
@@ -2133,7 +2134,7 @@ export default function TimetableManagement() {
               </View>
             )}
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <TourScrollView showsVerticalScrollIndicator={false}>
               {editedPeriods.map((period, index) => {
                 const durationMins = getMins(period.end_time) - getMins(period.start_time);
                 const duration = getDurationLabel(period.start_time, period.end_time);
@@ -2227,7 +2228,7 @@ export default function TimetableManagement() {
                 <Ionicons name="add-circle-outline" size={16} color={c.accent} />
                 <Text style={styles.addPeriodFooterText}>Add Period at End</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -1013,7 +1014,7 @@ export default function AdminStudentsScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader
+      <TourTarget id="screen.admin-students.overview"><AdminHeader
         title={isArchive ? 'Student Archive' : 'Students'}
         showNotification={!isArchive}
         showBackButton={isArchive}
@@ -1022,7 +1023,7 @@ export default function AdminStudentsScreen() {
           icon: 'cloud-upload-outline',
           onPress: () => router.push('/admin/bulk-student-update'),
         } : undefined}
-      />
+      /></TourTarget>
       <View style={[styles.headerArea, !isWide && styles.headerAreaCompact]}>
         <LinearGradient
           colors={isDark ? ['#1B2033', '#171D2B'] : ['#F7F7FF', '#FFFFFF', '#F4FAFF']}
@@ -1106,11 +1107,11 @@ export default function AdminStudentsScreen() {
         </LinearGradient>
 
         <View style={[styles.discoveryPanel, !isWide && styles.discoveryPanelCompact]}>
-          <View style={[styles.searchBox, !isWide && styles.searchBoxCompact, ds.searchBarWrapper, clayInset(isDark, searchFocused)]}>
+          <TourTarget id="screen.admin-students.workspace" native><View style={[styles.searchBox, !isWide && styles.searchBoxCompact, ds.searchBarWrapper, clayInset(isDark, searchFocused)]}>
             <View style={[styles.searchIconWrap, searchFocused && styles.searchIconWrapFocused]}>
               <Ionicons name="search" size={17} color={searchFocused ? theme.colors.primary : theme.colors.textSecondary} />
             </View>
-            <AppTextInput
+            <TourTarget id="admin.students.search" native event="admin.students.search"><AppTextInput
               accessibilityLabel="Search students"
               style={[ds.inputInChrome, styles.searchInput]}
               placeholder={isWide
@@ -1124,16 +1125,16 @@ export default function AdminStudentsScreen() {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               returnKeyType="search"
-            />
+            /></TourTarget>
             {searchQuery ? (
               <PressScale hitSlop={8} onPress={() => setSearchQuery('')} style={styles.searchClearButton}>
                 <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
               </PressScale>
             ) : null}
-          </View>
+          </View></TourTarget>
 
-          <View style={[styles.filterRow, !isWide && styles.filterRowCompact]}>
-            <ScrollView
+          <TourTarget id="admin.students.filters" native><View style={[styles.filterRow, !isWide && styles.filterRowCompact]}>
+            <TourScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.filterScroller}
@@ -1215,7 +1216,7 @@ export default function AdminStudentsScreen() {
                   <Text style={[styles.filterChipText, styles.filterChipTextActive]}>Export</Text>
                 </TouchableOpacity>
               ) : null}
-            </ScrollView>
+            </TourScrollView>
             {!isWide ? (
               <PressScale
                 onPress={openExportModal}
@@ -1226,7 +1227,7 @@ export default function AdminStudentsScreen() {
                 <Text style={styles.mobileExportButtonText}>Export</Text>
               </PressScale>
             ) : null}
-          </View>
+          </View></TourTarget>
 
           <View style={[styles.resultSummaryRow, !isWide && styles.resultSummaryRowCompact]}>
             <View style={styles.resultSummaryCopy}>
@@ -1430,7 +1431,7 @@ export default function AdminStudentsScreen() {
             </TouchableOpacity>
             {exportPicker === 'class' &&
               <View style={styles.exportDropdown}>
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+                <TourScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
                   {[{ id: null, name: 'All Classes' }, ...classes].map((c) =>
                     <TouchableOpacity
                       key={String(c.id)}
@@ -1446,7 +1447,7 @@ export default function AdminStudentsScreen() {
                       }
                     </TouchableOpacity>
                   )}
-                </ScrollView>
+                </TourScrollView>
               </View>
             }
 
@@ -1462,7 +1463,7 @@ export default function AdminStudentsScreen() {
             </TouchableOpacity>
             {exportPicker === 'section' &&
               <View style={styles.exportDropdown}>
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+                <TourScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
                   {[{ id: null, name: 'All Sections' }, ...sections].map((s) =>
                     <TouchableOpacity
                       key={String(s.id)}
@@ -1478,7 +1479,7 @@ export default function AdminStudentsScreen() {
                       }
                     </TouchableOpacity>
                   )}
-                </ScrollView>
+                </TourScrollView>
               </View>
             }
 

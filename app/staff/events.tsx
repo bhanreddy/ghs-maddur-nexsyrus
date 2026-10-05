@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,12 +32,12 @@ export default function StaffEventsScreen() {
   const subCol = isDark ? '#9CA3AF' : '#64748B';
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
-      <View style={styles.header}>
+    <TourTarget id="screen.staff-events.workspace" style={{ flex: 1 }}><SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
+      <TourTarget id="screen.staff-events.overview" native><View style={styles.header}>
         <Text style={[styles.title, { color: textCol }]}>Event Operations</Text>
-      </View>
+      </View></TourTarget>
       {loading ? <ActivityIndicator color="#4F46E5" /> : (
-        <ScrollView refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
+        <TourScrollView refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
           {events.map((ev) => (
             <View key={ev.id} style={[styles.card, { backgroundColor: cardBg }]}>
               <Text style={[styles.cardTitle, { color: textCol }]}>{ev.title}</Text>
@@ -52,9 +53,9 @@ export default function StaffEventsScreen() {
               </View>
             </View>
           ))}
-        </ScrollView>
+        </TourScrollView>
       )}
-    </SafeAreaView>
+    </SafeAreaView></TourTarget>
   );
 }
 

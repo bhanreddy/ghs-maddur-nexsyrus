@@ -77,3 +77,11 @@ jest.mock('expo-av', () => ({
         setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
     },
 }));
+// expo-audio's native SharedObject prototypes are not present in Jest.
+jest.mock('expo-audio', () => ({
+    setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+    createAudioPlayer: jest.fn(() => ({
+        play: jest.fn(), pause: jest.fn(), remove: jest.fn(),
+        setPlaybackRate: jest.fn(), addListener: jest.fn(() => ({ remove: jest.fn() })),
+    })),
+}));

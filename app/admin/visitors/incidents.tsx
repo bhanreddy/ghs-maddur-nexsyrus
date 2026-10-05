@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,11 +21,11 @@ export default function AdminIncidentsScreen() {
   const sub = isDark ? '#94A3B8' : '#64748B';
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.admin-visitors-incidents.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Security Incidents</Text>
-      </View>
-      <FlatList
+      </View></TourTarget>
+      <TourTarget id="screen.admin-visitors-incidents.workspace" native><FlatList
         data={rows}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -36,7 +37,7 @@ export default function AdminIncidentsScreen() {
             <Text style={{ color: sub }}>{item.resolution_status}</Text>
           </View>
         )}
-      />
+      /></TourTarget>
     </View>
   );
 }

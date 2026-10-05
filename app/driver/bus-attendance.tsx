@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -319,9 +320,9 @@ export default function DriverBusStopAttendanceScreen() {
       <View style={[styles.orb1, { backgroundColor: orb1Color }]} />
       <View style={[styles.orb2, { backgroundColor: orb2Color }]} />
 
-      <StudentHeader title={t('driver_ui.bus_attendance')} menuUserType="driver" showBackButton={false} />
+      <TourTarget id="screen.driver-bus-attendance.overview"><StudentHeader title={t('driver_ui.bus_attendance')} menuUserType="driver" showBackButton={false} /></TourTarget>
 
-      <Animated.ScrollView
+      <TourTarget id="screen.driver-bus-attendance.workspace" style={{ flex: 1 }}><Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContent}
@@ -341,7 +342,7 @@ export default function DriverBusStopAttendanceScreen() {
               style={styles.cardSheen}
             />
 
-            <View style={styles.cardHeaderRow}>
+            <TourTarget id="driver.attendance.stop" native><View style={styles.cardHeaderRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.stopRouteName, { color: subColor }]}>
                   {trip.route_name || t('driver_ui.route')} · {t('driver_ui.stop_of', { current: selectedStopIdx + 1, total: stops.length })}
@@ -386,7 +387,7 @@ export default function DriverBusStopAttendanceScreen() {
                   <Ionicons name="chevron-forward" size={18} color={subColor} />
                 </AnimatedPressable>
               </View>
-            </View>
+            </View></TourTarget>
 
             {/* Stats chips */}
             <View style={styles.statChipsRow}>
@@ -422,7 +423,7 @@ export default function DriverBusStopAttendanceScreen() {
             </Text>
           </Animated.View>
         ) : (
-          <View style={styles.studentsList}>
+          <TourTarget id="driver.attendance.list" native><View style={styles.studentsList}>
             {students.map((student, index) => {
               const status = student.attendance_status || 'absent';
               const meta = STATUS_META[status];
@@ -462,7 +463,7 @@ export default function DriverBusStopAttendanceScreen() {
                 </Animated.View>
               );
             })}
-          </View>
+          </View></TourTarget>
         )}
 
         {/* ── Save CTA ── */}
@@ -483,7 +484,7 @@ export default function DriverBusStopAttendanceScreen() {
             )}
           </AnimatedPressable>
         )}
-      </Animated.ScrollView>
+      </Animated.ScrollView></TourTarget>
     </View>
   );
 }

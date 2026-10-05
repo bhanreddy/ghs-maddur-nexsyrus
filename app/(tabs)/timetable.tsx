@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -289,9 +290,9 @@ const TimeTableScreen = () => {
 
   return (
     <ScreenLayout>
-      <StudentHeader title={t('timetable.title')} />
+      <TourTarget id="screen.timetable.overview"><StudentHeader title={t('timetable.title')} /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.timetable.workspace" native><TourScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -467,7 +468,7 @@ const TimeTableScreen = () => {
 
         {/* Day selector — only shown for per-day schools */}
         {isPerDay && (
-          <ScrollView
+          <TourScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.dayTabs}
@@ -491,7 +492,7 @@ const TimeTableScreen = () => {
                 </Text>
               );
             })}
-          </ScrollView>
+          </TourScrollView>
         )}
 
         {/* Timeline */}
@@ -613,7 +614,7 @@ const TimeTableScreen = () => {
         )}
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </ScreenLayout>);
 
 };

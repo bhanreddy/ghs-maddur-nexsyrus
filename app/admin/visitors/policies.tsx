@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -26,11 +27,11 @@ export default function ApprovalPoliciesScreen() {
   const current = (cat: string) => policies.find((p) => p.category === cat)?.policy_type || 'HOST_APPROVAL';
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+    <TourTarget id="screen.admin-visitors-policies.workspace" native><View style={[styles.root, { backgroundColor: bg }]}>
+      <TourTarget id="screen.admin-visitors-policies.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Approval Rules</Text>
-      </View>
+      </View></TourTarget>
       {CATEGORIES.map((cat) => (
         <View key={cat} style={styles.row}>
           <Text style={{ color: text, fontWeight: '800', width: 120 }}>{cat}</Text>
@@ -49,7 +50,7 @@ export default function ApprovalPoliciesScreen() {
         </View>
       ))}
       <Text style={{ color: sub, padding: 16 }}>Tap a rule to cycle Auto → Host → Admin → Gatekeeper.</Text>
-    </View>
+    </View></TourTarget>
   );
 }
 const styles = StyleSheet.create({

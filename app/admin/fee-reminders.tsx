@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -901,10 +902,10 @@ export default function FeeRemindersAdmin() {
 
   return (
     <ScreenLayout>
-      <AdminHeader title="Fee Reminders" showBackButton={true} hideAppSearch={true} />
+      <TourTarget id="screen.admin-fee-reminders.overview"><AdminHeader title="Fee Reminders" showBackButton={true} hideAppSearch={true} /></TourTarget>
 
       {/* Main FlatList with true infinite scroll (fetch while scroll) */}
-      <FlatList
+      <TourTarget id="screen.admin-fee-reminders.workspace" native><FlatList
         data={students}
         keyExtractor={(item) => item.student_id}
         renderItem={renderStudentItem}
@@ -924,7 +925,7 @@ export default function FeeRemindersAdmin() {
             tintColor={theme.colors.primary}
           />
         }
-      />
+      /></TourTarget>
 
       {/* ── Sticky Bottom Dispatch Bar ── */}
       {students.length > 0 && (

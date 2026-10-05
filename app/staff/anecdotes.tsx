@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -188,9 +189,9 @@ export default function StaffAnecdotesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#080B14' : '#F1F5F9' }]}>
-      <StaffHeader title="Anecdotes & Intelligence" />
+      <TourTarget id="screen.staff-anecdotes.overview"><StaffHeader title="Anecdotes & Intelligence" /></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, isWide && styles.scrollWide]}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />}
@@ -275,7 +276,7 @@ export default function StaffAnecdotesScreen() {
           <Ionicons name="arrow-forward" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
         </TouchableOpacity>
 
-        <View style={[insetStyle, styles.searchBar]}>
+        <TourTarget id="screen.staff-anecdotes.workspace" native><View style={[insetStyle, styles.searchBar]}>
           <Ionicons name="search-outline" size={18} color={isDark ? '#94A3B8' : '#64748B'} />
           <TextInput
             style={[styles.searchInput, { color: isDark ? '#F8FAFC' : '#0F172A' }]}
@@ -289,9 +290,9 @@ export default function StaffAnecdotesScreen() {
               <Ionicons name="close-circle" size={16} color={isDark ? '#94A3B8' : '#64748B'} />
             </TouchableOpacity>
           ) : null}
-        </View>
+        </View></TourTarget>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryChipsScroll}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryChipsScroll}>
           {categoryTabs.map((cat) => {
             const active = selectedCategory === cat.key;
             const count =
@@ -323,7 +324,7 @@ export default function StaffAnecdotesScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
 
         {loadError ? (
           <View style={[cardStyle, styles.emptyCard]}>
@@ -501,7 +502,7 @@ export default function StaffAnecdotesScreen() {
           </View>
         )}
         <View style={{ height: 72 }} />
-      </ScrollView>
+      </TourScrollView>
 
       {!isWide ? (
         <TouchableOpacity onPress={() => openRecorder()} style={styles.fab} activeOpacity={0.9}>

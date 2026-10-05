@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -13,15 +14,15 @@ export default function UpdatesRoute() {
   const router = useRouter();
 
   return (
-    <ScreenLayout>
+    <TourTarget id="screen.updates.workspace" style={{ flex: 1 }}><ScreenLayout>
       <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-        <StudentSubpageHeader
+        <TourTarget id="screen.updates.overview"><StudentSubpageHeader
           title={t('studentUpdates.title')}
           subtitle={t('studentUpdates.subtitle')}
           onBack={() => router.back()}
-        />
+        /></TourTarget>
         <PopupHistoryScreen embedded />
       </View>
-    </ScreenLayout>
+    </ScreenLayout></TourTarget>
   );
 }

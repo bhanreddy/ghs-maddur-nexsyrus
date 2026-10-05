@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 /**
  * AdminReports.tsx
  * Analytics Cockpit — Mode A clay premium (soft desk + tactile controls).
@@ -569,14 +570,14 @@ export default function AdminReports() {
         </View>
       )}
 
-      <AdminHeader
+      <TourTarget id="screen.admin-reports.overview"><AdminHeader
         title="Analytics Cockpit"
         showBackButton
         rightAction={{
           icon: isDark ? 'sunny-outline' : 'moon-outline',
           onPress: toggleTheme,
         }}
-      />
+      /></TourTarget>
 
       {/* ── Hero strip ─────────────────────────────────────────── */}
       <View style={S.hero}>
@@ -660,7 +661,7 @@ export default function AdminReports() {
       </View>
 
       {/* ── Section pills ──────────────────────────────────────── */}
-      <ScrollView
+      <TourTarget id="screen.admin-reports.workspace" native><TourScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={S.navBar}
@@ -694,10 +695,10 @@ export default function AdminReports() {
             </PressScale>
           );
         })}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       {/* ── Body ───────────────────────────────────────────────── */}
-      <ScrollView
+      <TourScrollView
         style={{ flex: 1 }}
         contentContainerStyle={S.body}
         showsVerticalScrollIndicator={false}
@@ -1086,7 +1087,7 @@ export default function AdminReports() {
         )}
 
         <View style={{ height: 80 }} />
-      </ScrollView>
+      </TourScrollView>
     </View>
   );
 }

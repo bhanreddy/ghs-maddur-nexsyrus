@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -337,13 +338,13 @@ export default function ApprovalsScreen() {
 
   return (
     <View style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
-      <AdminHeader
+      <TourTarget id="screen.admin-approvals.overview"><AdminHeader
         title="Approvals Inbox"
         rightAction={{
           icon: 'refresh-outline',
           onPress: onRefresh,
         }}
-      />
+      /></TourTarget>
 
       <FlatList
         data={filteredRequests}
@@ -360,7 +361,7 @@ export default function ApprovalsScreen() {
         ListHeaderComponent={
           <View>
             {/* Executive Status Tabs with counts */}
-            <View style={[styles.tabsRow, isDark ? styles.tabsRowDark : styles.tabsRowLight]}>
+            <TourTarget id="screen.admin-approvals.workspace" native><View style={[styles.tabsRow, isDark ? styles.tabsRowDark : styles.tabsRowLight]}>
               {(['PENDING', 'APPROVED', 'REJECTED'] as const).map((tab) => {
                 const isActive = activeTab === tab;
                 const tabColor =
@@ -402,7 +403,7 @@ export default function ApprovalsScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </View></TourTarget>
 
             {/* Search Input */}
             <View

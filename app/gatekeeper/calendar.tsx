@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -85,9 +86,9 @@ export default function GatekeeperCalendarScreen() {
   }, [events, selectedDate]);
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.gatekeeper-calendar.workspace" native><View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <TourTarget id="screen.gatekeeper-calendar.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.text} />
         </TouchableOpacity>
@@ -95,7 +96,7 @@ export default function GatekeeperCalendarScreen() {
           <Text style={styles.headerTitle}>Gate & Campus Schedule</Text>
           <Text style={styles.headerSub}>Campus open/close status & visitor influx events</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
       {/* Campus Status Banner */}
       {dayStatus && (
@@ -129,7 +130,7 @@ export default function GatekeeperCalendarScreen() {
           <Text style={styles.loadingLabel}>Loading Campus Calendar...</Text>
         </View>
       ) : (
-        <ScrollView
+        <TourScrollView
           style={styles.scrollContent}
           contentContainerStyle={styles.scrollInner}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -164,7 +165,7 @@ export default function GatekeeperCalendarScreen() {
             onSelectEvent={(ev) => setSelectedEvent(ev)}
             isAdmin={false}
           />
-        </ScrollView>
+        </TourScrollView>
       )}
 
       <EventDetailModal
@@ -173,7 +174,7 @@ export default function GatekeeperCalendarScreen() {
         onClose={() => setSelectedEvent(null)}
         isAdmin={false}
       />
-    </View>
+    </View></TourTarget>
   );
 }
 

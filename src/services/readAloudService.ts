@@ -1,4 +1,5 @@
 import * as Speech from 'expo-speech';
+import { acquireAudio, releaseAudio } from './audioOwner';
 
 export type ReadAloudStatus = 'idle' | 'loading' | 'speaking';
 export type ReadAloudErrorCode = 'missing-telugu-voice' | 'speech-failed';
@@ -145,8 +146,11 @@ async function resolveVoice(language: SpeechLanguage): Promise<string | undefine
 
 async function stopCurrent(activeId?: string) {
   if (activeId && snapshot.activeId !== activeId) return;
-  operationSequence += 1;
+  if (!snapshot.activeId) return;
+  const sequence = ++operationSequence;
   await Speech.stop().catch(() => undefined);
+  if (sequence !== operationSequence) return;
+  releaseAudio('read-aloud');
   publish({ activeId: null, status: 'idle', error: null });
 }
 
@@ -162,11 +166,13 @@ async function toggle(
   const segments = buildSpeechSegments(parts);
   if (segments.length === 0) return;
 
+  releaseAudio('read-aloud');
   const sequence = ++operationSequence;
+  publish({ activeId: id, status: 'loading', error: null });
+  const ownsAudio = await acquireAudio('read-aloud', () => stopCurrent());
+  if (!ownsAudio || sequence !== operationSequence) { if (ownsAudio?.()) releaseAudio('read-aloud'); return; }
   await Speech.stop().catch(() => undefined);
   if (sequence !== operationSequence) return;
-
-  publish({ activeId: id, status: 'loading', error: null });
 
   const languages = [...new Set(segments.map(segment => segment.language))];
   const voiceEntries = await Promise.all(
@@ -176,6 +182,7 @@ async function toggle(
 
   const voiceByLanguage = new Map(voiceEntries);
   if (languages.includes('te-IN') && confirmedMissingVoices.has('te-IN')) {
+    releaseAudio('read-aloud');
     publish({
       activeId: null,
       status: 'idle',
@@ -188,6 +195,7 @@ async function toggle(
     if (sequence !== operationSequence) return;
     const segment = segments[index];
     if (!segment) {
+      releaseAudio('read-aloud');
       publish({ activeId: null, status: 'idle', error: null });
       return;
     }
@@ -205,12 +213,14 @@ async function toggle(
       onDone: () => speakSegment(index + 1),
       onStopped: () => {
         if (sequence === operationSequence) {
+          releaseAudio('read-aloud');
           publish({ activeId: null, status: 'idle', error: null });
         }
       },
       onError: () => {
         if (sequence === operationSequence) {
           operationSequence += 1;
+          releaseAudio('read-aloud');
           publish({
             activeId: null,
             status: 'idle',

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -170,8 +171,8 @@ export default function ParentHelpdeskScreen() {
   const styles = getStyles(isDark);
 
   return (
-    <ScreenLayout>
-      <StudentHeader title="Parent Help Desk" />
+    <TourTarget id="screen.screen-helpdesk.workspace" style={{ flex: 1 }}><ScreenLayout>
+      <TourTarget id="screen.screen-helpdesk.overview"><StudentHeader title="Parent Help Desk" /></TourTarget>
 
       <View style={styles.container}>
         {/* Banner */}
@@ -268,7 +269,7 @@ export default function ParentHelpdeskScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ gap: 14 }}>
+            <TourScrollView contentContainerStyle={{ gap: 14 }}>
               <Text style={styles.fieldLabel}>Select Category</Text>
               <View style={styles.categoryGrid}>
                 {Object.entries(CATEGORY_META).map(([key, meta]) => {
@@ -314,7 +315,7 @@ export default function ParentHelpdeskScreen() {
               >
                 <Text style={styles.submitBtnText}>{submitting ? 'Submitting...' : 'Submit Request'}</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -382,7 +383,7 @@ export default function ParentHelpdeskScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </ScreenLayout>
+    </ScreenLayout></TourTarget>
   );
 }
 

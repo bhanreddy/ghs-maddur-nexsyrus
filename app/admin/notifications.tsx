@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -1297,13 +1298,13 @@ export default function NotificationsTriggerPage() {
         .reduce((sum, target) => sum + target.recipient_count, 0);
 
   return (
-    <View style={styles.container}>
-      <AdminHeader
+    <TourTarget id="screen.admin-notifications.workspace" native><View style={styles.container}>
+      <TourTarget id="screen.admin-notifications.overview"><AdminHeader
         title="Notifications"
         showBackButton
         showNotification={false}
         scrollY={workspaceTab === 'send' ? scrollY : undefined}
-      />
+      /></TourTarget>
 
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <LinearGradient
@@ -1652,7 +1653,7 @@ export default function NotificationsTriggerPage() {
         styles={styles}
         THEME_COLORS={THEME_COLORS}
       />
-    </View>
+    </View></TourTarget>
   );
 }
 

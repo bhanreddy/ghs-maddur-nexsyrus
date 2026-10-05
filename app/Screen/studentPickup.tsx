@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -233,7 +234,7 @@ export default function StudentPickupScreen() {
   return (
     <ScreenLayout>
       <View style={styles.root}>
-        <StudentSubpageHeader
+        <TourTarget id="screen.screen-student-pickup.overview"><StudentSubpageHeader
           title={t('studentPickupPass.title')}
           subtitle={t('studentPickupPass.subtitle')}
           onBack={() => router.back()}
@@ -247,7 +248,7 @@ export default function StudentPickupScreen() {
               <Ionicons name="people-outline" size={18} color={ACCENT} />
             </TouchableOpacity>
           }
-        />
+        /></TourTarget>
 
         <View style={styles.tabTrack}>
           {([
@@ -285,7 +286,7 @@ export default function StudentPickupScreen() {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView
+          <TourTarget id="screen.screen-student-pickup.workspace" native><TourScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -300,7 +301,7 @@ export default function StudentPickupScreen() {
                         <Text style={styles.manageLink}>{t('studentPickupPass.manage')}</Text>
                       </TouchableOpacity>
                     </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.guardiansRow}>
+                    <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.guardiansRow}>
                       {guardians.map((g) => {
                         const isSelected = selectedGuardianId === g.id;
                         return (
@@ -331,7 +332,7 @@ export default function StudentPickupScreen() {
                           </TouchableOpacity>
                         );
                       })}
-                    </ScrollView>
+                    </TourScrollView>
                   </Animated.View>
                 ) : (
                   <TouchableOpacity
@@ -641,7 +642,7 @@ export default function StudentPickupScreen() {
                 ) : null}
               </View>
             )}
-          </ScrollView>
+          </TourScrollView></TourTarget>
         </KeyboardAvoidingView>
       </View>
     </ScreenLayout>

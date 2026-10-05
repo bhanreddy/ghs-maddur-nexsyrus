@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
@@ -159,7 +160,7 @@ export default function AuthorizedGuardiansScreen() {
   return (
     <ScreenLayout>
       <SafeAreaView style={styles.root} edges={['left', 'right', 'bottom']}>
-        <StudentSubpageHeader
+        <TourTarget id="screen.screen-authorized-guardians.overview"><StudentSubpageHeader
           title={t('studentGuardians.title')}
           subtitle={t('studentGuardians.subtitle')}
           onBack={() => router.back()}
@@ -168,9 +169,9 @@ export default function AuthorizedGuardiansScreen() {
               <Ionicons name="add" size={20} color="#FFFFFF" />
             </Pressable>
           }
-        />
+        /></TourTarget>
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <TourTarget id="screen.screen-authorized-guardians.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.policyBox}>
             <View style={styles.policyIcon}>
               <Ionicons name="shield-checkmark" size={18} color={ACCENT} />
@@ -261,7 +262,7 @@ export default function AuthorizedGuardiansScreen() {
               </Animated.View>
             ))
           )}
-        </ScrollView>
+        </TourScrollView></TourTarget>
 
         <Modal visible={modalVisible} animationType="slide" transparent>
           <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -278,7 +279,7 @@ export default function AuthorizedGuardiansScreen() {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              <TourScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
                 <TouchableOpacity style={styles.photoPicker} onPress={handlePickPhoto} activeOpacity={0.85}>
                   {photoUri ? (
                     <>
@@ -363,7 +364,7 @@ export default function AuthorizedGuardiansScreen() {
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
-              </ScrollView>
+              </TourScrollView>
             </SafeAreaView>
           </KeyboardAvoidingView>
         </Modal>

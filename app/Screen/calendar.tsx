@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -147,9 +148,9 @@ export default function StudentCalendarScreen() {
   return (
     <ScreenLayout>
       <View style={styles.container}>
-        <StudentHeader title={t('studentCalendar.title')} />
+        <TourTarget id="screen.screen-calendar.overview"><StudentHeader title={t('studentCalendar.title')} /></TourTarget>
 
-        <View style={styles.toolbar}>
+        <TourTarget id="screen.screen-calendar.workspace" native><View style={styles.toolbar}>
           <View style={styles.tabs}>
             {tabs.map((tab) => {
               const active = viewMode === tab.key;
@@ -196,7 +197,7 @@ export default function StudentCalendarScreen() {
             <Ionicons name="download-outline" size={16} color="#4F46E5" />
             {!compact ? <Text style={styles.syncBtnText}>{t('studentCalendar.sync')}</Text> : null}
           </TouchableOpacity>
-        </View>
+        </View></TourTarget>
 
         {loading ? (
           <View style={styles.centeredLoader}>
@@ -204,7 +205,7 @@ export default function StudentCalendarScreen() {
             <Text style={styles.loadingLabel}>{t('studentCalendar.loading')}</Text>
           </View>
         ) : (
-          <ScrollView
+          <TourScrollView
             style={styles.scrollContent}
             contentContainerStyle={[
               styles.scrollInner,
@@ -240,7 +241,7 @@ export default function StudentCalendarScreen() {
             {viewMode === 'AGENDA' && (
               <CalendarAgendaList events={events} onSelectEvent={(ev) => setSelectedEvent(ev)} />
             )}
-          </ScrollView>
+          </TourScrollView>
         )}
 
         <EventDetailModal

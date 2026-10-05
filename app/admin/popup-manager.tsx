@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View } from 'react-native';
 import AdminHeader from '../../src/components/AdminHeader';
@@ -7,9 +8,9 @@ import PopupManagerScreen from '../../src/features/popups/admin/PopupManagerScre
 export default function AdminPopupManagerRoute() {
   const { theme } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <AdminHeader title="Popup Manager" showBackButton />
+    <TourTarget id="screen.admin-popup-manager.workspace" native><View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <TourTarget id="screen.admin-popup-manager.overview"><AdminHeader title="Popup Manager" showBackButton /></TourTarget>
       <PopupManagerScreen />
-    </View>
+    </View></TourTarget>
   );
 }

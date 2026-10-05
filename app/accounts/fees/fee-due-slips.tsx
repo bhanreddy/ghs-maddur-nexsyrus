@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -449,15 +450,15 @@ export default function FeeDueSlipsScreen() {
       {!shellActive && <AdminHeader title="Fee Due Slips" showBackButton />}
 
       {/* Screen Header & Mode Tabs */}
-      <FeeDueSlipsHeader
+      <TourTarget id="screen.accounts-fees-fee-due-slips.overview"><FeeDueSlipsHeader
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab)}
         templatesCount={templates.length}
         historyCount={history.length}
         isDark={isDark}
-      />
+      /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.accounts-fees-fee-due-slips.workspace" native><TourScrollView
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -555,7 +556,7 @@ export default function FeeDueSlipsScreen() {
             />
           </View>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       {/* MODAL 1: Template Designer */}
       {designerOpen && (

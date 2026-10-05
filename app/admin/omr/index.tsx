@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -209,10 +210,10 @@ function OmrControlCenterContent() {
 
   return (
     <View style={styles.root}>
-      <AdminHeader title="OMR Control Center" showBackButton={true} />
+      <TourTarget id="screen.admin-omr.overview"><AdminHeader title="OMR Control Center" showBackButton={true} /></TourTarget>
 
       {/* Primary Tab Navigation */}
-      <View style={styles.tabBar}>
+      <TourTarget id="screen.admin-omr.workspace" native><View style={styles.tabBar}>
         {(['EXAMS', 'TEMPLATES', 'EXCEPTIONS', 'FINALIZATION', 'ANALYTICS', 'AUDIT'] as TabKey[]).map((tab) => {
           const isActive = activeTab === tab;
           return (
@@ -237,7 +238,7 @@ function OmrControlCenterContent() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </View></TourTarget>
 
       {/* Main Body */}
       {loading && !refreshing ? (
@@ -246,7 +247,7 @@ function OmrControlCenterContent() {
           <Text style={styles.loaderText}>Loading OMR subsystem...</Text>
         </View>
       ) : (
-        <ScrollView
+        <TourScrollView
           style={styles.container}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4F46E5" />}
           contentContainerStyle={styles.scrollContent}
@@ -633,7 +634,7 @@ function OmrControlCenterContent() {
               )}
             </View>
           )}
-        </ScrollView>
+        </TourScrollView>
       )}
 
       {/* Modal: Create OMR Exam */}
@@ -652,7 +653,7 @@ function OmrControlCenterContent() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <TourScrollView style={styles.modalBody}>
               <Text style={styles.inputLabel}>Exam Title</Text>
               <TextInput
                 style={styles.textInput}
@@ -741,7 +742,7 @@ function OmrControlCenterContent() {
                   <Text style={styles.createModalSubmitText}>Create OMR Exam</Text>
                 )}
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </View>
         </View>
       </Modal>

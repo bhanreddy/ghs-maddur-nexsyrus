@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -230,7 +231,7 @@ export default function BulkStudentUpdateScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <AdminHeader title="Bulk Student Update" showBackButton />
+      <TourTarget id="screen.admin-bulk-student-update.overview"><AdminHeader title="Bulk Student Update" showBackButton /></TourTarget>
 
       {processing ? (
         <View style={styles.processingBanner}>
@@ -239,7 +240,7 @@ export default function BulkStudentUpdateScreen() {
         </View>
       ) : null}
 
-      <ScrollView
+      <TourTarget id="screen.admin-bulk-student-update.workspace" native><TourScrollView
         contentContainerStyle={[styles.page, isWide && styles.pageWide]}
         keyboardShouldPersistTaps="handled"
       >
@@ -486,7 +487,7 @@ export default function BulkStudentUpdateScreen() {
             </View>
           </View>
         ) : null}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       <Modal visible={fieldPickerOpen} transparent animationType="fade" onRequestClose={() => setFieldPickerOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setFieldPickerOpen(false)}>
@@ -500,7 +501,7 @@ export default function BulkStudentUpdateScreen() {
                 <Ionicons name="close" size={21} color="#475569" />
               </TouchableOpacity>
             </View>
-            <ScrollView contentContainerStyle={styles.fieldGrid}>
+            <TourScrollView contentContainerStyle={styles.fieldGrid}>
               {fields.map((field) => {
                 const active = field.key === selectedField?.key;
                 return (
@@ -525,7 +526,7 @@ export default function BulkStudentUpdateScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </TourScrollView>
           </Pressable>
         </Pressable>
       </Modal>

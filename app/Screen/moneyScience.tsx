@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -42,8 +43,8 @@ const MoneyScienceScreen = () => {
     });
   };
   return <ScreenLayout>
-            <StudentHeader showBackButton={true} title="Money Science" />
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+            <TourTarget id="screen.screen-money-science.overview"><StudentHeader showBackButton={true} title="Money Science" /></TourTarget>
+            <TourTarget id="screen.screen-money-science.workspace" native><TourScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
                 <View style={styles.titleContainer}>
                     <Text style={styles.pageTitle}>Money Science</Text>
                     <Text style={styles.subtitle}>
@@ -87,7 +88,7 @@ const MoneyScienceScreen = () => {
                     </View>
                     <Text style={styles.goalIcon}>🐷</Text>
                 </LinearGradient>
-            </ScrollView>
+            </TourScrollView></TourTarget>
         </ScreenLayout>;
 };
 export default MoneyScienceScreen;

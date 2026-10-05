@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -141,9 +142,9 @@ const ResultsScreen = () => {
   }
   return <ScreenLayout>
 
-    <StudentHeader title={t('results.title', 'Results')} />
+    <TourTarget id="screen.results.overview"><StudentHeader title={t('results.title', 'Results')} /></TourTarget>
 
-    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />}>
+    <TourTarget id="screen.results.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="transparent" colors={['transparent']} progressBackgroundColor="transparent" />}>
                 {refreshing &&
       <View style={{ width: '100%', alignItems: 'center', paddingVertical: 20 }}>
                         <LogoLoader size={30} />
@@ -185,7 +186,7 @@ const ResultsScreen = () => {
           </Animated.View>;
         })}
       </View>}
-    </ScrollView>
+    </TourScrollView></TourTarget>
 
   </ScreenLayout>;
 };

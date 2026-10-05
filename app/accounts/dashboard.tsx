@@ -1,3 +1,4 @@
+import { AppTourQuickAction, TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, StatusBar, RefreshControl,
@@ -2392,7 +2393,7 @@ export default function AccountsDashboard() {
           </Animated.View>
         ) : (
           <View style={{ marginBottom: 10 }}>
-            <ScrollView
+            <TourScrollView
               ref={carouselRef}
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -2417,7 +2418,7 @@ export default function AccountsDashboard() {
                   style={{ width: mobileStatW }}
                 />
               ))}
-            </ScrollView>
+            </TourScrollView>
             <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 8 }}>
               {carouselCards.map((card, i) => (
                 <Pressable
@@ -2460,6 +2461,7 @@ export default function AccountsDashboard() {
             router={router}
             deskWidth={contentW}
           />
+          <AppTourQuickAction portal="accounts" />
           <View style={{ marginTop: 28 }}>
             <TransactionsSection
               transactions={transactions}
@@ -2481,6 +2483,7 @@ export default function AccountsDashboard() {
               deskWidth={Math.max(0, winW - CARD_H_PAD * 2)}
             />
           </View>
+          <AppTourQuickAction portal="accounts" />
           <TransactionsSection
             transactions={transactions}
             loading={loading}
@@ -2519,7 +2522,7 @@ export default function AccountsDashboard() {
           style={{ position: 'absolute', top: 280, left: 0, right: 0, height: 280 }}
           pointerEvents="none"
         />
-        <ScrollView
+        <TourScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 56 }}
           overScrollMode="never"
@@ -2534,7 +2537,7 @@ export default function AccountsDashboard() {
           }
         >
           {dashboardBody}
-        </ScrollView>
+        </TourScrollView>
       </View>
     );
   }
@@ -2550,11 +2553,11 @@ export default function AccountsDashboard() {
       />
       <StatusBar barStyle="light-content" backgroundColor="#15245C" />
 
-      <AdminHeader
+      <TourTarget id="screen.accounts-dashboard.overview"><AdminHeader
         title={t('accounts_dashboard.dashboard_title', 'Dashboard')}
         onMenuPress={() => setIsMenuOpen(true)}
         scrollY={headerScrollY}
-      />
+      /></TourTarget>
 
       <DashboardMenuOverlay
         isOpen={isMenuOpen}
@@ -2586,7 +2589,7 @@ export default function AccountsDashboard() {
         activeRoute="/accounts/dashboard"
       />
 
-      <ScrollView
+      <TourTarget id="screen.accounts-dashboard.workspace" native><TourScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 52 }}
         overScrollMode="never"
@@ -2603,7 +2606,7 @@ export default function AccountsDashboard() {
         }
       >
         {dashboardBody}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

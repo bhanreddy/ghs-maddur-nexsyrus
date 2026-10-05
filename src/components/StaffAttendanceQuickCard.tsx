@@ -8,13 +8,15 @@ import {
   AppStateStatus,
   ActivityIndicator,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useNavigation, useFocusEffect } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { staffAttendanceV2Client, TodayAttendanceStatus } from '../services/staffAttendanceV2Client';
-import { clayCard, clayInset } from '../theme/clayStyles';
+import { useTheme } from '../hooks/useTheme';
+import { clayInset } from '../theme/clayStyles';
 import { clayTokens } from '../styles/clayTokens';
 import * as Haptics from '../utils/haptics';
 
@@ -26,7 +28,13 @@ interface Props {
 }
 
 export default function StaffAttendanceQuickCard({ isDark }: Props) {
-  const router = useRouter();
+  const navigation = useNavigation();
+  const { theme } = useTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 500 || fontScale > 1.3;
+  const openAttendance = (autoAction?: 'check_in' | 'check_out') => {
+    (navigation as any).navigate('attendance', { autoAction });
+  };
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<TodayAttendanceStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,30 +75,30 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
 
   const handlePressCard = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/staff/attendance' as any);
+    openAttendance();
   };
 
   const handleActionPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!status) {
-      router.push('/staff/attendance' as any);
+      openAttendance();
       return;
     }
     if (status.device_registration_status !== 'approved') {
-      router.push('/staff/attendance' as any);
+      openAttendance();
       return;
     }
     if (status.can_check_in) {
-      router.push({ pathname: '/staff/attendance' as any, params: { autoAction: 'check_in' } });
+      openAttendance('check_in');
     } else if (status.can_check_out) {
-      router.push({ pathname: '/staff/attendance' as any, params: { autoAction: 'check_out' } });
+      openAttendance('check_out');
     } else {
-      router.push('/staff/attendance' as any);
+      openAttendance();
     }
   };
 
-  const ink = isDark ? '#F0F2FF' : '#2A3142';
-  const muted = isDark ? 'rgba(240,242,255,0.58)' : '#6B7590';
+  const ink = theme.colors.textStrong;
+  const muted = theme.colors.textSecondary;
   const iconWell = isDark ? 'rgba(108,99,255,0.20)' : BRAND.violetSoft;
 
   const formatTime = (ts?: string | null) => {
@@ -237,11 +245,13 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
       style={[animStyle, styles.wrap]}
     >
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open My Attendance"
         onPress={handlePressCard}
         onPressIn={() => { scale.value = withTiming(0.97, { duration: 90 }); }}
         onPressOut={() => { scale.value = withTiming(1, { duration: 120 }); }}
         style={[
-          clayCard(isDark, 'sm'),
+          { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
           styles.cardShell,
           IS_WEB ? { cursor: 'pointer' as const } : null,
         ]}
@@ -255,8 +265,8 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
           pointerEvents="none"
         />
 
-        <View style={styles.headerRow}>
-          <View style={styles.titleWithIcon}>
+        <View style={[styles.headerRow, { flexWrap: 'wrap' }]}>
+          <View style={[styles.titleWithIcon, { minWidth: 160 }]}>
             <View style={[styles.iconPill, { backgroundColor: iconWell }]}>
               <MaterialCommunityIcons name="fingerprint" size={16} color={BRAND.violet} />
             </View>
@@ -274,6 +284,7 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
           </View>
         </View>
 
+        {error && status && <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.alertText, fontSize: theme.typography.fontSizeSM, marginBottom: 8 }}>Live status could not refresh. Showing the last response; open My Attendance to check.</Text>}
         {loading && !status ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="small" color={BRAND.violet} />
@@ -282,13 +293,13 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
         ) : error && !status ? (
           <View style={styles.errorBox}>
             <Text style={[styles.errorText, { color: muted }]}>{error}</Text>
-            <Pressable onPress={() => loadStatus()} style={styles.retryBtn}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Retry My Attendance status" onPress={() => loadStatus()} style={styles.retryBtn}>
               <Text style={styles.retryText}>Retry</Text>
             </Pressable>
           </View>
         ) : (
           <View style={styles.body}>
-            <View style={styles.metricsRow}>
+            <View style={[styles.metricsRow, { flexWrap: 'wrap' }]}>
               <View style={[styles.timeWell, clayInset(isDark)]}>
                 <Text style={[styles.timeLabel, { color: muted }]}>In</Text>
                 <Text style={[styles.timeValue, { color: checkInTimeStr ? ink : muted }]}>
@@ -302,6 +313,8 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
                 </Text>
               </View>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${ctaLabel} · My Attendance`}
                 onPress={(e) => {
                   if (typeof (e as any)?.stopPropagation === 'function') {
                     (e as any).stopPropagation();
@@ -309,7 +322,7 @@ export default function StaffAttendanceQuickCard({ isDark }: Props) {
                   handleActionPress();
                 }}
                 hitSlop={8}
-                style={({ pressed }) => [styles.actionWrap, pressed && { opacity: 0.92, transform: [{ scale: 0.97 }] }]}
+                style={({ pressed }) => [styles.actionWrap, compact && { flexBasis: '100%' }, pressed && { opacity: 0.92, transform: [{ scale: 0.97 }] }]}
               >
                 <LinearGradient colors={ctaColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionBtn}>
                   <Ionicons name={ctaIcon as any} size={14} color={ctaKind === 'out' ? '#3F2A00' : '#FFFFFF'} />
@@ -359,7 +372,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: -0.2,
   },
@@ -389,6 +402,7 @@ const styles = StyleSheet.create({
   },
   timeWell: {
     flex: 1,
+    minWidth: 100,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -417,7 +431,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40,
+    minHeight: 48,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 14,
     gap: 5,
@@ -459,7 +474,7 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     paddingHorizontal: 12,
-    minHeight: 32,
+    minHeight: 44,
     borderRadius: 10,
     backgroundColor: BRAND.violet,
     alignItems: 'center',

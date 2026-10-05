@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -444,12 +445,12 @@ export default function DefaultersScreen() {
   };
 
   return (
-    <View style={[st.root, { backgroundColor: theme.colors.background }]}>
+    <TourTarget id="screen.accounts-defaulters.overview" native><View style={[st.root, { backgroundColor: theme.colors.background }]}>
       {showHeader && <AdminHeader title="Defaulters" showBackButton />}
 
       <SearchBar value={search} onChange={setSearch} />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.filterScroll} contentContainerStyle={st.filterRow}>
+      <TourTarget id="screen.accounts-defaulters.workspace" native><TourScrollView horizontal showsHorizontalScrollIndicator={false} style={st.filterScroll} contentContainerStyle={st.filterRow}>
         <FilterChip label="All classes" active={!classFilter} onPress={() => setClassFilter('')} />
         {classes.map((c) => (
           <FilterChip
@@ -459,9 +460,9 @@ export default function DefaultersScreen() {
             onPress={() => setClassFilter(classFilter === c.id ? '' : c.id)}
           />
         ))}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.filterScroll} contentContainerStyle={st.filterRow}>
+      <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={st.filterScroll} contentContainerStyle={st.filterRow}>
         <FilterChip label="All years" active={!yearFilter} onPress={() => setYearFilter('')} />
         {yearOptions.map((y) => (
           <FilterChip
@@ -471,7 +472,7 @@ export default function DefaultersScreen() {
             onPress={() => setYearFilter(yearFilter === y ? '' : y)}
           />
         ))}
-      </ScrollView>
+      </TourScrollView>
 
       <View style={st.banner}>
         <Ionicons name="alert-circle-outline" size={18} color="#B45309" />
@@ -536,7 +537,7 @@ export default function DefaultersScreen() {
         title="Add Previous-Year Due"
         subtitle="Seed legacy arrears for first-year onboarding"
       >
-        <ScrollView keyboardShouldPersistTaps="handled">
+        <TourScrollView keyboardShouldPersistTaps="handled">
           <Text style={st.fieldLabel}>Student</Text>
           <AppTextInput
             style={st.fieldInput}
@@ -564,7 +565,7 @@ export default function DefaultersScreen() {
           )}
 
           <Text style={st.fieldLabel}>Academic year (before {activeYear})</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterRow}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterRow}>
             {priorYears.map((y) => (
               <FilterChip
                 key={y}
@@ -573,7 +574,7 @@ export default function DefaultersScreen() {
                 onPress={() => setAddYear(y)}
               />
             ))}
-          </ScrollView>
+          </TourScrollView>
 
           <Text style={st.fieldLabel}>Amount (₹)</Text>
           <AppTextInput
@@ -601,7 +602,7 @@ export default function DefaultersScreen() {
           <Pressable style={st.primaryBtn} onPress={handleAddDue} disabled={submitting}>
             {submitting ? <ActivityIndicator color="#fff" /> : <Text style={st.primaryBtnText}>Save due</Text>}
           </Pressable>
-        </ScrollView>
+        </TourScrollView>
       </BottomSheet>
 
       <BottomSheet
@@ -641,7 +642,7 @@ export default function DefaultersScreen() {
           {submitting ? <ActivityIndicator color="#fff" /> : <Text style={st.primaryBtnText}>Collect & generate receipt</Text>}
         </Pressable>
       </BottomSheet>
-    </View>
+    </View></TourTarget>
   );
 }
 

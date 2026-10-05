@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -1434,7 +1435,7 @@ export default function MessagesScreen() {
   );
 
   return (
-    <ScreenLayout style={{ backgroundColor: isDark ? theme.colors.background : CLAY_BG_LIGHT }}>
+    <TourTarget id="screen.screen-messages.overview" style={{ flex: 1 }}><TourTarget id="screen.screen-messages.workspace" style={{ flex: 1 }}><ScreenLayout style={{ backgroundColor: isDark ? theme.colors.background : CLAY_BG_LIGHT }}>
       {view === 'resolving' && (
         <View style={styles.viewContainer}>
           <StudentHeader showBackButton title={t('messages.chat', 'Chat')} />
@@ -1477,7 +1478,7 @@ export default function MessagesScreen() {
         onClose={() => setDeletingMessage(null)}
         onConfirm={confirmDelete}
       />
-    </ScreenLayout>
+    </ScreenLayout></TourTarget></TourTarget>
   );
 }
 

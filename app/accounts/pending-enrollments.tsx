@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, Modal } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -137,7 +138,7 @@ export default function PendingEnrollmentsScreen() {
     </View>;
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-pending-enrollments.overview" native><TourTarget id="screen.accounts-pending-enrollments.workspace" native><View style={styles.container}>
       {!shellActive && <AdminHeader title="Pending Enrollments" showBackButton />}
       {loading ?
         <View style={styles.center}>
@@ -220,7 +221,7 @@ export default function PendingEnrollmentsScreen() {
           </View>
         </View>
       </Modal>
-    </View>);
+    </View></TourTarget></TourTarget>);
 
 }
 

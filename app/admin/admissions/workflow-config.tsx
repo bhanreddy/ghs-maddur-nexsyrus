@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -127,9 +128,9 @@ export default function AdmissionWorkflowConfigScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader title="Admission Settings & Capacities" showBackButton />
+      <TourTarget id="screen.admin-admissions-workflow-config.overview"><AdminHeader title="Admission Settings & Capacities" showBackButton /></TourTarget>
 
-      <ScrollView style={styles.mainScroll} contentContainerStyle={styles.scrollContent}>
+      <TourTarget id="screen.admin-admissions-workflow-config.workspace" native><TourScrollView style={styles.mainScroll} contentContainerStyle={styles.scrollContent}>
         {/* Portal Status Card */}
         <View style={styles.card}>
           <Text style={styles.cardHeader}>General Portal Policy</Text>
@@ -324,7 +325,7 @@ export default function AdmissionWorkflowConfigScreen() {
             </>
           )}
         </TouchableOpacity>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

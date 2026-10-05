@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -43,8 +44,8 @@ const LifeValuesScreen = () => {
     });
   };
   return <ScreenLayout>
-    <StudentHeader showBackButton={true} title="Life Values" />
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+    <TourTarget id="screen.screen-life-values.overview"><StudentHeader showBackButton={true} title="Life Values" /></TourTarget>
+    <TourTarget id="screen.screen-life-values.workspace" native><TourScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
       <View style={styles.titleContainer}>
         <Text style={styles.pageTitle}>Life Values</Text>
         <Text style={styles.subtitle}>Timeless wisdom for modern life.</Text>
@@ -79,7 +80,7 @@ const LifeValuesScreen = () => {
         </TouchableOpacity>;
       })}
       {!loading && modules.length === 0 && <Text style={styles.empty}>No modules available yet.</Text>}
-    </ScrollView>
+    </TourScrollView></TourTarget>
   </ScreenLayout>;
 };
 export default LifeValuesScreen;

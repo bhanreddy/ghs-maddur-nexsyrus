@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -229,14 +230,14 @@ export default function AdminContentScreen() {
 
   return (
     <View style={[styles.root, isDark ? styles.rootDark : styles.rootLight]}>
-      <AdminHeader
+      <TourTarget id="screen.admin-content.overview"><AdminHeader
         title="Content Engine"
         showBackButton={true}
         rightAction={{
           icon: 'add-circle-outline',
           onPress: () => router.push('/admin/content/editor?type=NEWS' as any),
         }}
-      />
+      /></TourTarget>
 
       {/* Top Banner & Quick Action Buttons */}
       <View style={styles.topBar}>
@@ -274,7 +275,7 @@ export default function AdminContentScreen() {
       </View>
 
       {/* Navigation Tabs */}
-      <ScrollView
+      <TourTarget id="screen.admin-content.workspace" native><TourScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabScroll}
@@ -339,10 +340,10 @@ export default function AdminContentScreen() {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       {/* Main Body */}
-      <ScrollView
+      <TourScrollView
         style={styles.mainScroll}
         contentContainerStyle={styles.scrollPadding}
         refreshControl={
@@ -765,7 +766,7 @@ export default function AdminContentScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+      </TourScrollView>
 
       {/* Rejection Modal */}
       <Modal visible={Boolean(rejectModalItem)} transparent animationType="fade">

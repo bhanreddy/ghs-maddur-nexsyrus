@@ -1,10 +1,11 @@
+import { AppTourQuickAction, TourTarget, useOptionalAppTour } from '@/src/features/app-tour';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, StatusBar,
   BackHandler, Pressable, Dimensions, FlatList, Platform,
   useWindowDimensions, DimensionValue, RefreshControl,
 } from 'react-native';
-import { useRouter, useFocusEffect, usePathname } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -156,7 +157,7 @@ const ACTUAL_WIDTH = Math.min(SCREEN_WIDTH, MAX_CONTENT_WIDTH);
 const CARD_WIDTH = ACTUAL_WIDTH - CONTAINER_PADDING * 2;
 
 const GRID_GAP = 10;
-const GRID_COLS = 3;
+const MIN_ACTION_CARD_WIDTH = 130;
 
 // ponytail: clay helpers local to dashboard — extract to shared util if a 3rd screen needs them
 function clay(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md') {
@@ -536,7 +537,7 @@ const DashboardCard = React.memo(
 );
 
 /* ─────────────────────────────────────────────────────────────────────────── */
-/* QUICK ACTION CARD - [UNCHANGED AS REQUESTED]                               */
+/* QUICK ACTION CARD                                                         */
 /* ─────────────────────────────────────────────────────────────────────────── */
 const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress }: {
   item: ActionItem;
@@ -546,8 +547,8 @@ const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress 
 }) {
   const { theme, isDark } = useTheme();
   const { width: windowWidth } = useWindowDimensions();
-  const isMobile = windowWidth < 768;
   const isWideScreen = isWeb && windowWidth >= 768;
+  const isMobile = !isWideScreen;
   const styles = useMemo(() => getStyles(theme, isDark, isWideScreen), [theme, isDark, isWideScreen]);
 
   const scale = useSharedValue(1);
@@ -666,6 +667,9 @@ const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress 
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={() => onPress(item.route)}
+        accessibilityRole="button"
+        accessibilityLabel={item.title}
+        style={{ flex: 1 }}
       >
         <Animated.View style={[cardAnimStyle, styles.gridItem, clayStyle]}>
           {/* Abstract Claymorphic Background Graphics */}
@@ -722,6 +726,7 @@ const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress 
 
           <View style={{
             position: 'absolute', top: 9, left: 9,
+            maxWidth: Math.max(0, cardWidth - (item.badge && item.badge > 0 ? 48 : 18)),
             flexDirection: 'row',
             alignItems: 'center',
             gap: 5,
@@ -737,16 +742,18 @@ const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress 
           }}>
             <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.72)' }} />
             <Text style={{
+              flexShrink: 1,
               fontSize: 7, fontWeight: '900', letterSpacing: 1.1,
               color: 'rgba(255,255,255,0.92)',
               textTransform: 'uppercase',
-            }}>
+            }} numberOfLines={1}>
               {item.category}
             </Text>
           </View>
 
           <View style={[styles.gridContent, { paddingTop: isWideScreen ? 38 : 34, zIndex: 2 }]}>
             <Animated.View style={[iconAnimStyle, {
+              flexShrink: 0,
               width: isWideScreen ? 50 : 42,
               height: isWideScreen ? 50 : 42,
               borderRadius: isWideScreen ? 18 : 15,
@@ -774,13 +781,14 @@ const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress 
             </Animated.View>
 
             <View style={styles.bottomRow}>
-              <View style={{ flex: 1, marginRight: 6 }}>
+              <View style={{ flex: 1, minWidth: 0, marginRight: isMobile ? 0 : 6 }}>
                 <Text
                   style={[
                     styles.gridTitle,
                     isMobile
                       ? {
                         flex: undefined,
+                        flexShrink: 0,
                         fontSize: windowWidth < 380 ? 12.5 : 13.5,
                         lineHeight: windowWidth < 380 ? 16 : 17,
                       }
@@ -804,32 +812,34 @@ const GridItem = React.memo(function GridItem({ item, index, cardWidth, onPress 
                 )}
               </View>
 
-              <View style={{
-                width: isWideScreen ? 28 : 24,
-                height: isWideScreen ? 28 : 24,
-                borderRadius: isWideScreen ? 14 : 12,
-                backgroundColor: 'rgba(255,255,255,0.22)',
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.32)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                ...(Platform.OS === 'web' ? {
-                  boxShadow: '2px 3px 6px rgba(0,0,0,0.12), -1px -1px 2px rgba(255,255,255,0.15), inset 1px 1px 2px rgba(255,255,255,0.4)'
-                } : {
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.12,
-                  shadowRadius: 3,
-                  elevation: isAndroid ? 0 : 2
-                }),
-              }}>
-                <Ionicons
-                  name="chevron-forward"
-                  size={isWideScreen ? 14 : 11}
-                  color="rgba(255,255,255,0.90)"
-                />
-              </View>
+              {!isMobile && (
+                <View style={{
+                  width: isWideScreen ? 28 : 24,
+                  height: isWideScreen ? 28 : 24,
+                  borderRadius: isWideScreen ? 14 : 12,
+                  backgroundColor: 'rgba(255,255,255,0.22)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.32)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  ...(Platform.OS === 'web' ? {
+                    boxShadow: '2px 3px 6px rgba(0,0,0,0.12), -1px -1px 2px rgba(255,255,255,0.15), inset 1px 1px 2px rgba(255,255,255,0.4)'
+                  } : {
+                    shadowColor: '#000000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 3,
+                    elevation: isAndroid ? 0 : 2
+                  }),
+                }}>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={isWideScreen ? 14 : 11}
+                    color="rgba(255,255,255,0.90)"
+                  />
+                </View>
+              )}
             </View>
           </View>
         </Animated.View>
@@ -1239,7 +1249,6 @@ export default function AdminDashboard() {
   // the (window-width based) content layout math below.
   const { shellActive, sidebarCollapsed: shellSidebarCollapsed, setSidebarCollapsed: setShellSidebarCollapsed } = useAdminWebChrome();
   const effectiveSidebarCollapsed = shellActive ? shellSidebarCollapsed : webSidebarCollapsed;
-  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const isWideScreen = isWeb && windowWidth >= 768;
@@ -1263,7 +1272,11 @@ export default function AdminDashboard() {
   const metricGap = isWideScreen ? 12 : 10;
   const metricCardWidth = Math.floor(((isWideScreen ? rightColWidth : contentWidth) - metricGap * 2) / 3) - 1;
   const actionGridGap = isWideScreen ? 12 : GRID_GAP;
-  const actionCardWidth = Math.floor((leftColWidth - actionGridGap * 2) / 3) - 1;
+  const minimumActionCardWidth = isWideScreen ? 160 : MIN_ACTION_CARD_WIDTH;
+  const actionGridColumns = Math.max(1, Math.min(3,
+    Math.floor((leftColWidth + actionGridGap) / (minimumActionCardWidth + actionGridGap)),
+  ));
+  const actionCardWidth = Math.floor((leftColWidth - actionGridGap * (actionGridColumns - 1)) / actionGridColumns);
   const webHeaderCardWidth = Math.min(610, contentWidth * 0.68);
 
   const {
@@ -1409,11 +1422,11 @@ export default function AdminDashboard() {
   /** ⚡PERF: chunk quick actions into rows so Android only mounts ~2 rows at a time */
   const actionRows = useMemo(() => {
     const rows: ActionItem[][] = [];
-    for (let i = 0; i < visibleQuickActions.length; i += GRID_COLS) {
-      rows.push(visibleQuickActions.slice(i, i + GRID_COLS));
+    for (let i = 0; i < visibleQuickActions.length; i += actionGridColumns) {
+      rows.push(visibleQuickActions.slice(i, i + actionGridColumns));
     }
     return rows;
-  }, [visibleQuickActions]);
+  }, [visibleQuickActions, actionGridColumns]);
 
   const financialTrendData = useMemo(
     () => (financials?.trend?.length ? financials.trend.map(t => ({ ...t, value: Number(t.value) })) : [{ value: 0 }]),
@@ -1435,26 +1448,27 @@ export default function AdminDashboard() {
       <View
         style={{
           flexDirection: 'row',
-          gap: GRID_GAP,
-          marginBottom: rowIndex < actionRows.length - 1 ? GRID_GAP : 26,
+          gap: actionGridGap,
+          alignItems: 'stretch',
+          marginBottom: rowIndex < actionRows.length - 1 ? actionGridGap : 26,
         }}
       >
         {row.map((item, colIndex) => (
           <GridItem
             key={item.route}
             item={item}
-            index={rowIndex * GRID_COLS + colIndex}
+            index={rowIndex * actionGridColumns + colIndex}
             cardWidth={actionCardWidth}
             onPress={handleQuickActionPress}
           />
         ))}
-        {row.length < GRID_COLS &&
-          Array.from({ length: GRID_COLS - row.length }, (_, i) => (
+        {row.length < actionGridColumns &&
+          Array.from({ length: actionGridColumns - row.length }, (_, i) => (
             <View key={`pad-${i}`} style={{ width: actionCardWidth }} />
           ))}
       </View>
     ),
-    [actionCardWidth, actionRows.length, handleQuickActionPress],
+    [actionCardWidth, actionGridColumns, actionGridGap, actionRows.length, handleQuickActionPress],
   );
 
   const scrollY = useSharedValue(0);
@@ -1469,11 +1483,6 @@ export default function AdminDashboard() {
 
   const carouselRef = React.useRef<FlatList>(null);
   const [activeStatIndex, setActiveStatIndex] = useState(0);
-
-  const matchedNavAction = visibleQuickActions.find(
-    (q) => pathname === q.route || (q.route.length > 1 && pathname.startsWith(`${q.route}/`)),
-  );
-  const currentHeaderTitle = matchedNavAction?.title ?? t('Dashboard');
 
   const onCarouselMomentumEnd = useCallback((e: any) => {
     const offset = e.nativeEvent.contentOffset.x;
@@ -1892,6 +1901,7 @@ export default function AdminDashboard() {
           <View style={isWideScreen ? { width: leftColWidth } : undefined}>
             {overviewBlock}
             {quickActionsBlock}
+            <AppTourQuickAction portal="admin" />
           </View>
           <View style={isWideScreen ? { width: rightColWidth } : undefined}>
             {statusBlock}
@@ -1931,6 +1941,7 @@ export default function AdminDashboard() {
           </View>
         )
       }]),
+    { key: 'app-tour', node: <AppTourQuickAction portal="admin" /> },
     { key: 'status', node: statusBlock },
     { key: 'fin', node: finMetricsBlock },
     { key: 'revenue', node: revenueChartBlock },
@@ -1942,14 +1953,35 @@ export default function AdminDashboard() {
     ...(alertsBlock ? [{ key: 'alerts', node: alertsBlock }] : []),
   ], [greetingBlock, overviewBlock, actionsHeaderBlock, isAndroid, actionRows, renderActionRow, styles.grid, visibleQuickActions, actionCardWidth, handleQuickActionPress, statusBlock, finMetricsBlock, revenueChartBlock, attMetricsBlock, attChartBlock, acadMetricsBlock, acadChartBlock, staffMetricsBlock, alertsBlock]);
 
+  // Reveal the relocated launcher even before its virtualized section has mounted.
+  const appTour = useOptionalAppTour();
+  const dashboardList = React.useRef<FlatList<any>>(null);
+  const retryTourScroll = React.useRef<((info: { index: number; averageItemLength: number }) => void) | null>(null);
+  const launcherIndex = mobileSections.findIndex(section => section.key === 'app-tour');
+  useEffect(() => {
+    if (isWideScreen || appTour?.step?.target !== 'admin.launcher' || appTour.state.phase !== 'navigating') return;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+    const reveal = () => dashboardList.current?.scrollToIndex({ index: launcherIndex, animated: false, viewPosition: 0.1 });
+    retryTourScroll.current = info => {
+      if (attempts++ >= 5) return;
+      dashboardList.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+      clearTimeout(retry);
+      retry = setTimeout(reveal, 180);
+    };
+    reveal();
+    return () => { clearTimeout(retry); retryTourScroll.current = null; };
+  }, [isWideScreen, launcherIndex, appTour?.step?.target, appTour?.state.phase, appTour?.state.generation]);
+
   const renderMobileSection = useCallback(({ item }: any) => item.node, []);
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.admin-dashboard.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
 
-      <AdminHeader
-        title={currentHeaderTitle}
+      <TourTarget id="screen.admin-dashboard.overview"><AdminHeader
+        title=""
+        hideTitle
         showNotification
         scrollY={isAndroid ? undefined : scrollY}
         onMenuPress={() =>
@@ -1957,7 +1989,7 @@ export default function AdminDashboard() {
             ? (shellActive ? setShellSidebarCollapsed((c) => !c) : setWebSidebarCollapsed((c) => !c))
             : setIsMenuOpen(true)
         }
-      />
+      /></TourTarget>
 
       {isWideScreen ? (
         <View style={{ flex: 1, flexDirection: 'row', paddingTop: headerOffset }}>
@@ -1984,6 +2016,8 @@ export default function AdminDashboard() {
               spiked frames on every scroll. Since the section count is bounded, we mount
               them once and let scrolling run fully native — no clip/unclip churn. */}
           <AnimatedFlatList
+            ref={dashboardList}
+            onScrollToIndexFailed={(info: { index: number; averageItemLength: number }) => retryTourScroll.current?.(info)}
             data={mobileSections}
             keyExtractor={(it: any) => it.key}
             renderItem={renderMobileSection}
@@ -2013,7 +2047,7 @@ export default function AdminDashboard() {
           />
         </>
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 
@@ -2053,12 +2087,16 @@ const getStyles = (theme: Theme, isDark: boolean, isWide = false) =>
 
     gridItem: {
       width: '100%',
-      aspectRatio: isWide ? 1 / 1.04 : 1 / 1.12,
+      flex: 1,
+      aspectRatio: isWide ? 1 / 1.04 : undefined,
+      minHeight: isWide ? undefined : 156,
       overflow: Platform.OS === 'web' ? 'hidden' : 'visible',
     },
     gridContent: {
-      flex: 1,
+      flex: isWide ? 1 : undefined,
+      minHeight: isWide ? undefined : 156,
       padding: isWide ? 15 : 13,
+      gap: isWide ? 0 : 12,
       justifyContent: 'space-between',
     },
     bottomRow: {

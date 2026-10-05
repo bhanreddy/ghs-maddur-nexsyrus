@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 
@@ -186,13 +187,13 @@ export default function PolicyManagerScreen() {
 
   return (
     <View style={styles.container}>
-            <View style={styles.header}>
+            <TourTarget id="screen.admin-policy.overview" native><View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Financial Policies & Control</Text>
-            </View>
-            <View style={styles.tabBar}>
+            </View></TourTarget>
+            <TourTarget id="screen.admin-policy.workspace" native><View style={styles.tabBar}>
                 <TouchableOpacity
           style={[styles.tab, activeTab === 'rules' && styles.activeTab]}
           onPress={() => setActiveTab('rules')}>
@@ -205,7 +206,7 @@ export default function PolicyManagerScreen() {
 
                     <Text style={[styles.tabText, activeTab === 'audit' && styles.activeTabText]}>Audit Logs</Text>
                 </TouchableOpacity>
-            </View>
+            </View></TourTarget>
             {loading ?
       <View style={styles.center}>
                     <LogoLoader size={60} color="#007AFF" />

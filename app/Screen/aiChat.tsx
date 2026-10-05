@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useRef, useEffect } from "react";
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -185,13 +186,13 @@ export default function AIChatScreen() {
 
   return (
     <ScreenLayout>
-      <StudentHeader showBackButton={true} title="AI Assistant" />
+      <TourTarget id="screen.screen-ai-chat.overview"><StudentHeader showBackButton={true} title="AI Assistant" /></TourTarget>
       <KeyboardAwareScreen
         variant="fixed"
         style={styles.container}
         stickyContent={
           <View style={styles.inputWrapper}>
-            <View style={[styles.inputContainer, ds.searchBarWrapper]}>
+            <TourTarget id="screen.screen-ai-chat.workspace" native><View style={[styles.inputContainer, ds.searchBarWrapper]}>
               <AppTextInput
                 placeholder="Ask a doubt..."
                 style={[ds.inputInChrome, styles.input]}
@@ -210,7 +211,7 @@ export default function AIChatScreen() {
 
                 <Ionicons name="arrow-up" size={24} color="#FFF" />
               </TouchableOpacity>
-            </View>
+            </View></TourTarget>
             <Text style={styles.disclaimer}>AI can make mistakes. Check important info.</Text>
           </View>
         }

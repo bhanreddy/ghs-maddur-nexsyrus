@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
+import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Speech from 'expo-speech';
+import { readAloudService } from '../../src/services/readAloudService';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import ScreenLayout from '../../src/components/ScreenLayout';
 import StudentHeader from '../../src/components/StudentHeader';
@@ -62,7 +63,10 @@ export default function SchoolDailyScreen() {
 
   // Reader Modal State
   const [selectedArticle, setSelectedArticle] = useState<ContentNewsDetail | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const articleAudioId = `school-daily:${selectedArticle?.id ?? 'none'}`;
+  const audio = useSyncExternalStore(readAloudService.subscribe, readAloudService.getSnapshot, readAloudService.getSnapshot);
+  const isSpeaking = audio.activeId === articleAudioId && audio.status !== 'idle';
+  useEffect(() => () => { void readAloudService.stop(articleAudioId); }, [articleAudioId]);
   const [articleLiked, setArticleLiked] = useState<boolean>(false);
   const [articleBookmarked, setArticleBookmarked] = useState<boolean>(false);
 
@@ -155,23 +159,8 @@ export default function SchoolDailyScreen() {
     if (!selectedArticle) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    if (isSpeaking) {
-      Speech.stop();
-      setIsSpeaking(false);
-    } else {
-      setIsSpeaking(true);
-      const textToRead = `${selectedArticle.headline || selectedArticle.title}. ${
-        selectedArticle.summary || ''
-      }. ${selectedArticle.body || ''}`;
-      Speech.speak(textToRead, {
-        rate: 0.95,
-        pitch: 1.0,
-        onDone: () => setIsSpeaking(false),
-        onStopped: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
-      });
-    }
-  }, [isSpeaking, selectedArticle]);
+    void readAloudService.toggle(articleAudioId, [selectedArticle.headline || selectedArticle.title, selectedArticle.summary, selectedArticle.body]);
+  }, [articleAudioId, selectedArticle]);
 
   // Share Article
   const handleShare = useCallback(async (item: ContentNewsDetail) => {
@@ -226,10 +215,10 @@ export default function SchoolDailyScreen() {
 
   return (
     <ScreenLayout>
-      <StudentHeader showBackButton={true} title={t('school_daily.title')} />
+      <TourTarget id="screen.screen-school-daily.overview"><StudentHeader showBackButton={true} title={t('school_daily.title')} /></TourTarget>
 
       {/* Segmented Top Bar */}
-      <View style={[styles.tabBar, isDark ? styles.tabBarDark : styles.tabBarLight]}>
+      <TourTarget id="screen.screen-school-daily.workspace" native><View style={[styles.tabBar, isDark ? styles.tabBarDark : styles.tabBarLight]}>
         <TouchableOpacity
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -281,7 +270,7 @@ export default function SchoolDailyScreen() {
             {t('school_daily.saved_stories')}
           </Text>
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
       {/* Offline cached edition notice */}
       {isOfflineCached && (
@@ -296,7 +285,7 @@ export default function SchoolDailyScreen() {
       {loading ? (
         <DailyFeedSkeleton />
       ) : activeTab === 'feed' ? (
-        <ScrollView
+        <TourScrollView
           style={styles.contentContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -344,7 +333,7 @@ export default function SchoolDailyScreen() {
             <Text style={[styles.sectionTitle, isDark ? styles.textDark : styles.textLight]}>
               {t('school_daily.todays_stories')}
             </Text>
-            <ScrollView
+            <TourScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoryScroll}
@@ -376,7 +365,7 @@ export default function SchoolDailyScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </TourScrollView>
           </View>
 
           {/* Featured Hero Story */}
@@ -419,10 +408,10 @@ export default function SchoolDailyScreen() {
           )}
 
           <View style={styles.bottomSpacer} />
-        </ScrollView>
+        </TourScrollView>
       ) : (
         /* Saved Stories View */
-        <ScrollView
+        <TourScrollView
           style={styles.contentContainer}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -465,7 +454,7 @@ export default function SchoolDailyScreen() {
           )}
 
           <View style={styles.bottomSpacer} />
-        </ScrollView>
+        </TourScrollView>
       )}
 
       {/* Reader Modal */}
@@ -474,8 +463,8 @@ export default function SchoolDailyScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => {
-          Speech.stop();
-          setIsSpeaking(false);
+          void readAloudService.stop(articleAudioId);
+
           setSelectedArticle(null);
         }}
       >
@@ -485,8 +474,8 @@ export default function SchoolDailyScreen() {
             <View style={styles.readerHeader}>
               <TouchableOpacity
                 onPress={() => {
-                  Speech.stop();
-                  setIsSpeaking(false);
+                  void readAloudService.stop(articleAudioId);
+
                   setSelectedArticle(null);
                 }}
                 style={styles.readerCloseButton}
@@ -530,7 +519,7 @@ export default function SchoolDailyScreen() {
             </View>
 
             {/* Modal Content Scroll */}
-            <ScrollView style={styles.readerBody} showsVerticalScrollIndicator={false}>
+            <TourScrollView style={styles.readerBody} showsVerticalScrollIndicator={false}>
               {/* Category & Reading Time */}
               <View style={styles.readerMetaRow}>
                 <View style={styles.readerCategoryBadge}>
@@ -586,7 +575,7 @@ export default function SchoolDailyScreen() {
               </Text>
 
               <View style={styles.bottomSpacer} />
-            </ScrollView>
+            </TourScrollView>
           </View>
         )}
       </Modal>

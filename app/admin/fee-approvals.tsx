@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -787,8 +788,8 @@ export default function FeeApprovalsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <AdminHeader title="Fee Approvals" showBackButton />
+    <TourTarget id="screen.admin-fee-approvals.workspace" native><View style={styles.container}>
+      <TourTarget id="screen.admin-fee-approvals.overview"><AdminHeader title="Fee Approvals" showBackButton /></TourTarget>
 
       {loading && rows.length === 0 ? (
         <View style={styles.center}>
@@ -898,7 +899,7 @@ export default function FeeApprovalsScreen() {
           }}
         />
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 

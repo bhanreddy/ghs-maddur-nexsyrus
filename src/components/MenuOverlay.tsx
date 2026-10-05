@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Image,
@@ -12,6 +12,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     useWindowDimensions,
     View,
 } from 'react-native';
@@ -92,9 +93,12 @@ interface Props {
     onClose: () => void;
     userType?: 'student' | 'staff' | 'driver';
     photoUrl?: string | null;
+    menuItems?: MenuItem[];
+    onNavigate?: (link: string) => void;
 }
 
-interface MenuItem {
+export interface MenuItem {
+    group?: string;
     key: string;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
@@ -119,11 +123,13 @@ const MenuItemCard: React.FC<{ item: MenuItem; index: number; isDark: boolean; o
     const shadowOpacity = isDark ? 0 : 0.04;
 
     return (
-        <Animated.View entering={FadeInLeft.delay(80 + index * 50).springify().damping(16).stiffness(150)}>
+        <Animated.View entering={FadeInLeft.delay(80 + Math.min(index, 5) * 30).springify().damping(16).stiffness(150)}>
             <Pressable
                 onPressIn={() => { scale.value = withSpring(0.96, { damping: 15, stiffness: 350 }); }}
                 onPressOut={() => { scale.value = withSpring(1, { damping: 12, stiffness: 220 }); }}
                 onPress={onPress}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
                 style={Platform.OS === 'web' && { cursor: 'pointer' }}
             >
                 <Animated.View style={[
@@ -176,8 +182,10 @@ const MenuItemCard: React.FC<{ item: MenuItem; index: number; isDark: boolean; o
 };
 
 /* ─── Main Component ─── */
-const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', photoUrl }) => {
+const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', photoUrl, menuItems, onNavigate }) => {
     const { t } = useTranslation();
+    const [query, setQuery] = useState('');
+    useEffect(() => { if (!visible) setQuery(''); }, [visible]);
     const router = useRouter();
     const { user, signOut } = useAuth();
     const { theme, isDark } = useTheme();
@@ -222,8 +230,9 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
     ];
 
     const { isEnabled } = useFeatures();
-    const baseItems = userType === 'driver' ? driverMenuItems : userType === 'staff' ? staffMenuItems : studentMenuItems;
-    const itemsToRender = baseItems.filter((it) => !it.feature || isEnabled(it.feature));
+    const baseItems = menuItems ?? (userType === 'driver' ? driverMenuItems : userType === 'staff' ? staffMenuItems : studentMenuItems);
+    const itemsToRender = baseItems.filter((it) => (!it.feature || isEnabled(it.feature))
+        && (!query.trim() || `${it.label} ${it.group || ''}`.toLowerCase().includes(query.trim().toLowerCase())));
 
     /* ── Animations ── */
     useEffect(() => {
@@ -234,13 +243,13 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
             translateX.value = withTiming(-drawerWidth, { duration: 250 });
             backdropOpacity.value = withTiming(0, { duration: 200 });
         }
-    }, [visible, drawerWidth]);
+    }, [visible, drawerWidth, translateX, backdropOpacity]);
 
     const closeDrawer = useCallback(() => {
         translateX.value = withTiming(-drawerWidth, { duration: 250 });
         backdropOpacity.value = withTiming(0, { duration: 200 });
         setTimeout(onClose, 260);
-    }, [onClose, drawerWidth]);
+    }, [onClose, drawerWidth, translateX, backdropOpacity]);
 
     /* ── Swipe gesture ── */
     const panGesture = Gesture.Pan()
@@ -278,7 +287,8 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
             closeDrawer();
             setTimeout(() => {
                 try {
-                    router.push(link as Href);
+                    if (onNavigate) onNavigate(link);
+                    else router.push(link as Href);
                     console.debug('[MenuOverlay] handlePress end', { link });
                 } catch (e) {
                     console.error('Button action failed:', e);
@@ -333,7 +343,7 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
         : [schoolColorWithAlpha(theme.colors.surface || '#FFFFFF', 0.85), schoolColorWithAlpha(theme.colors.background || '#F4F6F9', 0.92)];
 
     return (
-        <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
+        <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={closeDrawer}>
             <GestureHandlerRootView style={StyleSheet.absoluteFill}>
                 <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
@@ -431,6 +441,18 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
                                 <View style={[styles.headerDivider, { backgroundColor: theme.colors.border }]} />
                             </View>
 
+                            {userType === 'staff' && (
+                                <TextInput
+                                    value={query}
+                                    onChangeText={setQuery}
+                                    placeholder="Search staff tools"
+                                    accessibilityLabel="Search staff tools"
+                                    placeholderTextColor={theme.colors.textSecondary}
+                                    style={{ marginHorizontal: 20, marginBottom: 12, padding: 12, minHeight: 48, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 12, color: theme.colors.textStrong, backgroundColor: theme.colors.background }}
+                                    clearButtonMode="while-editing"
+                                    autoCapitalize="none"
+                                />
+                            )}
                             {/* ── Menu Items ── */}
                             <ScrollView
                                 style={{ flex: 1, minHeight: 0 }}
@@ -440,14 +462,19 @@ const MenuOverlay: React.FC<Props> = ({ visible, onClose, userType = 'student', 
                                 nestedScrollEnabled
                             >
                                 {itemsToRender.map((item, index) => (
+                                    <React.Fragment key={item.key}>
+                                    {item.group && item.group !== itemsToRender[index - 1]?.group && (
+                                        <Text accessibilityRole="header" style={{ color: theme.colors.textSecondary, fontSize: 13, fontWeight: '700', marginTop: 16, marginBottom: 10 }}>{item.group}</Text>
+                                    )}
                                     <MenuItemCard
-                                        key={item.key}
                                         item={item}
                                         index={index}
                                         isDark={isDark}
                                         onPress={() => handlePress(item.link)}
                                     />
+                                    </React.Fragment>
                                 ))}
+                                {itemsToRender.length === 0 && <Text style={{ color: theme.colors.textSecondary, paddingVertical: 20 }}>No tools match “{query}”. Try another name.</Text>}
                             </ScrollView>
 
                             {/* ── Logout Button ── */}

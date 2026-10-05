@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import * as Crypto from 'expo-crypto';
 import DriverTrackingHealth from '../../src/components/DriverTrackingHealth';
 import { useTransportPolling } from '../../src/hooks/useTransportPolling';
@@ -320,7 +321,7 @@ export default function DriverTripScreen() {
   return (
     <ScreenLayout>
       <StatusBar barStyle="dark-content" />
-      <StudentHeader
+      <TourTarget id="screen.driver-trip.overview"><StudentHeader
         menuUserType="driver"
         showBackButton={false}
         title={
@@ -328,7 +329,7 @@ export default function DriverTripScreen() {
             ? `${trip.route_name} · ${new Date(`${trip.date}T12:00:00`).toLocaleDateString(dateLocale)}`
             : trip?.route_name || t('driver_ui.trip')
         }
-      />
+      /></TourTarget>
       {statusBanner()}
       {!tripStatusIsActive(trip?.status) && <View style={{ paddingHorizontal: 16, gap: 8 }}>
         <Text style={{ color: theme.colors.textStrong }}>Choose route and journey</Text>
@@ -385,7 +386,7 @@ export default function DriverTripScreen() {
       </View>
 
       <DriverTrackingHealth />
-      <FlatList
+      <TourTarget id="screen.driver-trip.workspace" native><FlatList
         data={stops}
         keyExtractor={(item) => item.stop_id}
         contentContainerStyle={styles.listPad}
@@ -427,7 +428,7 @@ export default function DriverTripScreen() {
         }}
         ListEmptyComponent={<Text style={styles.emptySub}>{t('driver_ui.no_stops_on_route')}</Text>}
         ListFooterComponent={<View style={{ height: 110 }} />}
-      />
+      /></TourTarget>
 
       <Modal transparent visible={confirmComplete} animationType="fade">
         <Pressable style={styles.modalBackdrop} onPress={() => setConfirmComplete(false)}>

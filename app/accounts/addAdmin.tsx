@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 
@@ -56,10 +57,10 @@ export default function AddAdminScreen() {
 
     router.back();
   };
-  return <View style={styles.container}>
+  return <TourTarget id="screen.accounts-add-admin.overview" native><View style={styles.container}>
     <StatusBar barStyle="dark-content" backgroundColor="#fff" />
     {!shellActive && <AdminHeader title={t('accounts.add_admin', 'Add New Admin')} />}
-    <KeyboardAwareScreen variant="scroll" contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} bottomOffset={24}>
+    <TourTarget id="screen.accounts-add-admin.workspace" style={{ flex: 1 }}><KeyboardAwareScreen variant="scroll" contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} bottomOffset={24}>
         <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.section}>
           <Text style={styles.sectionHeader}>{t('common.admin_details', 'Admin Details')}</Text>
           <InputField label={t('common.full_name', 'Full Name')} placeholder="e.g. Rajesh Singh" value={formData.name} onChangeText={(text: string) => setFormData({
@@ -95,8 +96,8 @@ export default function AddAdminScreen() {
             <Ionicons name="arrow-forward" size={20} color="#fff" />
           </TouchableOpacity>
         </Animated.View>
-    </KeyboardAwareScreen>
-  </View>;
+    </KeyboardAwareScreen></TourTarget>
+  </View></TourTarget>;
 }
 const getStyles = (theme: Theme) => StyleSheet.create({
   container: {

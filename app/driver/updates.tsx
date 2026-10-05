@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View, Pressable, Text } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -9,7 +10,7 @@ export default function DriverUpdatesRoute() {
   const { theme, isDark } = useTheme();
   const router = useRouter();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <TourTarget id="screen.driver-updates.overview" native><TourTarget id="screen.driver-updates.workspace" native><View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 12 }}>
         <Pressable
           onPress={() => router.back()}
@@ -22,6 +23,6 @@ export default function DriverUpdatesRoute() {
         <Text style={{ fontSize: 20, fontWeight: '700', color: theme.colors.textStrong }}>Updates</Text>
       </View>
       <PopupHistoryScreen embedded />
-    </View>
+    </View></TourTarget></TourTarget>
   );
 }

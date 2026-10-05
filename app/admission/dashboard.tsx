@@ -1,3 +1,4 @@
+import { AppTourQuickAction, TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -268,7 +269,7 @@ export default function ApplicantDashboardScreen() {
   const nextAction = data?.smartNextAction;
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.admission-dashboard.overview" native><View style={styles.container}>
       {/* Top Gradient Header */}
       <LinearGradient
         colors={['#0F172A', '#1E293B', '#0F766E']}
@@ -375,8 +376,8 @@ export default function ApplicantDashboardScreen() {
       )}
 
       {/* Tabs Navigation */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
+      <TourTarget id="applicant.navigation" native><TourTarget id="screen.admission-dashboard.workspace" native><View style={styles.tabBar}>
+        <TourTarget id="applicant.overview.tab" native event="applicant.overview.tab"><TouchableOpacity
           style={[styles.tabItem, activeTab === 'overview' && styles.tabItemActive]}
           onPress={() => setActiveTab('overview')}
         >
@@ -390,9 +391,9 @@ export default function ApplicantDashboardScreen() {
           >
             Overview
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity></TourTarget>
 
-        <TouchableOpacity
+        <TourTarget id="applicant.form.tab" native event="applicant.form.tab"><TouchableOpacity
           style={[styles.tabItem, activeTab === 'form' && styles.tabItemActive]}
           onPress={() => setActiveTab('form')}
         >
@@ -406,9 +407,9 @@ export default function ApplicantDashboardScreen() {
           >
             Application
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity></TourTarget>
 
-        <TouchableOpacity
+        <TourTarget id="applicant.documents.tab" native event="applicant.documents.tab"><TouchableOpacity
           style={[styles.tabItem, activeTab === 'documents' && styles.tabItemActive]}
           onPress={() => setActiveTab('documents')}
         >
@@ -422,9 +423,9 @@ export default function ApplicantDashboardScreen() {
           >
             Docs ({data?.documentChecklist?.verifiedDocuments || 0}/{data?.documentChecklist?.requiredDocuments || 0})
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity></TourTarget>
 
-        <TouchableOpacity
+        <TourTarget id="applicant.interview.tab" native event="applicant.interview.tab"><TouchableOpacity
           style={[styles.tabItem, activeTab === 'interview' && styles.tabItemActive]}
           onPress={() => setActiveTab('interview')}
         >
@@ -438,9 +439,9 @@ export default function ApplicantDashboardScreen() {
           >
             Interview
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity></TourTarget>
 
-        <TouchableOpacity
+        <TourTarget id="applicant.messages.tab" native event="applicant.messages.tab"><TouchableOpacity
           style={[styles.tabItem, activeTab === 'messages' && styles.tabItemActive]}
           onPress={() => setActiveTab('messages')}
         >
@@ -454,11 +455,11 @@ export default function ApplicantDashboardScreen() {
           >
             Messages
           </Text>
-        </TouchableOpacity>
-      </View>
+        </TouchableOpacity></TourTarget>
+      </View></TourTarget></TourTarget>
 
       {/* Main Tab Content */}
-      <ScrollView
+      <TourScrollView
         style={styles.mainScroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -467,7 +468,7 @@ export default function ApplicantDashboardScreen() {
       >
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <View style={styles.tabContent}>
+          <TourTarget id="applicant.overview.content" native><View style={styles.tabContent}>
             {/* Conversion Success Trophy Card */}
             {isConverted && (
               <View style={styles.trophyCard}>
@@ -578,24 +579,24 @@ export default function ApplicantDashboardScreen() {
                 ))
               )}
             </View>
-          </View>
+          </View></TourTarget>
         )}
 
         {/* TAB 2: APPLICATION FORM */}
         {activeTab === 'form' && app && (
-          <View style={styles.tabContent}>
+          <TourTarget id="applicant.form.content" native><View style={styles.tabContent}>
             <ApplicantApplicationWizard
               application={app}
               isDraft={isDraft}
               onSaved={() => fetchApplicationData()}
               onSubmitted={() => fetchApplicationData()}
             />
-          </View>
+          </View></TourTarget>
         )}
 
         {/* TAB 3: DOCUMENTS CHECKLIST */}
         {activeTab === 'documents' && (
-          <View style={styles.tabContent}>
+          <TourTarget id="applicant.documents.content" native><View style={styles.tabContent}>
             <View style={styles.card}>
               <Text style={styles.sectionHeading}>Document Verification Checklist</Text>
               <Text style={styles.cardSubtitle}>
@@ -724,12 +725,12 @@ export default function ApplicantDashboardScreen() {
                 );
               })}
             </View>
-          </View>
+          </View></TourTarget>
         )}
 
         {/* TAB 4: INTERVIEW & ENTRANCE TEST */}
         {activeTab === 'interview' && (
-          <View style={styles.tabContent}>
+          <TourTarget id="applicant.interview.content" native><View style={styles.tabContent}>
             <View style={styles.card}>
               <Text style={styles.sectionHeading}>Interview & Assessment Schedule</Text>
               {(data?.interviews || []).length === 0 ? (
@@ -783,12 +784,12 @@ export default function ApplicantDashboardScreen() {
                 ))
               )}
             </View>
-          </View>
+          </View></TourTarget>
         )}
 
         {/* TAB 5: MESSAGES */}
         {activeTab === 'messages' && (
-          <View style={styles.tabContent}>
+          <TourTarget id="applicant.messages.content" native><View style={styles.tabContent}>
             <View style={styles.card}>
               <Text style={styles.sectionHeading}>Admissions Office Communication</Text>
 
@@ -852,9 +853,10 @@ export default function ApplicantDashboardScreen() {
                 })
               )}
             </View>
-          </View>
+          </View></TourTarget>
         )}
-      </ScrollView>
+        <AppTourQuickAction portal="applicant" />
+      </TourScrollView>
 
       {/* Upload Document Modal */}
       <Modal
@@ -904,7 +906,7 @@ export default function ApplicantDashboardScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </View></TourTarget>
   );
 }
 

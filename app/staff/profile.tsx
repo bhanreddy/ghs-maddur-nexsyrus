@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -122,10 +123,10 @@ const StaffProfileScreen = () => {
   return <View style={styles.container}>
     <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-    <StaffHeader title="My Profile" showBackButton={true} />
+    <TourTarget id="screen.staff-profile.overview"><StaffHeader title="My Profile" showBackButton={true} /></TourTarget>
     {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
-    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <TourTarget id="screen.staff-profile.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       {/* --- Header Profile Card --- */}
       <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.headerCard}>
         <LinearGradient colors={isDark ? ['rgba(30, 41, 59, 1)', 'rgba(15, 23, 42, 1)'] : [theme.colors.primary, theme.colors.primary]} start={{
@@ -195,7 +196,7 @@ const StaffProfileScreen = () => {
       <View style={{
         height: 40
       }} />
-    </ScrollView>
+    </TourScrollView></TourTarget>
   </View>;
 };
 export default StaffProfileScreen;

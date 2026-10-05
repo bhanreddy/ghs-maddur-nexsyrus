@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Modal,
@@ -464,17 +465,17 @@ export default function AdminDiaryViewerScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: pageBg }]}>
-      <AdminHeader
+      <TourTarget id="screen.admin-diary-viewer.overview"><AdminHeader
         title="Class Diary"
         showBackButton
         rightAction={{ icon: 'calendar-outline', onPress: () => router.push('/admin/diary/history') }}
-      />
+      /></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primary} />}
       >
-        <Animated.View
+        <TourTarget id="screen.admin-diary-viewer.workspace"><Animated.View
           entering={FadeIn.duration(280)}
           style={[styles.filterPanel, clayCard(isDark, 'sm'), { backgroundColor: cardBg, borderColor: cardBorder }]}
         >
@@ -585,7 +586,7 @@ export default function AdminDiaryViewerScreen() {
               Pick a class to filter by section or subject
             </Text>
           )}
-        </Animated.View>
+        </Animated.View></TourTarget>
 
         <View style={styles.listHeading}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -679,7 +680,7 @@ export default function AdminDiaryViewerScreen() {
             </View>
           ))
         )}
-      </ScrollView>
+      </TourScrollView>
 
       <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={closeComposer}>
         <KeyboardAvoidingView style={styles.modalRoot} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -716,7 +717,7 @@ export default function AdminDiaryViewerScreen() {
               </PressScale>
             </View>
 
-            <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <TourScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {editingEntry ? (
                 <View style={[styles.lockedClass, styles.fieldFrame, { backgroundColor: trackBg, borderColor: fieldBorder }]}>
                   <Ionicons name="lock-closed-outline" size={16} color={subColor} />
@@ -734,7 +735,7 @@ export default function AdminDiaryViewerScreen() {
                   <View style={styles.composerStep}>
                     <Text style={[styles.stepLabel, { color: subColor }]}>1. Class</Text>
                     <View style={[styles.chipTrack, { backgroundColor: trackBg, borderColor: fieldBorder }]}>
-                      <ScrollView
+                      <TourScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.composerChipRow}
@@ -749,7 +750,7 @@ export default function AdminDiaryViewerScreen() {
                             onPress={() => chooseFormClassGrade(item.class_id)}
                           />
                         ))}
-                      </ScrollView>
+                      </TourScrollView>
                     </View>
                   </View>
 
@@ -759,7 +760,7 @@ export default function AdminDiaryViewerScreen() {
                         2. Section{formSections.length === 1 ? ' · auto-selected' : ''}
                       </Text>
                       <View style={[styles.chipTrack, { backgroundColor: trackBg, borderColor: fieldBorder }]}>
-                        <ScrollView
+                        <TourScrollView
                           horizontal
                           showsHorizontalScrollIndicator={false}
                           contentContainerStyle={styles.composerChipRow}
@@ -774,7 +775,7 @@ export default function AdminDiaryViewerScreen() {
                               onPress={() => chooseFormSection(item.class_section_id)}
                             />
                           ))}
-                        </ScrollView>
+                        </TourScrollView>
                       </View>
                     </View>
                   ) : (
@@ -828,7 +829,7 @@ export default function AdminDiaryViewerScreen() {
                     </Text>
                   ) : (
                     <View style={[styles.chipTrack, { backgroundColor: trackBg, borderColor: fieldBorder }]}>
-                      <ScrollView
+                      <TourScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.composerChipRow}
@@ -843,7 +844,7 @@ export default function AdminDiaryViewerScreen() {
                             onPress={() => setFormSubjectId(subject.id)}
                           />
                         ))}
-                      </ScrollView>
+                      </TourScrollView>
                     </View>
                   )}
                 </>
@@ -899,7 +900,7 @@ export default function AdminDiaryViewerScreen() {
                   }}
                 />
               ) : null}
-            </ScrollView>
+            </TourScrollView>
 
             <View style={[styles.sheetActions, { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.25)' }]}>
               <PressScale onPress={closeComposer} disabled={saving}>

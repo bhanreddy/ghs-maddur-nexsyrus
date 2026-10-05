@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -126,7 +127,7 @@ export default function GatekeeperWalkInScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-walkin.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -134,9 +135,9 @@ export default function GatekeeperWalkInScreen() {
           <Text style={[styles.headerTitle, { color: textColor }]}>Walk-In Registration</Text>
           <Text style={[styles.headerSub, { color: subColor }]}>Spot Entry & Snapshot</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TourTarget id="screen.gatekeeper-walkin.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Snapshot Photo Box */}
         <TouchableOpacity style={styles.photoBox} onPress={takeSnapshot}>
           {photoUri ? (
@@ -172,7 +173,7 @@ export default function GatekeeperWalkInScreen() {
 
           {/* Visitor Category Chips */}
           <Text style={[styles.label, { color: subColor }]}>CATEGORY</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
             {VISITOR_TYPES.map((t) => {
               const isSelected = visitorType === t;
               return (
@@ -193,11 +194,11 @@ export default function GatekeeperWalkInScreen() {
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </TourScrollView>
 
           {/* Destination Department */}
           <Text style={[styles.label, { color: subColor }]}>DESTINATION / MEETING WITH</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
             {DEPARTMENTS.map((d) => {
               const isSelected = department === d;
               return (
@@ -218,7 +219,7 @@ export default function GatekeeperWalkInScreen() {
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </TourScrollView>
 
           <Text style={[styles.label, { color: subColor }]}>PURPOSE OF VISIT *</Text>
           <TextInput
@@ -284,7 +285,7 @@ export default function GatekeeperWalkInScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </SafeAreaView>
   );
 }

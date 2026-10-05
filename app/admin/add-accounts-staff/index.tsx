@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
@@ -139,9 +140,9 @@ export default function AccountsPortalStaffScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      <AdminHeader title="Accounts Portal Access" showBackButton />
+      <TourTarget id="screen.admin-add-accounts-staff.overview"><AdminHeader title="Accounts Portal Access" showBackButton /></TourTarget>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <TourScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(400)} style={styles.introCard}>
           <View style={styles.introTop}>
             <View style={styles.infoIconBox}>
@@ -193,7 +194,7 @@ export default function AccountsPortalStaffScreen() {
           </View>
         </Animated.View>
 
-        <View style={[styles.searchBar, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <TourTarget id="screen.admin-add-accounts-staff.workspace" native><View style={[styles.searchBar, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
           <AppTextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
@@ -202,7 +203,7 @@ export default function AccountsPortalStaffScreen() {
             value={search}
             onChangeText={setSearch}
           />
-        </View>
+        </View></TourTarget>
 
         <Animated.View
           entering={FadeInDown.delay(100).duration(450)}
@@ -269,7 +270,7 @@ export default function AccountsPortalStaffScreen() {
           <Ionicons name="person-add-outline" size={18} color="#fff" />
           <Text style={styles.createBtnText}>Create New Accounts Staff</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </TourScrollView>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -513,10 +514,10 @@ export default function TransportFeesScreen() {
 
   /* ------------------------------------------------------------------ */
   return (
-    <View style={[st.root, { backgroundColor: theme.colors.background }]}>
+    <TourTarget id="screen.accounts-transport-fees.overview" native><View style={[st.root, { backgroundColor: theme.colors.background }]}>
       {!shellActive && <AdminHeader title="Transport Fees" showBackButton />}
 
-      <View style={[st.contentWrap, isWide && st.contentWrapWide]}>
+      <TourTarget id="screen.accounts-transport-fees.workspace" native><View style={[st.contentWrap, isWide && st.contentWrapWide]}>
         <View style={{ width: '100%', maxWidth: contentMaxW, alignSelf: 'center' }}>{renderStickyHeader()}</View>
 
         {loading ? (
@@ -669,7 +670,7 @@ export default function TransportFeesScreen() {
                         )
                       )}
                     </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterRow}>
+                    <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterRow}>
                       <Pressable
                         style={[st.filterChip, !classFilter && st.filterActive]}
                         onPress={() => setClassFilter('')}
@@ -685,7 +686,7 @@ export default function TransportFeesScreen() {
                           <Text style={[st.filterText, classFilter === c.id && st.filterTextActive]}>{c.name}</Text>
                         </Pressable>
                       ))}
-                    </ScrollView>
+                    </TourScrollView>
                   </View>
                 </View>
               }
@@ -753,7 +754,7 @@ export default function TransportFeesScreen() {
               )}
             />
         )}
-      </View>
+      </View></TourTarget>
 
       {/* Fee modal */}
       <Modal visible={!!feeModal} transparent animationType="slide">
@@ -811,7 +812,7 @@ export default function TransportFeesScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={st.sheetKv}>
             <Pressable style={st.sheet} onPress={() => {}}>
               <View style={st.sheetHandle} />
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <TourScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={st.sheetHeader}>
                 <LinearGradient colors={[C.ok, '#10B981']} style={st.sheetIconBg}>
                   <Ionicons name="cash" size={20} color="#fff" />
@@ -867,12 +868,12 @@ export default function TransportFeesScreen() {
                   <Text style={st.primaryBtnText}>Collect & generate receipt</Text>
                 )}
               </Pressable>
-              </ScrollView>
+              </TourScrollView>
             </Pressable>
           </KeyboardAvoidingView>
         </Pressable>
       </Modal>
-    </View>
+    </View></TourTarget>
   );
 }
 

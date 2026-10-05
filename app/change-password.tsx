@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { alertCompat } from '../src/utils/crossPlatformAlert';
@@ -87,7 +88,7 @@ export default function ChangePasswordScreen() {
     };
 
     return (
-        <KeyboardAvoidingView
+        <TourTarget id="screen.change-password.overview" style={{ flex: 1 }}><KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
@@ -99,7 +100,7 @@ export default function ChangePasswordScreen() {
                 <View style={{ width: 40 }} />
             </Animated.View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <TourTarget id="screen.change-password.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.infoCard}>
                     <View style={styles.infoIconContainer}>
                         <Ionicons name="shield-checkmark" size={24} color="#6366F1" />
@@ -181,8 +182,8 @@ export default function ChangePasswordScreen() {
                         icon={<Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />}
                     />
                 </Animated.View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+            </TourScrollView></TourTarget>
+        </KeyboardAvoidingView></TourTarget>
     );
 }
 

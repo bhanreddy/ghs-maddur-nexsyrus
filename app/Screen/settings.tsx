@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Switch, Linking } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -65,13 +66,13 @@ export default function Settings() {
         <View style={styles.container}>
             <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
 
-            <StudentHeader
+            <TourTarget id="screen.screen-settings.overview"><StudentHeader
                 title={t('settings.title', 'Settings')}
                 showBackButton={true}
                 showSettingsButton={false}
-            />
+            /></TourTarget>
 
-            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <TourTarget id="screen.screen-settings.workspace" native><TourScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
                 {/* ── Profile card ── */}
                 <Animated.View entering={FadeInDown.delay(80).duration(600)} style={styles.profileCard}>
@@ -270,7 +271,7 @@ export default function Settings() {
                     <View style={styles.footerDot} />
                 </Animated.View>
 
-            </ScrollView>
+            </TourScrollView></TourTarget>
 
             <AccountSwitcherSheet visible={switcherOpen} onClose={() => setSwitcherOpen(false)} />
         </View>

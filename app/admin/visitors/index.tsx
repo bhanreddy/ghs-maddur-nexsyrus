@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -140,7 +141,7 @@ export default function AdminVisitorsDashboardScreen() {
       {/* Top Header */}
       <View style={[styles.topHeader, { borderBottomColor: borderColor }]}>
         <View style={styles.titleCol}>
-          <Text style={[styles.pageTitle, { color: textColor }]}>Smart Campus Access & Visitors</Text>
+          <TourTarget id="screen.admin-visitors.overview" native><Text style={[styles.pageTitle, { color: textColor }]}>Smart Campus Access & Visitors</Text></TourTarget>
           <Text style={[styles.pageSub, { color: subColor }]}>Perimeter Security & Gate Operations Control</Text>
         </View>
         <TouchableOpacity style={styles.settingsBtn} onPress={() => nav('/admin/visitors/settings')}>
@@ -149,8 +150,8 @@ export default function AdminVisitorsDashboardScreen() {
       </View>
 
       {/* Admin Module Sub-Nav Bar */}
-      <View style={[styles.navTabsWrap, { backgroundColor: cardBg, borderColor }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navTabsScroll}>
+      <TourTarget id="screen.admin-visitors.workspace" native><View style={[styles.navTabsWrap, { backgroundColor: cardBg, borderColor }]}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navTabsScroll}>
           <TouchableOpacity style={[styles.navTab, styles.navTabActive]}>
             <Ionicons name="analytics" size={15} color="#10B981" />
             <Text style={[styles.navTabText, { color: '#10B981' }]}>Overview</Text>
@@ -198,10 +199,10 @@ export default function AdminVisitorsDashboardScreen() {
             <Ionicons name="git-branch-outline" size={15} color={subColor} />
             <Text style={[styles.navTabText, { color: textColor }]}>Rules</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
+        </TourScrollView>
+      </View></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
@@ -392,7 +393,7 @@ export default function AdminVisitorsDashboardScreen() {
             )}
           </View>
         </View>
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaView>
   );
 }

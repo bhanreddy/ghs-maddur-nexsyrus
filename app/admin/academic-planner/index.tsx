@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
@@ -42,8 +43,8 @@ export default function AcademicCommandCenter() {
 
   return (
     <View style={styles.root}>
-      <AdminHeader title="Academic Command Center" showBackButton />
-      <ScrollView
+      <TourTarget id="screen.admin-academic-planner.overview"><AdminHeader title="Academic Command Center" showBackButton /></TourTarget>
+      <TourTarget id="screen.admin-academic-planner.workspace" native><TourScrollView
         contentContainerStyle={styles.body}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
       >
@@ -78,7 +79,7 @@ export default function AcademicCommandCenter() {
             </View>
           </View>
         ))}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

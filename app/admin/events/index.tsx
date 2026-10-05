@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -109,7 +110,7 @@ export default function AdminEventsDashboardScreen() {
               <Text style={styles.heroMiniText}>PAPERLESS OPS</Text>
             </LinearGradient>
           </View>
-          <Text style={[styles.pageTitle, { color: textCol }]}>Event Operations Hub</Text>
+          <TourTarget id="screen.admin-events.overview" native><Text style={[styles.pageTitle, { color: textCol }]}>Event Operations Hub</Text></TourTarget>
           <Text style={[styles.pageSub, { color: subCol }]}>
             End-to-end planning, consent, QR passes, transport & results
           </Text>
@@ -135,8 +136,8 @@ export default function AdminEventsDashboardScreen() {
       </View>
 
       {/* Tabs */}
-      <View style={[styles.navTabsWrap, { borderBottomColor: borderCol }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navTabsScroll}>
+      <TourTarget id="screen.admin-events.workspace" native><View style={[styles.navTabsWrap, { borderBottomColor: borderCol }]}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navTabsScroll}>
           {[
             { key: 'ALL', label: 'All Events', icon: 'apps-outline' },
             { key: 'UPCOMING', label: 'Upcoming', icon: 'calendar-outline' },
@@ -167,10 +168,10 @@ export default function AdminEventsDashboardScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
-      </View>
+        </TourScrollView>
+      </View></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366F1" />}
       >
@@ -371,7 +372,7 @@ export default function AdminEventsDashboardScreen() {
             );
           })
         )}
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaView>
   );
 }

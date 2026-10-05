@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -122,7 +123,7 @@ export default function AdminVisitorApprovalsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.admin-visitors-approvals.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -130,10 +131,10 @@ export default function AdminVisitorApprovalsScreen() {
           <Text style={[styles.title, { color: textColor }]}>Visitor Approvals</Text>
           <Text style={[styles.subTitle, { color: subColor }]}>Pre-registration Requests</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
       {/* Filter Chips */}
-      <View style={styles.filterRow}>
+      <TourTarget id="screen.admin-visitors-approvals.workspace" native><View style={styles.filterRow}>
         {STATUS_FILTERS.map((f) => {
           const isSelected = statusFilter === f;
           return (
@@ -159,7 +160,7 @@ export default function AdminVisitorApprovalsScreen() {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </View></TourTarget>
 
       {/* Search Input */}
       <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor }]}>

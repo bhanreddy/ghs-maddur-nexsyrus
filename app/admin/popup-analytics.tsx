@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View } from 'react-native';
 import AdminHeader from '../../src/components/AdminHeader';
@@ -7,9 +8,9 @@ import PopupAnalyticsScreen from '../../src/features/popups/admin/PopupAnalytics
 export default function AdminPopupAnalyticsRoute() {
   const { theme } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <AdminHeader title="Popup Analytics" showBackButton />
+    <TourTarget id="screen.admin-popup-analytics.workspace" native><View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <TourTarget id="screen.admin-popup-analytics.overview"><AdminHeader title="Popup Analytics" showBackButton /></TourTarget>
       <PopupAnalyticsScreen />
-    </View>
+    </View></TourTarget>
   );
 }

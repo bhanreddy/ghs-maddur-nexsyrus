@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,11 +21,11 @@ export default function AdminVisitorHistoryScreen() {
   const sub = isDark ? '#94A3B8' : '#64748B';
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.admin-visitors-history.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Visitor History</Text>
-      </View>
-      <FlatList
+      </View></TourTarget>
+      <TourTarget id="screen.admin-visitors-history.workspace" native><FlatList
         data={rows}
         keyExtractor={(item, i) => `${item.id}-${i}`}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -35,7 +36,7 @@ export default function AdminVisitorHistoryScreen() {
             <Text style={{ color: sub }}>{item.approval_status} · {item.visit_date} · {item.purpose}</Text>
           </View>
         )}
-      />
+      /></TourTarget>
     </View>
   );
 }

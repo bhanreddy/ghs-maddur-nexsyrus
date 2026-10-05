@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -33,19 +34,19 @@ export default function VisitorSearchScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.gatekeeper-search.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
-        <TextInput
+        <TourTarget id="gatekeeper.visitor.search" native event="gatekeeper.visitor.search"><TextInput
           value={q}
           onChangeText={search}
           placeholder="Name, mobile, vehicle, purpose"
           placeholderTextColor={sub}
           style={[styles.input, { color: text, backgroundColor: card }]}
           autoFocus
-        />
-      </View>
+        /></TourTarget>
+      </View></TourTarget>
       {loading ? <ActivityIndicator color="#10B981" /> : null}
-      <FlatList
+      <TourTarget id="gatekeeper.visitor.results" style={{ flex: 1 }}><TourTarget id="screen.gatekeeper-search.workspace" native><FlatList
         data={rows}
         keyExtractor={(item, idx) => `${item.request_id || item.profile_id}-${idx}`}
         contentContainerStyle={{ padding: 16, gap: 10 }}
@@ -61,7 +62,7 @@ export default function VisitorSearchScreen() {
             ) : null}
           </View>
         )}
-      />
+      /></TourTarget></TourTarget>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -133,7 +134,7 @@ export default function GatekeeperPickupScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-pickup.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -147,22 +148,22 @@ export default function GatekeeperPickupScreen() {
         >
           <Ionicons name="qr-code-outline" size={20} color="#10B981" />
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TourTarget id="screen.gatekeeper-pickup.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Pass Code & OTP Input Box */}
         <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor }]}>
           <Text style={[styles.boxLabel, { color: subColor }]}>PICKUP PASS CODE (OR SCAN QR)</Text>
           <View style={styles.inputRow}>
-            <TextInput
+            <TourTarget id="gatekeeper.pickup.code" native><TextInput
               style={[styles.inputField, { color: textColor, borderColor }]}
               placeholder="e.g. PK-82A-91Z"
               placeholderTextColor={subColor}
               autoCapitalize="characters"
               value={passCode}
               onChangeText={setPassCode}
-            />
-            <TouchableOpacity
+            /></TourTarget>
+            <TourTarget id="gatekeeper.pickup.validate" native><TouchableOpacity
               style={styles.checkBtn}
               onPress={() => handleValidate()}
               disabled={validating || !passCode.trim()}
@@ -172,7 +173,7 @@ export default function GatekeeperPickupScreen() {
               ) : (
                 <Text style={styles.checkBtnText}>Verify</Text>
               )}
-            </TouchableOpacity>
+            </TouchableOpacity></TourTarget>
           </View>
 
           {/* OTP Input if required */}
@@ -330,7 +331,7 @@ export default function GatekeeperPickupScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </SafeAreaView>
   );
 }

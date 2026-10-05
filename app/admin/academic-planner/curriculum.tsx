@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import AdminHeader from '../../../src/components/AdminHeader';
@@ -46,8 +47,8 @@ export default function CurriculumBuilderScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: isDark ? '#0B1220' : '#F3F4F6' }]}>
-      <AdminHeader title="Curriculum Builder" showBackButton />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+      <TourTarget id="screen.admin-academic-planner-curriculum.overview"><AdminHeader title="Curriculum Builder" showBackButton /></TourTarget>
+      <TourTarget id="screen.admin-academic-planner-curriculum.workspace" native><TourScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
         <Text style={styles.h}>Create curriculum</Text>
         <TextInput placeholder="e.g. Class 7 Mathematics 2026–27" value={name} onChangeText={setName} style={styles.input} />
         <TouchableOpacity
@@ -113,7 +114,7 @@ export default function CurriculumBuilderScreen() {
             ))}
           </View>
         ) : null}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

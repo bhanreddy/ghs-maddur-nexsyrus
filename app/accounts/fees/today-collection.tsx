@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
@@ -1107,11 +1108,11 @@ export default function TodayCollectionScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-fees-today-collection.overview" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {!shellActive && <AdminHeader title="Today's Collection" showBackButton />}
 
-      <FlatList
+      <TourTarget id="screen.accounts-fees-today-collection.workspace" native><FlatList
         data={filteredRows}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
@@ -1131,8 +1132,8 @@ export default function TodayCollectionScreen() {
         maxToRenderPerBatch={10}
         windowSize={7}
         removeClippedSubviews={Platform.OS === 'android'}
-      />
-    </View>
+      /></TourTarget>
+    </View></TourTarget>
   );
 }
 

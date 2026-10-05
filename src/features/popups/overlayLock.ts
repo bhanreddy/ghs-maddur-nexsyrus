@@ -1,4 +1,4 @@
-type OverlayName = 'festival' | 'popup' | 'force-update';
+type OverlayName = 'festival' | 'popup' | 'force-update' | 'tour';
 
 let holder: OverlayName | null = null;
 const listeners = new Set<() => void>();

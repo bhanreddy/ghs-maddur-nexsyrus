@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -29,11 +30,11 @@ export default function ExpectedVisitorsScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.gatekeeper-expected.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Expected Today</Text>
-      </View>
-      <FlatList
+      </View></TourTarget>
+      <TourTarget id="screen.gatekeeper-expected.workspace" native><FlatList
         data={rows}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -52,7 +53,7 @@ export default function ExpectedVisitorsScreen() {
             <Text style={{ color: '#10B981', fontWeight: '700' }}>{item.start_time} – {item.end_time}</Text>
           </TouchableOpacity>
         )}
-      />
+      /></TourTarget>
     </View>
   );
 }

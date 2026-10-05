@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import {
@@ -629,7 +630,7 @@ export default function AdminExams() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.admin-exams.overview" native><TourTarget id="screen.admin-exams.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {!shellActive && (
         <AdminHeader
@@ -877,7 +878,7 @@ export default function AdminExams() {
           }}
         />
       )}
-    </View>
+    </View></TourTarget></TourTarget>
   );
 }
 

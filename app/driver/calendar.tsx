@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -85,9 +86,9 @@ export default function DriverCalendarScreen() {
   }, [events, selectedDate]);
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.driver-calendar.workspace" native><View style={styles.container}>
       {/* Driver Header */}
-      <View style={styles.header}>
+      <TourTarget id="screen.driver-calendar.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.text} />
         </TouchableOpacity>
@@ -95,7 +96,7 @@ export default function DriverCalendarScreen() {
           <Text style={styles.headerTitle}>Transport Calendar</Text>
           <Text style={styles.headerSub}>Bus trip schedule & school working days</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
       {/* Bus Schedule Banner for Selected Day */}
       {dayStatus && (
@@ -131,7 +132,7 @@ export default function DriverCalendarScreen() {
           <Text style={styles.loadingLabel}>Loading Transport Calendar...</Text>
         </View>
       ) : (
-        <ScrollView
+        <TourScrollView
           style={styles.scrollContent}
           contentContainerStyle={styles.scrollInner}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -166,7 +167,7 @@ export default function DriverCalendarScreen() {
             onSelectEvent={(ev) => setSelectedEvent(ev)}
             isAdmin={false}
           />
-        </ScrollView>
+        </TourScrollView>
       )}
 
       <EventDetailModal
@@ -175,7 +176,7 @@ export default function DriverCalendarScreen() {
         onClose={() => setSelectedEvent(null)}
         isAdmin={false}
       />
-    </View>
+    </View></TourTarget>
   );
 }
 

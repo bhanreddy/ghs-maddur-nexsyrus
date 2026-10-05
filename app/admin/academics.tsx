@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import AppDatePicker from '@/src/components/AppDatePicker';
@@ -613,7 +614,7 @@ export default function AcademicManagement() {
           <View style={styles.setupTrack}>
             <View style={[styles.setupFill, { width: `${(setupDoneCount / TABS.length) * 100}%` as any }]} />
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.setupSteps}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.setupSteps}>
             {setupSteps.map((step, i) => (
               <TouchableOpacity
                 key={step.key}
@@ -640,7 +641,7 @@ export default function AcademicManagement() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </TourScrollView>
           {nextIncomplete ? (
             <Text style={styles.setupHint}>Next up: {nextIncomplete.addLabel.toLowerCase()}</Text>
           ) : null}
@@ -656,7 +657,7 @@ export default function AcademicManagement() {
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentScroll}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentScroll}>
           {TABS.map((tab) => {
             const active = activeTab === tab.key;
             const count = counts[tab.key];
@@ -679,7 +680,7 @@ export default function AcademicManagement() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
       </View>
 
       {/* Panel toolbar */}
@@ -716,9 +717,9 @@ export default function AcademicManagement() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      <AdminHeader title="Academic Structure" showBackButton />
+      <TourTarget id="screen.admin-academics.overview"><AdminHeader title="Academic Structure" showBackButton /></TourTarget>
 
-      <View style={styles.content}>
+      <TourTarget id="screen.admin-academics.workspace" native><View style={styles.content}>
         {loading ? (
           <View style={styles.loadingWrap}>
             {ListHeader}
@@ -786,7 +787,7 @@ export default function AcademicManagement() {
             removeClippedSubviews
           />
         )}
-      </View>
+      </View></TourTarget>
 
       {/* Mobile FAB only — desktop uses toolbar button */}
       {!loading && listData.length > 0 && !isWide ? (

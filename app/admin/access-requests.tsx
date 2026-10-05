@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Switch, ActivityIndicator } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -262,8 +263,8 @@ export default function AccessRequestsScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            <AdminHeader title="Access Requests" showBackButton />
+        <TourTarget id="screen.admin-access-requests.workspace" native><View style={styles.container}>
+            <TourTarget id="screen.admin-access-requests.overview"><AdminHeader title="Access Requests" showBackButton /></TourTarget>
 
             <View style={styles.tabContainer}>
                 <TouchableOpacity
@@ -354,7 +355,7 @@ export default function AccessRequestsScreen() {
                     }
                 />
             )}
-        </View>
+        </View></TourTarget>
     );
 }
 

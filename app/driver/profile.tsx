@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -200,8 +201,8 @@ export default function DriverProfile() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1A" />
-      <StudentHeader title={t('driver_ui.my_profile')} menuUserType="driver" showBackButton={false} />
-      <ScrollView
+      <TourTarget id="screen.driver-profile.overview"><StudentHeader title={t('driver_ui.my_profile')} menuUserType="driver" showBackButton={false} /></TourTarget>
+      <TourTarget id="screen.driver-profile.workspace" native><TourScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
 
@@ -394,7 +395,7 @@ export default function DriverProfile() {
         <View style={{ height: 40 }} />
           </>
         }
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       <SettingsAccountSwitcherSheet visible={switcherOpen} onClose={closeSwitcher} />
     </View>);

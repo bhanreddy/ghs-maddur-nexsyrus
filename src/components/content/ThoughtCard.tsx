@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Speech from 'expo-speech';
+import { readAloudService } from '@/src/services/readAloudService';
 import * as Haptics from '@/src/utils/haptics';
 import { useTheme } from '@/src/hooks/useTheme';
 import { clayTokens } from '@/src/styles/clayTokens';
@@ -15,10 +15,13 @@ interface ThoughtCardProps {
 }
 
 export default function ThoughtCard({ thought, onLikeToggled, style }: ThoughtCardProps) {
-  const { isDark, theme } = useTheme();
+  const { isDark } = useTheme();
   const [isLiked, setIsLiked] = useState(Boolean(thought.is_liked));
   const [likeCount, setLikeCount] = useState(thought.like_count || 0);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioId = `thought:${thought.id}`;
+  const audio = useSyncExternalStore(readAloudService.subscribe, readAloudService.getSnapshot, readAloudService.getSnapshot);
+  const isPlayingAudio = audio.activeId === audioId && audio.status !== 'idle';
+  useEffect(() => () => { void readAloudService.stop(audioId); }, [audioId]);
 
   const quote = thought.quote || thought.title || '';
   const author = thought.author || 'Anonymous';
@@ -60,20 +63,7 @@ export default function ThoughtCard({ thought, onLikeToggled, style }: ThoughtCa
 
   const handleToggleAudio = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (isPlayingAudio) {
-      Speech.stop();
-      setIsPlayingAudio(false);
-    } else {
-      setIsPlayingAudio(true);
-      const textToRead = `${quote}. By ${author}.`;
-      Speech.speak(textToRead, {
-        rate: 0.9,
-        pitch: 1.0,
-        onDone: () => setIsPlayingAudio(false),
-        onStopped: () => setIsPlayingAudio(false),
-        onError: () => setIsPlayingAudio(false),
-      });
-    }
+    void readAloudService.toggle(audioId, [quote, author]);
   };
 
   const cardBg = isDark ? clayTokens.colors.card.dark : clayTokens.colors.daily.thoughtBg;

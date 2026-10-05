@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -116,7 +117,7 @@ export default function GatekeeperInsideRegisterScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-inside.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -132,10 +133,10 @@ export default function GatekeeperInsideRegisterScreen() {
         >
           <Ionicons name="qr-code-outline" size={20} color="#10B981" />
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
       {/* Search & Filter Bar */}
-      <View style={[styles.searchWrap, { backgroundColor: cardBg, borderColor }]}>
+      <TourTarget id="screen.gatekeeper-inside.workspace" native><View style={[styles.searchWrap, { backgroundColor: cardBg, borderColor }]}>
         <Ionicons name="search" size={18} color={subColor} />
         <TextInput
           style={[styles.searchInput, { color: textColor }]}
@@ -149,7 +150,7 @@ export default function GatekeeperInsideRegisterScreen() {
             <Ionicons name="close-circle" size={18} color={subColor} />
           </TouchableOpacity>
         ) : null}
-      </View>
+      </View></TourTarget>
 
       {/* Category Pills */}
       <View style={styles.categoryWrap}>

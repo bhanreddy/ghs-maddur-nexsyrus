@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -53,7 +54,7 @@ export default function WhyAdsScreen() {
     const styles = React.useMemo(() => getStyles(theme.colors), [theme]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <TourTarget id="screen.why-ads.overview" style={{ flex: 1 }}><SafeAreaView style={styles.container}>
             <Animated.View entering={FadeInUp.duration(400)} style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={20} color={theme.colors.textStrong} />
@@ -62,7 +63,7 @@ export default function WhyAdsScreen() {
                 <View style={{ width: 40 }} />
             </Animated.View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <TourTarget id="screen.why-ads.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Hero */}
                 <Animated.View entering={FadeInDown.delay(100).duration(600)} style={styles.heroBanner}>
@@ -126,8 +127,8 @@ export default function WhyAdsScreen() {
                     <Ionicons name="heart-outline" size={14} color={theme.colors.textSecondary} />
                     <Text style={styles.footerText}>Thank you for supporting accessible school management.</Text>
                 </Animated.View>
-            </ScrollView>
-        </SafeAreaView>
+            </TourScrollView></TourTarget>
+        </SafeAreaView></TourTarget>
     );
 }
 

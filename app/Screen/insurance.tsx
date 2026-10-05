@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -25,9 +26,9 @@ export default function InsuranceScreen() {
 
   return (
     <ScreenLayout>
-      <StudentHeader showBackButton={true} title="Insurance" />
+      <TourTarget id="screen.screen-insurance.overview"><StudentHeader showBackButton={true} title="Insurance" /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.screen-insurance.workspace" native><TourScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
       >
@@ -188,7 +189,7 @@ export default function InsuranceScreen() {
             * This insurance policy is subject to terms & conditions. Coverage is applicable during school hours and school-sanctioned activities only. NexSyrus Pvt. Ltd. reserves the right to verify all claims before processing.
           </Text>
         </Animated.View>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </ScreenLayout>
   );
 }

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -185,15 +186,15 @@ export default function UdiseReadinessScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader
+      <TourTarget id="screen.admin-udise-readiness.overview"><AdminHeader
         title="UDISE+ Readiness Center"
         rightAction={{
           icon: 'cloud-download-outline',
           onPress: handleExport,
         }}
-      />
+      /></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -355,7 +356,7 @@ export default function UdiseReadinessScreen() {
           </View>
 
           {/* Search and Filters */}
-          <View style={styles.filterRow}>
+          <TourTarget id="screen.admin-udise-readiness.workspace" native><View style={styles.filterRow}>
             <View style={styles.searchBox}>
               <Ionicons name="search" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} />
               <TextInput
@@ -367,7 +368,7 @@ export default function UdiseReadinessScreen() {
               />
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+            <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
               <TouchableOpacity
                 style={[styles.filterChip, statusFilter === null && styles.filterChipActive]}
                 onPress={() => setStatusFilter(null)}
@@ -398,8 +399,8 @@ export default function UdiseReadinessScreen() {
               >
                 <Text style={[styles.filterChipText, statusFilter === 'ready' && styles.filterChipTextActive]}>Ready</Text>
               </TouchableOpacity>
-            </ScrollView>
-          </View>
+            </TourScrollView>
+          </View></TourTarget>
 
           {/* Student Cards */}
           <View style={styles.studentGrid}>
@@ -476,7 +477,7 @@ export default function UdiseReadinessScreen() {
             )}
           </View>
         </View>
-      </ScrollView>
+      </TourScrollView>
     </View>
   );
 }

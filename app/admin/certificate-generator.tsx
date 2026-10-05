@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -4003,12 +4004,12 @@ export default function CertificateGenerator() {
   };
 
   return (
-    <View style={styles.root}>
+    <TourTarget id="screen.admin-certificate-generator.overview" native><View style={styles.root}>
       <LinearGradient colors={isDark ? ['#0F1117', '#0F1117'] : ['#F0F4FF', '#F8FAFC']} style={StyleSheet.absoluteFill} />
       {!shellActive && <AdminHeader title="Certificate Generator" showBackButton />}
       <StepIndicator step={step} isDark={isDark} />
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <TourScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* ── Step 1: Search ── */}
         <Animated.View entering={FadeInDown.duration(400)} style={styles.card}>
@@ -4017,7 +4018,7 @@ export default function CertificateGenerator() {
             <Text style={styles.cardTitle}>Find Student</Text>
           </View>
           <Text style={styles.cardSub}>Enter student ID, admission number, or name</Text>
-          <View style={[styles.searchRow, ds.searchBarWrapper, focused && styles.searchRowFocused]}>
+          <TourTarget id="screen.admin-certificate-generator.workspace" native><View style={[styles.searchRow, ds.searchBarWrapper, focused && styles.searchRowFocused]}>
             <Ionicons name="search-outline" size={18} color={focused ? '#4F46E5' : (isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF')} />
             <AppTextInput
               style={[ds.inputInChrome, styles.searchInput]}
@@ -4035,7 +4036,7 @@ export default function CertificateGenerator() {
                 <Ionicons name="close-circle" size={17} color={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'} />
               </TouchableOpacity>
             )}
-          </View>
+          </View></TourTarget>
           <TouchableOpacity style={[styles.searchBtn, loading && styles.searchBtnDisabled]} onPress={handleSearch} disabled={loading} activeOpacity={0.88}>
             {loading ? (
               <View style={styles.searchBtnGrad}><LogoLoader size={24} color="#FFF" /></View>
@@ -4194,7 +4195,7 @@ export default function CertificateGenerator() {
         />
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </TourScrollView>
 
       {/* ── Edit Modal ── */}
       {studentData && (
@@ -4234,7 +4235,7 @@ export default function CertificateGenerator() {
           onWithdraw={handleWithdrawStudent}
         />
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 

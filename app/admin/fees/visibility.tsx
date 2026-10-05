@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, Pressable,
@@ -428,9 +429,9 @@ export default function AccountsDashboardVisibilityScreen() {
                 barStyle={isDark ? 'light-content' : 'dark-content'}
                 backgroundColor={stylesThemed.screenBg}
             />
-            <AdminHeader title="Accounts Visibility" showBackButton={true} />
+            <TourTarget id="screen.admin-fees-visibility.overview"><AdminHeader title="Accounts Visibility" showBackButton={true} /></TourTarget>
 
-            <ScrollView
+            <TourTarget id="screen.admin-fees-visibility.workspace" native><TourScrollView
                 contentContainerStyle={[
                     styles.scroll,
                     { paddingBottom: 108 + insets.bottom },
@@ -614,7 +615,7 @@ export default function AccountsDashboardVisibilityScreen() {
                         </Animated.View>
                     );
                 })}
-            </ScrollView>
+            </TourScrollView></TourTarget>
 
             {/* Sticky save bar — thumb zone */}
             <View

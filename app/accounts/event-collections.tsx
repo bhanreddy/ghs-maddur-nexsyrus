@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,20 +28,20 @@ export default function AccountsEventCollectionsScreen() {
   const subCol = isDark ? '#9CA3AF' : '#64748B';
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
-      <Text style={[styles.title, { color: textCol }]}>Event collections</Text>
+    <TourTarget id="screen.accounts-event-collections.workspace" style={{ flex: 1 }}><SafeAreaView style={[styles.root, { backgroundColor: bg }]} edges={['top']}>
+      <TourTarget id="screen.accounts-event-collections.overview" native><Text style={[styles.title, { color: textCol }]}>Event collections</Text></TourTarget>
       <Text style={[styles.sub, { color: subCol }]}>Fee, waiver and expense records stay on the event ledger — not tuition.</Text>
       {loading ? <ActivityIndicator color="#4F46E5" /> : (
-        <ScrollView>
+        <TourScrollView>
           {events.map((ev) => (
             <View key={ev.id} style={styles.card}>
               <Text style={[styles.cardTitle, { color: textCol }]}>{ev.title}</Text>
               <Text style={{ color: subCol }}>{ev.status} • {ev.start_date}</Text>
             </View>
           ))}
-        </ScrollView>
+        </TourScrollView>
       )}
-    </SafeAreaView>
+    </SafeAreaView></TourTarget>
   );
 }
 

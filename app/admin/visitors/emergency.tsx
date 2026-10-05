@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,10 +22,10 @@ export default function AdminEmergencyScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.admin-visitors-emergency.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Emergency Register</Text>
-      </View>
+      </View></TourTarget>
       {!data?.isActive ? (
         <TouchableOpacity
           style={styles.activate}
@@ -43,7 +44,7 @@ export default function AdminEmergencyScreen() {
           <Text style={{ color: '#fff', fontWeight: '800' }}>Resolve emergency</Text>
         </TouchableOpacity>
       )}
-      <FlatList
+      <TourTarget id="screen.admin-visitors-emergency.workspace" native><FlatList
         data={data?.muster || []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 16, gap: 8 }}
@@ -53,7 +54,7 @@ export default function AdminEmergencyScreen() {
             <Text style={{ color: sub }}>{item.person_type} · {item.status} · {item.gate_entered}</Text>
           </View>
         )}
-      />
+      /></TourTarget>
     </View>
   );
 }

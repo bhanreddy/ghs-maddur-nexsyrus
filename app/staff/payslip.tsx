@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -122,9 +123,9 @@ export default function PaySlip() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <StaffHeader title="My Pay Slips" showBackButton={true} />
+      <TourTarget id="screen.staff-payslip.overview"><StaffHeader title="My Pay Slips" showBackButton={true} /></TourTarget>
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TourTarget id="screen.staff-payslip.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {!configLoading && !payslipsEnabled ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="eye-off-outline" size={40} color="#94A3B8" />
@@ -235,7 +236,7 @@ export default function PaySlip() {
         )}
         </>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

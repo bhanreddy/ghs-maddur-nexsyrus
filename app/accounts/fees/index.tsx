@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -1063,7 +1064,7 @@ function StudentFiltersPanel({
         </View>
       </View>
 
-      <View style={filterPanelStyles.chipCloud}>
+      <TourTarget id="accounts.fees.filters" native><View style={filterPanelStyles.chipCloud}>
         <Pressable
           style={[filterPanelStyles.chip, webCursor, classChip(!selectedClassId)]}
           onPress={() => onSelectClass(null)}
@@ -1088,7 +1089,7 @@ function StudentFiltersPanel({
             </Pressable>
           );
         })}
-      </View>
+      </View></TourTarget>
 
       {expanded ? (
         <Animated.View entering={FadeIn.duration(220)} style={filterPanelStyles.refineBox}>
@@ -1827,19 +1828,19 @@ export default function AccountsFees() {
     : structuresLoading;
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-fees.workspace" native><View style={styles.container}>
       <StatusBar
         barStyle="light-content"
         backgroundColor={isDark ? '#0F1117' : '#1E293B'}
       />
       {!shellActive && <AdminHeader title="Fee Management" showBackButton />}
 
-      <WorkspaceHeader
+      <TourTarget id="screen.accounts-fees.overview"><WorkspaceHeader
         stats={summaryStats}
         isDark={isDark}
         wide={wide}
         onDueSlips={openDueSlips}
-      />
+      /></TourTarget>
 
       {activeView !== 'Fee Recovery' && (
         <Animated.View
@@ -1852,7 +1853,7 @@ export default function AccountsFees() {
               size={18}
               color={searchFocused ? BRAND : (isDark ? 'rgba(255,255,255,0.45)' : '#64748B')}
             />
-            <AppTextInput
+            <TourTarget id="accounts.fees.search" native event="accounts.fees.search"><AppTextInput
               ref={searchRef}
               style={[ds.inputInChrome, styles.searchInput]}
               placeholder={activeView === 'Students'
@@ -1866,7 +1867,7 @@ export default function AccountsFees() {
               returnKeyType="search"
               onSubmitEditing={handleSearchSubmit}
               blurOnSubmit={false}
-            />
+            /></TourTarget>
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={handleClearSearch} hitSlop={8} style={webCursor}>
                 <Ionicons name="close-circle" size={18} color={isDark ? 'rgba(255,255,255,0.4)' : '#64748B'} />
@@ -2002,7 +2003,7 @@ export default function AccountsFees() {
           maxToRenderPerBatch={10}
         />
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 

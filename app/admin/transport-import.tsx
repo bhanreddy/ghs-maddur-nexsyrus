@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -164,7 +165,7 @@ export default function TransportImportScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F3F4F6" />
-      <AdminHeader title="Bulk Stop Assignment" showBackButton />
+      <TourTarget id="screen.admin-transport-import.overview"><AdminHeader title="Bulk Stop Assignment" showBackButton /></TourTarget>
 
       {loading ? (
         <View style={styles.loadingBanner}>
@@ -175,7 +176,7 @@ export default function TransportImportScreen() {
         </View>
       ) : null}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <TourTarget id="screen.admin-transport-import.workspace" native><TourScrollView contentContainerStyle={styles.content}>
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>Excel format</Text>
           <Text style={styles.infoText}>
@@ -272,7 +273,7 @@ export default function TransportImportScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

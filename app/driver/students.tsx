@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -136,9 +137,9 @@ export default function DriverStudents() {
   return (
     <ScreenLayout>
       <StatusBar barStyle="light-content" />
-      <StudentHeader title={t('driver_ui.passenger_roster')} menuUserType="driver" showBackButton={false} />
+      <TourTarget id="screen.driver-students.overview"><StudentHeader title={t('driver_ui.passenger_roster')} menuUserType="driver" showBackButton={false} /></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.driver-students.workspace" native><FlatList
         data={currentRoute?.stops || []}
         keyExtractor={(item) => item.stop_id}
         contentContainerStyle={s.scroll}
@@ -321,7 +322,7 @@ export default function DriverStudents() {
           </View>
         }
         ListFooterComponent={<View style={{ height: 100 }} />}
-      />
+      /></TourTarget>
 
       <Modal
         visible={callContacts.length > 0}

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -398,7 +399,7 @@ export default function AccountsExpenses() {
   }
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-expenses.overview" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#0A0F1E' : '#F1F5F9'} />
       {!shellActive && <AdminHeader title="Expense Tracker" showBackButton />}
 
@@ -487,7 +488,7 @@ export default function AccountsExpenses() {
         title="New Expense"
         subtitle="Record a school expenditure"
       >
-        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <TourTarget id="screen.accounts-expenses.workspace" native><TourScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <FormInput label="Title" value={newTitle} onChange={setNewTitle} placeholder="e.g. Lab Equipment" isDark={isDark} required />
 
           {/* Amount with ₹ prefix */}
@@ -525,7 +526,7 @@ export default function AccountsExpenses() {
               }
             </LinearGradient>
           </Pressable>
-        </ScrollView>
+        </TourScrollView></TourTarget>
       </BottomSheet>
 
       <BulkExpenseSheet
@@ -577,7 +578,7 @@ export default function AccountsExpenses() {
         )}
       </BottomSheet>
 
-    </View>
+    </View></TourTarget>
   );
 }
 

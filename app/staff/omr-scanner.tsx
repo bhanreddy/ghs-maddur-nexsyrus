@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
@@ -280,7 +281,7 @@ export default function StaffOmrScannerScreen() {
   }
 
   return (
-    <View style={styles.root}>
+    <TourTarget id="screen.staff-omr-scanner.overview" native><TourTarget id="screen.staff-omr-scanner.workspace" native><View style={styles.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Live Camera Feed */}
@@ -400,7 +401,7 @@ export default function StaffOmrScannerScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalHeaderTitle}>Select OMR exam</Text>
-            <ScrollView style={{ maxHeight: 320, marginTop: 12 }}>
+            <TourScrollView style={{ maxHeight: 320, marginTop: 12 }}>
               {exams.map((exam) => (
                 <TouchableOpacity
                   key={exam.id}
@@ -416,7 +417,7 @@ export default function StaffOmrScannerScreen() {
               {exams.length === 0 && (
                 <Text style={styles.permissionSub}>No OMR exams are configured yet.</Text>
               )}
-            </ScrollView>
+            </TourScrollView>
             <TouchableOpacity style={styles.nextSheetBtn} onPress={() => setShowExamPicker(false)}>
               <Text style={styles.nextSheetBtnText}>Close</Text>
             </TouchableOpacity>
@@ -528,7 +529,7 @@ export default function StaffOmrScannerScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </View></TourTarget></TourTarget>
   );
 }
 

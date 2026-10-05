@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,7 +9,7 @@ import {
   Image,
   StatusBar,
   Linking,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from 'react-native';
 import AppTextInput from '../../src/components/AppTextInput';
@@ -21,11 +22,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   interpolate,
   Extrapolate,
-  withSequence,
-  withRepeat,
   ZoomIn,
 } from 'react-native-reanimated';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -37,8 +35,6 @@ import { usePermissions } from '../../src/hooks/usePermissions';
 import { useAuth } from '../../src/hooks/useAuth';
 import { setStaffPortalSession } from '../../src/services/staffPortalSession';
 import { endStaffPortalAccess } from '../../src/services/staffPortalExit';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface StaffMember {
   id: string;
@@ -60,6 +56,16 @@ const STATUS_CONFIG: Record<string, {
   darkBg: string;
   lightBg: string;
 }> = {
+  Active: {
+    gradient: ['#34D399', '#059669'], dot: '#10B981',
+    darkText: '#6EE7B7', lightText: '#047857',
+    darkBg: 'rgba(16,185,129,0.14)', lightBg: '#ECFDF5',
+  },
+  Inactive: {
+    gradient: ['#CBD5E1', '#94A3B8'], dot: '#94A3B8',
+    darkText: '#CBD5E1', lightText: '#64748B',
+    darkBg: 'rgba(148,163,184,0.14)', lightBg: '#F1F5F9',
+  },
   Present: {
     gradient: ['#00C48C', '#00875A'],
     dot: '#00C48C',
@@ -86,40 +92,9 @@ const STATUS_CONFIG: Record<string, {
   },
 };
 
-// ─── Pulsing Status Dot ───────────────────────────────────────────────────────
-function PulsingDot({ color }: { color: string }) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(0.6);
-
-  useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(withTiming(1.7, { duration: 900 }), withTiming(1, { duration: 900 })),
-      -1, false
-    );
-    opacity.value = withRepeat(
-      withSequence(withTiming(0, { duration: 900 }), withTiming(0.6, { duration: 900 })),
-      -1, false
-    );
-  }, []);
-
-  const ringStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <View style={{ width: 10, height: 10, marginRight: 6, alignItems: 'center', justifyContent: 'center' }}>
-      <Animated.View
-        style={[{ position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: color }, ringStyle]}
-      />
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
-    </View>
-  );
-}
-
 // ─── Staff Card ───────────────────────────────────────────────────────────────
 function StaffCard({
-  item, index, isDark, cardBg, cardBorder, avatarBg, onCall, onDelete, onOpenPortal, onEdit, canEdit,
+  item, index, isDark, cardBg, cardBorder, avatarBg, cardWidth, onCall, onDelete, onOpenPortal, onWriteDiary, onEdit, canEdit,
 }: {
   item: StaffMember;
   index: number;
@@ -127,114 +102,85 @@ function StaffCard({
   cardBg: string;
   cardBorder: string;
   avatarBg: string;
+  cardWidth: number;
   onCall: () => void;
   onDelete: () => void;
   onOpenPortal: () => void;
+  onWriteDiary: () => void;
   onEdit?: () => void;
   canEdit?: boolean;
 }) {
-  const pressScale = useSharedValue(1);
-  const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.Absent;
-  const pillBg = isDark ? cfg.darkBg : cfg.lightBg;
-  const statusClr = isDark ? cfg.darkText : cfg.lightText;
-
-  const cardAnim = useAnimatedStyle(() => ({
-    transform: [{ scale: pressScale.value }],
-  }));
+  const statusKey = Object.keys(STATUS_CONFIG).find((key) => key.toLowerCase() === item.status.toLowerCase());
+  const cfg = STATUS_CONFIG[statusKey || 'Inactive'];
+  const mutedColor = isDark ? '#94A3B8' : '#64748B';
+  const actionBg = isDark ? '#202B3D' : '#F1F5F9';
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 60).duration(500).springify()}
-      style={cardAnim}
+      entering={FadeInDown.delay(Math.min(index, 8) * 40).duration(350)}
+      style={[styles.card, { width: cardWidth, backgroundColor: cardBg, borderColor: cardBorder }]}
     >
       <TouchableOpacity
-        activeOpacity={0.9}
-        onPressIn={() => { pressScale.value = withSpring(0.975, { damping: 18 }); }}
-        onPressOut={() => { pressScale.value = withSpring(1, { damping: 18 }); }}
+        activeOpacity={0.75}
         onPress={onOpenPortal}
-        style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}
+        style={styles.cardHeader}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${item.display_name}'s staff portal`}
       >
-        {isDark && <View style={styles.cardShimmer} />}
-
-        {/* Avatar */}
         <View style={styles.avatarWrapper}>
-          <LinearGradient
-            colors={cfg.gradient}
-            style={styles.avatarRing}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Image
-              source={{ uri: item.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }}
-              style={[
-                styles.avatar,
-                { backgroundColor: avatarBg, borderColor: isDark ? '#0C0D14' : '#FFFFFF' },
-              ]}
-            />
+          <LinearGradient colors={cfg.gradient} style={styles.avatarRing}>
+            {item.photo_url ? (
+              <Image source={{ uri: item.photo_url }} style={[styles.avatar, { backgroundColor: avatarBg, borderColor: cardBg }]} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: avatarBg, borderColor: cardBg }]}>
+                <Text style={[styles.avatarInitials, { color: isDark ? '#C4B5FD' : '#6D28D9' }]}>
+                  {item.display_name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'S'}
+                </Text>
+              </View>
+            )}
           </LinearGradient>
-          <View style={[styles.onlineRing, { backgroundColor: isDark ? '#0C0D14' : '#F3F4F8' }]}>
-            <View style={[styles.onlineDot, { backgroundColor: cfg.dot }]} />
-          </View>
         </View>
-
-        {/* Info */}
         <View style={styles.info}>
-          <Text
-            style={[styles.name, { color: isDark ? '#FFFFFF' : '#111827' }]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.name, { color: isDark ? '#F8FAFC' : '#0F172A' }]} numberOfLines={1}>
             {item.display_name}
           </Text>
-          <Text
-            style={[styles.role, { color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.45)' }]}
-            numberOfLines={1}
-          >
-            {item.designation}
-          </Text>
-          <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
-            <PulsingDot color={cfg.dot} />
-            <Text style={[styles.statusText, { color: statusClr }]}>{item.status}</Text>
+          <Text style={[styles.role, { color: mutedColor }]} numberOfLines={1}>{item.designation}</Text>
+          <View style={[styles.statusPill, { backgroundColor: isDark ? cfg.darkBg : cfg.lightBg }]}>
+            <View style={[styles.statusDot, { backgroundColor: cfg.dot }]} />
+            <Text style={[styles.statusText, { color: isDark ? cfg.darkText : cfg.lightText }]}>{item.status}</Text>
           </View>
         </View>
+        <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+      </TouchableOpacity>
 
-        {/* Action buttons */}
+      <View style={[styles.cardFooter, { borderTopColor: cardBorder }]}>
+        <TouchableOpacity
+          onPress={onWriteDiary}
+          activeOpacity={0.8}
+          style={[styles.diaryBtn, { backgroundColor: isDark ? '#312E81' : '#EEF2FF' }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Write diary for ${item.display_name}`}
+        >
+          <Ionicons name="create-outline" size={17} color={isDark ? '#C7D2FE' : '#4F46E5'} />
+          <Text style={[styles.diaryBtnText, { color: isDark ? '#C7D2FE' : '#4F46E5' }]}>Write diary</Text>
+        </TouchableOpacity>
         <View style={styles.actions}>
           {canEdit && onEdit ? (
-            <TouchableOpacity onPress={onEdit} style={styles.actionBtn} activeOpacity={0.8}>
-              <LinearGradient
-                colors={['#3B82F6', '#1D4ED8']}
-                style={styles.actionGrad}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name="pencil" size={15} color="#fff" />
-              </LinearGradient>
+            <TouchableOpacity onPress={onEdit} style={[styles.actionBtn, { backgroundColor: actionBg }]} activeOpacity={0.75}
+              accessibilityRole="button" accessibilityLabel={`Edit ${item.display_name}'s profile`}>
+              <Ionicons name="pencil-outline" size={17} color={mutedColor} />
             </TouchableOpacity>
           ) : null}
-
-          <TouchableOpacity onPress={onCall} style={styles.actionBtn} activeOpacity={0.8}>
-            <LinearGradient
-              colors={['#7C6FFF', '#5A4FE0']}
-              style={styles.actionGrad}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Ionicons name="call" size={15} color="#fff" />
-            </LinearGradient>
+          <TouchableOpacity onPress={onCall} style={[styles.actionBtn, { backgroundColor: actionBg }]} activeOpacity={0.75}
+            accessibilityRole="button" accessibilityLabel={`Call ${item.display_name}`}>
+            <Ionicons name="call-outline" size={17} color={mutedColor} />
           </TouchableOpacity>
-
-          <TouchableOpacity onPress={onDelete} style={styles.actionBtn} activeOpacity={0.8}>
-            <LinearGradient
-              colors={['#FF4D6A', '#C0203B']}
-              style={styles.actionGrad}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Ionicons name="trash" size={15} color="#fff" />
-            </LinearGradient>
+          <TouchableOpacity onPress={onDelete} style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(244,63,94,0.12)' : '#FFF1F2' }]} activeOpacity={0.75}
+            accessibilityRole="button" accessibilityLabel={`Remove ${item.display_name}`}>
+            <Ionicons name="trash-outline" size={17} color={isDark ? '#FDA4AF' : '#E11D48'} />
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 }
@@ -279,7 +225,12 @@ function StatsBar({ staffList, isDark }: { staffList: StaffMember[]; isDark: boo
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ManageStaff() {
-  const { theme, isDark } = useTheme();
+  const { isDark } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const [listWidth, setListWidth] = useState(windowWidth);
+  const contentWidth = Math.min(listWidth, 1440);
+  const numColumns = contentWidth >= 1120 ? 3 : contentWidth >= 720 ? 2 : 1;
+  const cardWidth = Math.max(0, (contentWidth - 40 - 14 * (numColumns - 1)) / numColumns);
   const router = useRouter();
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
@@ -362,7 +313,7 @@ export default function ManageStaff() {
     );
   };
 
-  const handleOpenPortal = async (item: StaffMember) => {
+  const handleOpenPortal = async (item: StaffMember, pathname: '/staff/dashboard' | '/staff/diary' = '/staff/dashboard') => {
     try {
       const staff = await StaffService.getById(item.id);
       if (!staff.user_id || staff.account_status !== 'active') {
@@ -375,7 +326,7 @@ export default function ManageStaff() {
       const actorUserId = user?.userId;
       setStaffPortalSession(item.id, item.display_name, staff.user_id, actorUserId);
       router.push({
-        pathname: '/staff/dashboard',
+        pathname,
         params: {
           staffId: item.id,
           viewAsName: item.display_name,
@@ -442,7 +393,7 @@ export default function ManageStaff() {
       <View style={[styles.orb2, { backgroundColor: orb2Color }]} />
 
       {/* Header — AdminHeader uses its own theme context internally */}
-      <AdminHeader title="Manage Staff" showBackButton />
+      <TourTarget id="screen.admin-manage-staff.overview"><AdminHeader title="Manage Staff" showBackButton /></TourTarget>
 
       {canManageStaff && (
         <Animated.View entering={FadeInDown.duration(350)} style={styles.addRow}>
@@ -479,7 +430,7 @@ export default function ManageStaff() {
       </Animated.View>
 
       {/* Search */}
-      <Animated.View
+      <TourTarget id="screen.admin-manage-staff.workspace"><Animated.View
         entering={FadeInDown.delay(150).duration(400)}
         style={[
           styles.searchWrapper,
@@ -512,7 +463,7 @@ export default function ManageStaff() {
             </TouchableOpacity>
           )}
         </LinearGradient>
-      </Animated.View>
+      </Animated.View></TourTarget>
 
       {/* Count */}
       {!loading && (
@@ -534,6 +485,10 @@ export default function ManageStaff() {
         </View>
       ) : (
         <FlatList
+          key={`staff-columns-${numColumns}`}
+          numColumns={numColumns}
+          columnWrapperStyle={numColumns > 1 ? styles.cardRow : undefined}
+          onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}
           data={filteredStaff}
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => (
@@ -544,9 +499,11 @@ export default function ManageStaff() {
               cardBg={cardBg}
               cardBorder={cardBorder}
               avatarBg={avatarBg}
+              cardWidth={cardWidth}
               onCall={() => handleCall(item.phone, item.display_name)}
               onDelete={() => handleDelete(item.id, item.display_name)}
               onOpenPortal={() => handleOpenPortal(item)}
+              onWriteDiary={() => handleOpenPortal(item, '/staff/diary')}
               canEdit={hasPermission('staff.edit')}
               onEdit={() => router.push({ pathname: '/admin/addStaff', params: { id: item.id } } as any)}
             />
@@ -628,44 +585,26 @@ const styles = StyleSheet.create({
   countText: { fontSize: 12, fontWeight: '600' },
   countSub: { fontSize: 12, fontWeight: '600', color: '#7C6FFF' },
 
-  listContent: { paddingHorizontal: 20, paddingBottom: 40 },
-
-  card: {
-    flexDirection: 'row', alignItems: 'center',
-    borderRadius: 18, padding: 14, marginBottom: 10,
-    borderWidth: 1, overflow: 'hidden',
-  },
-  cardShimmer: {
-    position: 'absolute', top: 0, left: 24, right: 24, height: 1,
-    backgroundColor: 'rgba(255,255,255,0.13)', borderRadius: 1,
-  },
-
-  avatarWrapper: { position: 'relative', marginRight: 14 },
-  avatarRing: {
-    width: 56, height: 56, borderRadius: 28, padding: 2,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatar: { width: 50, height: 50, borderRadius: 25, borderWidth: 2 },
-  onlineRing: {
-    position: 'absolute', bottom: 1, right: 1,
-    width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: 'transparent',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  onlineDot: { width: 7, height: 7, borderRadius: 3.5 },
-
-  info: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2, marginBottom: 2 },
-  role: { fontSize: 12, fontWeight: '500', marginBottom: 7, letterSpacing: 0.2 },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 9, paddingVertical: 4,
-    borderRadius: 8, alignSelf: 'flex-start',
-  },
-  statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-
-  actions: { flexDirection: 'column', gap: 8, marginLeft: 10 },
-  actionBtn: { borderRadius: 12, overflow: 'hidden', shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 4 },
-  actionGrad: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
+  listContent: { width: '100%', maxWidth: 1440, alignSelf: 'center', paddingHorizontal: 20, paddingBottom: 40 },
+  cardRow: { gap: 14 },
+  card: { borderRadius: 20, padding: 16, marginBottom: 14, borderWidth: 1, overflow: 'hidden' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatarWrapper: { alignSelf: 'flex-start' },
+  avatarRing: { width: 58, height: 58, borderRadius: 20, padding: 2, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 54, height: 54, borderRadius: 18, borderWidth: 2 },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarInitials: { fontSize: 18, fontWeight: '700' },
+  info: { flex: 1, minWidth: 0 },
+  name: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3, marginBottom: 3 },
+  role: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7, alignSelf: 'flex-start' },
+  statusDot: { width: 5, height: 5, borderRadius: 3 },
+  statusText: { fontSize: 10, fontWeight: '700' },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16, paddingTop: 12, borderTopWidth: 1 },
+  diaryBtn: { flex: 1, minWidth: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, height: 40, borderRadius: 11 },
+  diaryBtnText: { fontSize: 12, fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: 6 },
+  actionBtn: { width: 38, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
 
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
   loadingText: { fontSize: 14, fontWeight: '500', letterSpacing: 0.5 },

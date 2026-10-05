@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -71,8 +72,8 @@ export default function DriverPayslip() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1A" />
-      <StudentHeader title={t('driver_ui.my_payslips')} menuUserType="driver" showBackButton={false} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TourTarget id="screen.driver-payslip.overview"><StudentHeader title={t('driver_ui.my_payslips')} menuUserType="driver" showBackButton={false} /></TourTarget>
+      <TourTarget id="screen.driver-payslip.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {!configLoading && !payslipsEnabled ? (
           <View style={styles.emptyBox}>
             <Ionicons name="eye-off-outline" size={36} color="#CBD5E1" />
@@ -207,7 +208,7 @@ export default function DriverPayslip() {
         <View style={{ height: 100 }} />
         </>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>);
 
 }

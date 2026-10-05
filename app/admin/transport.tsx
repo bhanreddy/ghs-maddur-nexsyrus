@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -917,16 +918,16 @@ export default function AdminTransport() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F3F4F6" />
-      <AdminHeader
+      <TourTarget id="screen.admin-transport.overview"><AdminHeader
         title="Transport Management"
         showBackButton={true}
         rightAction={{
           icon: 'cloud-upload-outline',
           onPress: () => router.push('/admin/transport-import'),
         }}
-      />
+      /></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.admin-transport.workspace" native><FlatList
         data={listData as any[]}
         keyExtractor={(item: any) =>
           item.route_id && !item.bus_no && item.trip_id !== undefined
@@ -1221,7 +1222,7 @@ export default function AdminTransport() {
             </View>
           )
         }
-      />
+      /></TourTarget>
 
       <Modal visible={addOpen} transparent animationType="fade">
         <Pressable style={styles.modalBackdrop} onPress={() => !creating && setAddOpen(false)}>
@@ -1539,7 +1540,7 @@ export default function AdminTransport() {
                 ) : null}
               </View>
 
-              <ScrollView
+              <TourScrollView
                 style={styles.assignListScroll}
                 contentContainerStyle={styles.assignListContent}
                 keyboardShouldPersistTaps="handled"
@@ -1642,7 +1643,7 @@ export default function AdminTransport() {
                           </TouchableOpacity>
                         );
                       })}
-              </ScrollView>
+              </TourScrollView>
 
               <View style={styles.assignFooter}>
                 <TouchableOpacity

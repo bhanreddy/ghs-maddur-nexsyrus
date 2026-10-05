@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
@@ -124,7 +125,7 @@ export default function GatekeeperScannerScreen() {
   }
 
   return (
-    <View style={styles.root}>
+    <TourTarget id="screen.gatekeeper-scanner.overview" native><TourTarget id="screen.gatekeeper-scanner.workspace" native><View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
       {/* Live Camera View */}
@@ -229,7 +230,7 @@ export default function GatekeeperScannerScreen() {
           )}
         </View>
       </SafeAreaView>
-    </View>
+    </View></TourTarget></TourTarget>
   );
 }
 

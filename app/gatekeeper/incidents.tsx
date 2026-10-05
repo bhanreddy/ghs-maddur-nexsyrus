@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -120,7 +121,7 @@ export default function GatekeeperIncidentsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-incidents.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -128,10 +129,10 @@ export default function GatekeeperIncidentsScreen() {
           <Text style={[styles.headerTitle, { color: textColor }]}>Security Incidents</Text>
           <Text style={[styles.headerSub, { color: subColor }]}>Breach & Alert Reporting</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
       {/* Tabs */}
-      <View style={[styles.tabBar, { backgroundColor: cardBg, borderColor }]}>
+      <TourTarget id="screen.gatekeeper-incidents.workspace" native><View style={[styles.tabBar, { backgroundColor: cardBg, borderColor }]}>
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'report' && styles.tabItemActive]}
           onPress={() => setActiveTab('report')}
@@ -148,9 +149,9 @@ export default function GatekeeperIncidentsScreen() {
             Incident Log ({incidents.length})
           </Text>
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -190,7 +191,7 @@ export default function GatekeeperIncidentsScreen() {
 
             {/* Incident Type */}
             <Text style={[styles.label, { color: subColor }]}>INCIDENT TYPE</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
+            <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
               {INCIDENT_TYPES.map((t) => {
                 const isSelected = incidentType === t;
                 return (
@@ -211,7 +212,7 @@ export default function GatekeeperIncidentsScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </TourScrollView>
 
             <Text style={[styles.label, { color: subColor }]}>INCIDENT TITLE *</Text>
             <TextInput
@@ -360,7 +361,7 @@ export default function GatekeeperIncidentsScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaView>
   );
 }

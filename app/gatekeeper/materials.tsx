@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -111,7 +112,7 @@ export default function GatekeeperMaterialsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-materials.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -122,9 +123,9 @@ export default function GatekeeperMaterialsScreen() {
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.gatekeeper-materials.workspace" native><FlatList
         data={passes}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -210,7 +211,7 @@ export default function GatekeeperMaterialsScreen() {
             </View>
           );
         }}
-      />
+      /></TourTarget>
 
       {/* New Pass Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -223,7 +224,7 @@ export default function GatekeeperMaterialsScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <TourScrollView contentContainerStyle={styles.modalScroll}>
               {/* Movement Type Toggle */}
               <Text style={[styles.label, { color: subColor }]}>MOVEMENT DIRECTION</Text>
               <View style={styles.toggleRow}>
@@ -338,7 +339,7 @@ export default function GatekeeperMaterialsScreen() {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </SafeAreaView>
         </View>
       </Modal>

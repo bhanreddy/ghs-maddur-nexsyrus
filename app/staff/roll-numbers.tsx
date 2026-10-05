@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -154,8 +155,8 @@ export default function RollNumbersScreen() {
 
   return (
     <View style={[styles.page, { backgroundColor: palette.page }]}>
-      <StaffHeader title="Roll Numbers" subtitle="Set your class order" />
-      <ScrollView
+      <TourTarget id="screen.staff-roll-numbers.overview"><StaffHeader title="Roll Numbers" subtitle="Set your class order" /></TourTarget>
+      <TourTarget id="screen.staff-roll-numbers.workspace" native><TourScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: compact ? 16 : 28 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={PRIMARY} />}
@@ -277,7 +278,7 @@ export default function RollNumbersScreen() {
             <Text style={[styles.footnote, { color: palette.muted }]}>Saving changes the roll number everywhere it is used, including attendance, results, student profiles, and hall tickets when enabled.</Text>
           </>
         ) : null}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -129,19 +130,17 @@ function staffLabel(s: Staff): string {
 }
 
 /**
- * Web-only in-app search for the admin portal.
+ * In-app search for the admin portal on web and mobile.
  * Mount once under the admin layout; open via header or Cmd/Ctrl+K.
  */
 export function AdminAppSearchProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const openSearch = useCallback(() => {
-    if (!isWeb) return;
     setOpen(true);
   }, []);
   const closeSearch = useCallback(() => setOpen(false), []);
   const toggleSearch = useCallback(() => {
-    if (!isWeb) return;
     setOpen((v) => !v);
   }, []);
 
@@ -174,7 +173,7 @@ export function AdminAppSearchProvider({ children }: { children: React.ReactNode
   return (
     <AdminAppSearchContext.Provider value={value}>
       {children}
-      {isWeb ? <AdminAppSearchModal /> : null}
+      <AdminAppSearchModal />
     </AdminAppSearchContext.Provider>
   );
 }
@@ -360,7 +359,7 @@ function AdminAppSearchModal() {
   const soft = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(102,89,144,0.06)';
   const activeBg = isDark ? 'rgba(102,89,144,0.28)' : 'rgba(102,89,144,0.12)';
   const accent = ADMIN_THEME.colors.primary;
-  const panelWidth = Math.min(560, Math.max(320, windowWidth - 48));
+  const panelWidth = Math.min(560, Math.max(0, windowWidth - 32));
 
   const showEmptyState = !query.trim();
   const showNoResults = !!query.trim() && !liveLoading && hits.length === 0;
@@ -381,7 +380,11 @@ function AdminAppSearchModal() {
         <Animated.View entering={FadeIn.duration(120)} style={StyleSheet.absoluteFill} />
       </Pressable>
 
-      <View style={styles.centerWrap} pointerEvents="box-none">
+      <KeyboardAvoidingView
+        style={styles.centerWrap}
+        behavior={isWeb ? undefined : Platform.OS === 'ios' ? 'padding' : 'height'}
+        pointerEvents="box-none"
+      >
         <Animated.View
           entering={FadeInDown.duration(180).springify().damping(20)}
           style={[
@@ -417,11 +420,16 @@ function AdminAppSearchModal() {
               >
                 <Ionicons name="close-circle" size={18} color={muted} />
               </Pressable>
-            ) : (
+            ) : isWeb ? (
               <View style={[styles.kbdHint, { backgroundColor: soft, borderColor: border }]}>
                 <Text style={[styles.kbdText, { color: muted }]}>esc</Text>
               </View>
-            )}
+            ) : null}
+            {!isWeb ? (
+              <Pressable onPress={closeSearch} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close search">
+                <Ionicons name="close" size={20} color={muted} />
+              </Pressable>
+            ) : null}
           </View>
 
           <ScrollView
@@ -587,13 +595,17 @@ function AdminAppSearchModal() {
 
           <View style={[styles.footer, { borderTopColor: border }]}>
             <Text style={[styles.footerText, { color: muted }]}>
-              <Text style={styles.footerKbd}>↑↓</Text> navigate{'  '}
-              <Text style={styles.footerKbd}>↵</Text> open{'  '}
-              <Text style={styles.footerKbd}>{modKey}K</Text> toggle
+              {isWeb ? (
+                <>
+                  <Text style={styles.footerKbd}>↑↓</Text> navigate{'  '}
+                  <Text style={styles.footerKbd}>↵</Text> open{'  '}
+                  <Text style={styles.footerKbd}>{modKey}K</Text> toggle
+                </>
+              ) : 'Tap a result to open'}
             </Text>
           </View>
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -681,7 +693,7 @@ export function AdminAppSearchTrigger() {
   );
 }
 
-/** Icon-only search button for narrow web layouts. */
+/** Header search button for web and mobile. */
 export function AdminAppSearchIconButton({
   isDark,
   accent,
@@ -690,7 +702,7 @@ export function AdminAppSearchIconButton({
   accent: string;
 }) {
   const { enabled, openSearch } = useAdminAppSearch();
-  if (!isWeb || !enabled) return null;
+  if (!enabled) return null;
 
   return (
     <ClayIconButton
@@ -700,6 +712,7 @@ export function AdminAppSearchIconButton({
       }}
       isDark={isDark}
       accent={accent}
+      accessibilityLabel="Search the admin app"
       style={{ marginRight: 8 }}
     >
       <Ionicons name="search-outline" size={19} color={accent} />

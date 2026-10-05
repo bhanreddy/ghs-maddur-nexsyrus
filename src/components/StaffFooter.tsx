@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Pressable, StyleSheet, Dimensions, Text, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Pressable, StyleSheet, useWindowDimensions, Text, Platform, PixelRatio, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
     useAnimatedStyle,
@@ -12,29 +13,37 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/useTheme';
 import { useEffectiveStaffId } from '../hooks/useEffectiveStaffId';
 
-const { width } = Dimensions.get('window');
 
 /** Height of the floating pill tab bar (excludes bottom inset). */
 export const STAFF_TAB_BAR_HEIGHT = 64;
 
 /** Space to leave at the bottom so content/buttons clear the floating tab bar. */
 export function staffTabBarReserve(spacing: { xl: number; lg?: number }) {
-  return STAFF_TAB_BAR_HEIGHT + spacing.xl + (spacing.lg ?? 16) + 12;
+  return STAFF_TAB_BAR_HEIGHT + Math.max(0, PixelRatio.getFontScale() - 1) * 24 + spacing.xl + (spacing.lg ?? 16) + 12;
 }
 
 // Map route names to icons and labels
 const TAB_CONFIG: Record<string, { icon: string; iconFilled: string; label: string }> = {
     'dashboard': { icon: 'grid-outline', iconFilled: 'grid', label: 'Home' },
     'manage-students': { icon: 'people-outline', iconFilled: 'people', label: 'Attendance' },
-    'timetable': { icon: 'calendar-outline', iconFilled: 'calendar', label: 'Schedule' },
+    'timetable': { icon: 'calendar-outline', iconFilled: 'calendar', label: 'Timetable' },
     'results': { icon: 'school-outline', iconFilled: 'school', label: 'Results' },
 };
 
 // Define the desired order of tabs
 const ORDERED_TABS = ['dashboard', 'manage-students', 'timetable', 'results'];
 
-export default function StaffFooter({ state, descriptors, navigation }: any) {
+export default function StaffFooter({ state, navigation }: any) {
     const { theme, isDark } = useTheme();
+    const insets = useSafeAreaInsets();
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+    useEffect(() => {
+        const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+        const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+        return () => { show.remove(); hide.remove(); };
+    }, []);
+    const { width, fontScale } = useWindowDimensions();
+    const barHeight = STAFF_TAB_BAR_HEIGHT + Math.max(0, fontScale - 1) * 24;
     const { staffId, isViewingAsAdmin, viewAsName, userId: viewAsUserId, actorUserId } = useEffectiveStaffId();
 
     // Filter and sort routes to only show the main 4 tabs
@@ -46,7 +55,7 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
     const currentRouteName = state.routes[state.index].name;
     const activeIndex = visibleRoutes.findIndex((route: any) => route.name === currentRouteName);
 
-    // If the current route is not in the visible footer (e.g. profile), we might want to hide the indicator 
+    // If the current route is not in the visible footer (e.g. profile), we might want to hide the indicator
     // or just not render it. For now, we'll clamp it or handle it cleanly.
     // If activeIndex is -1, it means we are on a screen that isn't in the footer.
     // IMPORTANT: do NOT early-return here. StaffFooter is a single shared component
@@ -59,7 +68,7 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
 
     // Calculate tab width
     const totalTabs = visibleRoutes.length;
-    const tabWidth = (width - 40) / (totalTabs || 1); // Avoid div by zero
+    const tabWidth = Math.min(width - theme.spacing.xl * 2, 900) / (totalTabs || 1); // Avoid div by zero
 
     const indicatorPosition = useSharedValue(0);
 
@@ -70,7 +79,7 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
                 stiffness: 140,
             });
         }
-    }, [activeIndex, tabWidth]);
+    }, [activeIndex, tabWidth, indicatorPosition]);
 
     const indicatorStyle = useAnimatedStyle(() => {
         return {
@@ -83,7 +92,7 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
     const styles = useMemo(() => StyleSheet.create({
         container: {
             position: 'absolute',
-            bottom: theme.spacing.xl,
+            bottom: theme.spacing.xl + insets.bottom,
             left: theme.spacing.xl,
             right: theme.spacing.xl,
             alignItems: 'center',
@@ -91,7 +100,8 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
         barWrapper: {
             flexDirection: 'row',
             width: '100%',
-            height: STAFF_TAB_BAR_HEIGHT,
+            height: barHeight,
+            maxWidth: 900,
             borderRadius: theme.shape.borderRadiusFull,
             overflow: 'hidden',
             ...theme.shadows.md,
@@ -142,10 +152,10 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
             letterSpacing: 0.3,
             marginTop: 2,
         },
-    }), [theme]);
+    }), [theme, barHeight, insets.bottom]);
 
     // Safe to bail out now that every hook above has run unconditionally.
-    if (!isFooterVisible) return null;
+    if (!isFooterVisible || keyboardVisible) return null;
 
     return (
         <View style={styles.container}>
@@ -173,7 +183,6 @@ export default function StaffFooter({ state, descriptors, navigation }: any) {
                     </Animated.View>
 
                     {visibleRoutes.map((route: any) => {
-                        const { options } = descriptors[route.key];
                         const config = TAB_CONFIG[route.name] || { icon: 'ellipse', label: 'Tab' };
                         const isFocused = currentRouteName === route.name;
 

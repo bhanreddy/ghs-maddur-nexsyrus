@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, StyleSheet, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -51,17 +52,17 @@ export default function ContractorsScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.gatekeeper-contractors.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Contractors</Text>
-      </View>
+      </View></TourTarget>
       <View style={[styles.form, { backgroundColor: card }]}>
         <TextInput value={fullName} onChangeText={setFullName} placeholder="Technician name" placeholderTextColor={sub} style={[styles.input, { color: text }]} />
         <TextInput value={mobileNumber} onChangeText={setMobileNumber} placeholder="Mobile" placeholderTextColor={sub} keyboardType="phone-pad" style={[styles.input, { color: text }]} />
         <TextInput value={companyName} onChangeText={setCompanyName} placeholder="Company" placeholderTextColor={sub} style={[styles.input, { color: text }]} />
         <TouchableOpacity style={styles.cta} onPress={create}><Text style={styles.ctaText}>Issue 30-day pass</Text></TouchableOpacity>
       </View>
-      <FlatList
+      <TourTarget id="screen.gatekeeper-contractors.workspace" native><FlatList
         data={rows}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -73,7 +74,7 @@ export default function ContractorsScreen() {
             <Text style={{ color: sub }}>{item.valid_from} → {item.valid_until}</Text>
           </View>
         )}
-      />
+      /></TourTarget>
     </View>
   );
 }

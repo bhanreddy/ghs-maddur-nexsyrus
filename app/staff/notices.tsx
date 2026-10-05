@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 // OPT: Student notices — useStudentQuery for GET /notices + memoized row renderer (replaces useEffect + NoticeService direct fetch pattern).
 import React, { useMemo, useCallback, memo } from 'react'; // OPT: Data from hook; memo/useCallback for list perf.
 import { View, Text, StyleSheet, FlatList, Platform, Pressable } from 'react-native'; // OPT: Layout + list.
@@ -265,9 +266,9 @@ function AnnouncementsScreenInner() { // OPT: Wrapped by ErrorBoundary in defaul
 
 export default function AnnouncementsScreen() { // OPT: Root export wraps inner content with ErrorBoundary.
   return ( // OPT:
-    <ErrorBoundary> {/* OPT: Same boundary pattern as Screen/_layout */}
+    <TourTarget id="screen.staff-notices.overview" style={{ flex: 1 }}><TourTarget id="screen.staff-notices.workspace" style={{ flex: 1 }}><ErrorBoundary> {/* OPT: Same boundary pattern as Screen/_layout */}
       <AnnouncementsScreenInner /> {/* OPT: */}
-    </ErrorBoundary>
+    </ErrorBoundary></TourTarget></TourTarget>
   ); // OPT: boundary-wrapped export default
 }
 

@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -486,7 +487,7 @@ export default function FeeAdjustmentsScreen() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
       />
-      <AdminHeader title="Fee Adjustments" showBackButton />
+      <TourTarget id="screen.admin-fees-adjustments.overview"><AdminHeader title="Fee Adjustments" showBackButton /></TourTarget>
 
       <KeyboardAwareScreen
         variant="scroll"
@@ -553,12 +554,12 @@ export default function FeeAdjustmentsScreen() {
           </View>
 
           {/* Step 1: Search */}
-          <View style={styles.stepRow}>
+          <TourTarget id="screen.admin-fees-adjustments.workspace" native><View style={styles.stepRow}>
             <View style={styles.stepBadge}>
               <Text style={styles.stepBadgeText}>1</Text>
             </View>
             <Text style={styles.stepLabel}>Find student</Text>
-          </View>
+          </View></TourTarget>
 
           {!selectedStudent ? (
             <>

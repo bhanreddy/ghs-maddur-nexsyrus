@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -155,7 +156,7 @@ export default function GatekeeperDeliveriesScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-deliveries.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -171,9 +172,9 @@ export default function GatekeeperDeliveriesScreen() {
         >
           <Ionicons name="add" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.gatekeeper-deliveries.workspace" native><FlatList
         data={deliveries}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -270,7 +271,7 @@ export default function GatekeeperDeliveriesScreen() {
             </View>
           );
         }}
-      />
+      /></TourTarget>
 
       {/* Log Delivery Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -283,10 +284,10 @@ export default function GatekeeperDeliveriesScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <TourScrollView contentContainerStyle={styles.modalScroll}>
               {/* Courier Company */}
               <Text style={[styles.formLabel, { color: subColor }]}>COURIER / COMPANY</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.courierRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.courierRow}>
                 {COURIERS.map((c) => {
                   const isSelected = courierName === c;
                   return (
@@ -312,7 +313,7 @@ export default function GatekeeperDeliveriesScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </TourScrollView>
 
               <Text style={[styles.formLabel, { color: subColor }]}>RECIPIENT NAME *</Text>
               <TextInput
@@ -384,7 +385,7 @@ export default function GatekeeperDeliveriesScreen() {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </SafeAreaView>
         </View>
       </Modal>

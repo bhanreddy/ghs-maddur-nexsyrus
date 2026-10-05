@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React from 'react';
 import { ActivityIndicator, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -57,10 +58,10 @@ const ScienceProjectsScreen = () => {
   };
   return <ScreenLayout>
             {/* ===== HEADER ===== */}
-            <StudentHeader showBackButton={true} title="Science Projects" />
+            <TourTarget id="screen.screen-science-projects.overview"><StudentHeader showBackButton={true} title="Science Projects" /></TourTarget>
 
             {/* ===== CONTENT ===== */}
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+            <TourTarget id="screen.screen-science-projects.workspace" native><TourScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
                 {/* ===== TITLE ===== */}
                 <View style={styles.titleContainer}>
                     <Text style={styles.pageTitle}>Science Projects</Text>
@@ -120,7 +121,7 @@ const ScienceProjectsScreen = () => {
                     </Text>
                 </LinearGradient>
 
-            </ScrollView>
+            </TourScrollView></TourTarget>
         </ScreenLayout>;
 };
 export default ScienceProjectsScreen;

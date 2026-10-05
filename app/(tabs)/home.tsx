@@ -1,3 +1,5 @@
+import { AppTourQuickAction, TourTarget, TourScrollView } from '@/src/features/app-tour';
+import { TOUR_ENABLED } from '@/src/features/app-tour/catalog';
 /**
  * HomeScreen.tsx — Premium v7.3
  * ─────────────────────────────────────────────────────────
@@ -1286,9 +1288,9 @@ const HomeScreen = () => {
     <HomeSvgContext.Provider value={svgMod}>
       <ScreenLayout>
         <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor="transparent" translucent />
-        <StudentHeader scrollY={headerScrollY} />
+        <TourTarget id="screen.home.overview"><StudentHeader scrollY={headerScrollY} /></TourTarget>
 
-        <Animated.ScrollView
+        <TourTarget id="screen.home.workspace" native><TourScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[S.scroll, { backgroundColor: P.bg }]}
           refreshControl={
@@ -1342,7 +1344,7 @@ const HomeScreen = () => {
 
             {/* 1. Snapshot — HERO */}
             {isEnabled('home.todays_snapshot') && (
-              <Animated.View entering={FadeInUp.delay(160).duration(700).springify()}>
+              <TourTarget id="student.home.snapshot" native><Animated.View entering={FadeInUp.delay(160).duration(700).springify()}>
                 <SnapshotCard
                   pct={pct} attColor={attClr}
                   todayStatus={todaysStatus}
@@ -1351,7 +1353,7 @@ const HomeScreen = () => {
                     router.push('/Screen/attendance');
                   }}
                 />
-              </Animated.View>
+              </Animated.View></TourTarget>
             )}
 
 
@@ -1367,8 +1369,8 @@ const HomeScreen = () => {
               </Animated.View>
             )}
 
-            {/* 3. Quick Actions grid — hidden when every action is disabled */}
-            {visibleQuickActions.length > 0 && (
+            {/* 3. Quick Actions — App Tour follows the action cards. */}
+            {(visibleQuickActions.length > 0 || TOUR_ENABLED) && (
               <Animated.View entering={FadeInUp.delay(310).duration(700).springify()}>
                 <SectionLabel
                   text={t('dashboard.quick_actions')}
@@ -1390,12 +1392,13 @@ const HomeScreen = () => {
                     </Animated.View>
                   ))}
                 </View>
+                <AppTourQuickAction portal="student" />
               </Animated.View>
             )}
 
             {/* 4. Class Teacher / Academic Advisor */}
             {isEnabled('home.academic_advisor') && (
-              <Animated.View entering={FadeInUp.delay(460).duration(700).springify()}>
+              <TourTarget id="student.home.advisor" native><Animated.View entering={FadeInUp.delay(460).duration(700).springify()}>
                 <SectionLabel text={t('studentHome.academicAdvisor')} accent="#818CF8" />
                 <TeacherCard
                   name={student?.current_enrollment?.class_teacher || t('studentHome.notAssigned')}
@@ -1416,7 +1419,7 @@ const HomeScreen = () => {
                 <View style={{ marginTop: 12 }}>
                   <ParentAcademicCard studentId={student?.id} />
                 </View>
-              </Animated.View>
+              </Animated.View></TourTarget>
             )}
 
             {/* 5. Older notice */}
@@ -1430,7 +1433,7 @@ const HomeScreen = () => {
               </Animated.View>
             )}
           </View>
-        </Animated.ScrollView>
+        </TourScrollView></TourTarget>
       </ScreenLayout>
     </HomeSvgContext.Provider>
   );

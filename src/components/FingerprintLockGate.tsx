@@ -1,4 +1,5 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
+import { setTourBlocked } from '../features/app-tour/registry';
 import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +36,11 @@ export default function FingerprintLockGate() {
     fallbackToPassword,
   } =
     useAppFingerprintLock();
+
+  useEffect(() => {
+    setTourBlocked('fingerprint', isFingerprintPlatformSupported() && (status !== 'unlocked' || privacyCovered));
+    return () => setTourBlocked('fingerprint', false);
+  }, [status, privacyCovered]);
 
   if (
     !isFingerprintPlatformSupported() ||

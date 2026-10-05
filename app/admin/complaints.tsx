@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import PremiumButton from '@/src/components/PremiumButton';
@@ -572,10 +573,10 @@ export default function AdminComplaints() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      <AdminHeader title="Complaints Box" showBackButton={true} />
+      <TourTarget id="screen.admin-complaints.overview"><AdminHeader title="Complaints Box" showBackButton={true} /></TourTarget>
 
       {/* Search */}
-      <View style={[styles.searchContainer, searchFocused && styles.searchFocused]}>
+      <TourTarget id="screen.admin-complaints.workspace" native><View style={[styles.searchContainer, searchFocused && styles.searchFocused]}>
         <Ionicons
           name="search-outline"
           size={17}
@@ -596,7 +597,7 @@ export default function AdminComplaints() {
             <Ionicons name="close" size={12} color="#fff" />
           </TouchableOpacity>
         )}
-      </View>
+      </View></TourTarget>
 
       {/* Status overview — also acts as filters */}
       {!loading && complaints.length > 0 && (
@@ -766,7 +767,7 @@ export default function AdminComplaints() {
               </PressScale>
             </View>
 
-            <ScrollView
+            <TourScrollView
               style={styles.sheetScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.sheetScroll}
@@ -959,7 +960,7 @@ export default function AdminComplaints() {
                     ) : (
                       <>
                         <Text style={styles.classSectionLabel}>Class</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classChipRow}>
+                        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classChipRow}>
                           {classSections.map((section) => {
                             const active = selectedClassSectionId === section.id;
                             return (
@@ -972,7 +973,7 @@ export default function AdminComplaints() {
                               </PressScale>
                             );
                           })}
-                        </ScrollView>
+                        </TourScrollView>
 
                         <View style={styles.classHeaderRow}>
                           <Text style={styles.classMetaText}>
@@ -996,7 +997,7 @@ export default function AdminComplaints() {
                         ) : classStudents.length === 0 ? (
                           <Text style={styles.classEmptyText}>No students found in this class.</Text>
                         ) : (
-                          <ScrollView
+                          <TourScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             nestedScrollEnabled
@@ -1029,7 +1030,7 @@ export default function AdminComplaints() {
                                 </PressScale>
                               );
                             })}
-                          </ScrollView>
+                          </TourScrollView>
                         )}
 
                         {selectedStudentIds.length > 0 && (
@@ -1045,7 +1046,7 @@ export default function AdminComplaints() {
                   </View>
                 )}
               </View>
-            </ScrollView>
+            </TourScrollView>
 
             <View style={styles.stickyFooter}>
               {!canSubmit && attemptedSubmit && (

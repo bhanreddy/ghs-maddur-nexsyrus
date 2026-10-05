@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import AppDatePicker from '@/src/components/AppDatePicker';
@@ -448,8 +449,8 @@ export default function SetClassFeeScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader title="Set Class Fee" showBackButton />
-      <KeyboardAwareScreen variant="scroll" contentContainerStyle={styles.content} bottomOffset={24}>
+      <TourTarget id="screen.admin-fees-set-class-fee.overview"><AdminHeader title="Set Class Fee" showBackButton /></TourTarget>
+      <TourTarget id="screen.admin-fees-set-class-fee.workspace" style={{ flex: 1 }}><KeyboardAwareScreen variant="scroll" contentContainerStyle={styles.content} bottomOffset={24}>
         {/* Context: Academic Year */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
@@ -902,7 +903,7 @@ export default function SetClassFeeScreen() {
           </View>
 
           <Text style={styles.fieldLabel}>Filter by Class</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScrollContent}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipScrollContent}>
             <TouchableOpacity
               style={[styles.chip, !listClassFilter && styles.chipActive]}
               onPress={() => setListClassFilter('')}
@@ -920,7 +921,7 @@ export default function SetClassFeeScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </TourScrollView>
 
           {filteredConfiguredFees.length === 0 ? (
             <View style={styles.emptyList}>
@@ -969,7 +970,7 @@ export default function SetClassFeeScreen() {
             </View>
           )}
         </View>
-      </KeyboardAwareScreen>
+      </KeyboardAwareScreen></TourTarget>
     </View>
   );
 }

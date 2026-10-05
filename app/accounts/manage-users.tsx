@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -572,7 +573,7 @@ export default function ManageUsersScreen() {
       };
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-manage-users.overview" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       {!shellActive && (
         <AdminHeader
@@ -585,7 +586,7 @@ export default function ManageUsersScreen() {
 
       <View style={styles.pagePad}>
         {/* Segmented tabs */}
-        <View style={styles.tabs}>
+        <TourTarget id="screen.accounts-manage-users.workspace" native><View style={styles.tabs}>
           {(
             [
               { key: 'student' as const, label: 'Students', icon: 'school-outline' as const },
@@ -610,7 +611,7 @@ export default function ManageUsersScreen() {
               </Pressable>
             );
           })}
-        </View>
+        </View></TourTarget>
 
         {/* Search + primary action */}
         <View style={styles.toolbar}>
@@ -775,7 +776,7 @@ export default function ManageUsersScreen() {
           );
         }}
       />
-    </View>
+    </View></TourTarget>
   );
 }
 

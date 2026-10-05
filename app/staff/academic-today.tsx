@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -61,8 +62,8 @@ export default function AcademicTodayScreen() {
 
   return (
     <View style={styles.root}>
-      <StaffHeader title="Academic Today" showBackButton />
-      <ScrollView
+      <TourTarget id="screen.staff-academic-today.overview"><StaffHeader title="Academic Today" showBackButton /></TourTarget>
+      <TourTarget id="screen.staff-academic-today.workspace" native><TourScrollView
         contentContainerStyle={styles.body}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
       >
@@ -96,7 +97,7 @@ export default function AcademicTodayScreen() {
             ) : null}
           </>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

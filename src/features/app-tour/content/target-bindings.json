@@ -1,0 +1,1381 @@
+{
+  "/(tabs)/home": {
+    "source": "app/(tabs)/home.tsx",
+    "overview": "screen.home.overview",
+    "workspace": "screen.home.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/(tabs)/fees": {
+    "source": "app/(tabs)/fees.tsx",
+    "overview": "screen.fees.overview",
+    "workspace": "screen.fees.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/(tabs)/results": {
+    "source": "app/(tabs)/results.tsx",
+    "overview": "screen.results.overview",
+    "workspace": "screen.results.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/(tabs)/timetable": {
+    "source": "app/(tabs)/timetable.tsx",
+    "overview": "screen.timetable.overview",
+    "workspace": "screen.timetable.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/diary": {
+    "source": "app/Screen/diary.tsx",
+    "overview": "screen.screen-diary.overview",
+    "workspace": "screen.screen-diary.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TabSwitcher"
+  },
+  "/Screen/attendance": {
+    "source": "app/Screen/attendance.tsx",
+    "overview": "screen.screen-attendance.overview",
+    "workspace": "screen.screen-attendance.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "ErrorBoundary"
+  },
+  "/Screen/lms": {
+    "source": "app/Screen/lms.tsx",
+    "overview": "screen.screen-lms.overview",
+    "workspace": "screen.screen-lms.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "View"
+  },
+  "/Screen/announcements": {
+    "source": "app/Screen/announcements.tsx",
+    "overview": "screen.screen-announcements.overview",
+    "workspace": "screen.screen-announcements.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "ErrorBoundary"
+  },
+  "/Screen/messages": {
+    "source": "app/Screen/messages.tsx",
+    "overview": "screen.screen-messages.overview",
+    "workspace": "screen.screen-messages.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "ScreenLayout"
+  },
+  "/Screen/complaints": {
+    "source": "app/Screen/complaints.tsx",
+    "overview": "screen.screen-complaints.overview",
+    "workspace": "screen.screen-complaints.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "ErrorBoundary"
+  },
+  "/Screen/helpdesk": {
+    "source": "app/Screen/helpdesk.tsx",
+    "overview": "screen.screen-helpdesk.overview",
+    "workspace": "screen.screen-helpdesk.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "ScreenLayout"
+  },
+  "/Screen/calendar": {
+    "source": "app/Screen/calendar.tsx",
+    "overview": "screen.screen-calendar.overview",
+    "workspace": "screen.screen-calendar.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "View"
+  },
+  "/Screen/events": {
+    "source": "app/Screen/events.tsx",
+    "overview": "screen.screen-events.overview",
+    "workspace": "screen.screen-events.workspace",
+    "overviewControl": "StudentSubpageHeader",
+    "workspaceControl": "View"
+  },
+  "/Screen/schoolDaily": {
+    "source": "app/Screen/schoolDaily.tsx",
+    "overview": "screen.screen-school-daily.overview",
+    "workspace": "screen.screen-school-daily.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "View"
+  },
+  "/Screen/dcgd": {
+    "source": "app/Screen/dcgd.tsx",
+    "overview": "screen.screen-dcgd.overview",
+    "workspace": "screen.screen-dcgd.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/aiChat": {
+    "source": "app/Screen/aiChat.tsx",
+    "overview": "screen.screen-ai-chat.overview",
+    "workspace": "screen.screen-ai-chat.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "View"
+  },
+  "/Screen/insurance": {
+    "source": "app/Screen/insurance.tsx",
+    "overview": "screen.screen-insurance.overview",
+    "workspace": "screen.screen-insurance.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/moneyScience": {
+    "source": "app/Screen/moneyScience.tsx",
+    "overview": "screen.screen-money-science.overview",
+    "workspace": "screen.screen-money-science.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/lifeValues": {
+    "source": "app/Screen/lifeValues.tsx",
+    "overview": "screen.screen-life-values.overview",
+    "workspace": "screen.screen-life-values.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/scienceProjects": {
+    "source": "app/Screen/scienceProjects.tsx",
+    "overview": "screen.screen-science-projects.overview",
+    "workspace": "screen.screen-science-projects.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/examLinks": {
+    "source": "app/Screen/examLinks.tsx",
+    "overview": "screen.screen-exam-links.overview",
+    "workspace": "screen.screen-exam-links.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/weekendTest": {
+    "source": "app/Screen/weekendTest.tsx",
+    "overview": "screen.screen-weekend-test.overview",
+    "workspace": "screen.screen-weekend-test.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/studentProgress": {
+    "source": "app/Screen/studentProgress.tsx",
+    "overview": "screen.screen-student-progress.overview",
+    "workspace": "screen.screen-student-progress.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/busTracker": {
+    "source": "app/Screen/busTracker.tsx",
+    "overview": "screen.screen-bus-tracker.overview",
+    "workspace": "screen.screen-bus-tracker.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/hostel": {
+    "source": "app/Screen/hostel.tsx",
+    "overview": "screen.screen-hostel.overview",
+    "workspace": "screen.screen-hostel.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "ScreenLayout"
+  },
+  "/Screen/authorizedGuardians": {
+    "source": "app/Screen/authorizedGuardians.tsx",
+    "overview": "screen.screen-authorized-guardians.overview",
+    "workspace": "screen.screen-authorized-guardians.workspace",
+    "overviewControl": "StudentSubpageHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/studentPickup": {
+    "source": "app/Screen/studentPickup.tsx",
+    "overview": "screen.screen-student-pickup.overview",
+    "workspace": "screen.screen-student-pickup.workspace",
+    "overviewControl": "StudentSubpageHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/visitSchool": {
+    "source": "app/Screen/visitSchool.tsx",
+    "overview": "screen.screen-visit-school.overview",
+    "workspace": "screen.screen-visit-school.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "SafeAreaView"
+  },
+  "/Screen/profile": {
+    "source": "app/Screen/profile.tsx",
+    "overview": "screen.screen-profile.overview",
+    "workspace": "screen.screen-profile.workspace",
+    "overviewControl": "SafeAreaView",
+    "workspaceControl": "TourScrollView"
+  },
+  "/Screen/settings": {
+    "source": "app/Screen/settings.tsx",
+    "overview": "screen.screen-settings.overview",
+    "workspace": "screen.screen-settings.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/why-ads": {
+    "source": "app/why-ads.tsx",
+    "overview": "screen.why-ads.overview",
+    "workspace": "screen.why-ads.workspace",
+    "overviewControl": "SafeAreaView",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/dashboard": {
+    "source": "app/staff/dashboard.tsx",
+    "overview": "screen.staff-dashboard.overview",
+    "workspace": "screen.staff-dashboard.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/manage-students": {
+    "source": "app/staff/manage-students.tsx",
+    "overview": "screen.staff-manage-students.overview",
+    "workspace": "screen.staff-manage-students.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "GestureHandlerRootView"
+  },
+  "/staff/diary": {
+    "source": "app/staff/diary.tsx",
+    "overview": "screen.staff-diary.overview",
+    "workspace": "screen.staff-diary.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "DiaryHistoryTabSwitcher"
+  },
+  "/staff/timetable": {
+    "source": "app/staff/timetable.tsx",
+    "overview": "screen.staff-timetable.overview",
+    "workspace": "screen.staff-timetable.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "Animated.ScrollView"
+  },
+  "/staff/results": {
+    "source": "app/staff/results.tsx",
+    "overview": "screen.staff-results.overview",
+    "workspace": "screen.staff-results.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/academic-today": {
+    "source": "app/staff/academic-today.tsx",
+    "overview": "screen.staff-academic-today.overview",
+    "workspace": "screen.staff-academic-today.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/lms-upload": {
+    "source": "app/staff/lms-upload.tsx",
+    "overview": "screen.staff-lms-upload.overview",
+    "workspace": "screen.staff-lms-upload.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/staff/anecdotes": {
+    "source": "app/staff/anecdotes.tsx",
+    "overview": "screen.staff-anecdotes.overview",
+    "workspace": "screen.staff-anecdotes.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/student-portfolio": {
+    "source": "app/staff/student-portfolio.tsx",
+    "overview": "screen.staff-student-portfolio.overview",
+    "workspace": "screen.staff-student-portfolio.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/student-intelligence": {
+    "source": "app/staff/student-intelligence.tsx",
+    "overview": "screen.staff-student-intelligence.overview",
+    "workspace": "screen.staff-student-intelligence.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/roll-numbers": {
+    "source": "app/staff/roll-numbers.tsx",
+    "overview": "screen.staff-roll-numbers.overview",
+    "workspace": "screen.staff-roll-numbers.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/omr-scanner": {
+    "source": "app/staff/omr-scanner.tsx",
+    "overview": "screen.staff-omr-scanner.overview",
+    "workspace": "screen.staff-omr-scanner.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "View"
+  },
+  "/staff/omr-review": {
+    "source": "app/staff/omr-review.tsx",
+    "overview": "screen.staff-omr-review.overview",
+    "workspace": "screen.staff-omr-review.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/omr-answer-key": {
+    "source": "app/staff/omr-answer-key.tsx",
+    "overview": "screen.staff-omr-answer-key.overview",
+    "workspace": "screen.staff-omr-answer-key.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "OmrAnswerKeyScreen"
+  },
+  "/staff/progress-card-assistant": {
+    "source": "app/staff/progress-card-assistant.tsx",
+    "overview": "screen.staff-progress-card-assistant.overview",
+    "workspace": "screen.staff-progress-card-assistant.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/messages": {
+    "source": "app/staff/messages.tsx",
+    "overview": "screen.staff-messages.overview",
+    "workspace": "screen.staff-messages.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "MessengerScreen"
+  },
+  "/staff/notices": {
+    "source": "app/staff/notices.tsx",
+    "overview": "screen.staff-notices.overview",
+    "workspace": "screen.staff-notices.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "ErrorBoundary"
+  },
+  "/staff/updates": {
+    "source": "app/staff/updates.tsx",
+    "overview": "screen.staff-updates.overview",
+    "workspace": "screen.staff-updates.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "ScreenLayout"
+  },
+  "/staff/school-stories": {
+    "source": "app/staff/school-stories.tsx",
+    "overview": "screen.staff-school-stories.overview",
+    "workspace": "screen.staff-school-stories.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "ScreenLayout"
+  },
+  "/staff/calendar": {
+    "source": "app/staff/calendar.tsx",
+    "overview": "screen.staff-calendar.overview",
+    "workspace": "screen.staff-calendar.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/events": {
+    "source": "app/staff/events.tsx",
+    "overview": "screen.staff-events.overview",
+    "workspace": "screen.staff-events.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "SafeAreaView"
+  },
+  "/staff/admissions": {
+    "source": "app/staff/admissions.tsx",
+    "overview": "screen.staff-admissions.overview",
+    "workspace": "screen.staff-admissions.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "TourPageContent"
+  },
+  "/staff/complaints": {
+    "source": "app/staff/complaints.tsx",
+    "overview": "screen.staff-complaints.overview",
+    "workspace": "screen.staff-complaints.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/fine-request": {
+    "source": "app/staff/fine-request.tsx",
+    "overview": "screen.staff-fine-request.overview",
+    "workspace": "screen.staff-fine-request.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/attendance": {
+    "source": "app/staff/attendance.tsx",
+    "overview": "screen.staff-attendance.overview",
+    "workspace": "screen.staff-attendance.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "View"
+  },
+  "/staff/leaves": {
+    "source": "app/staff/leaves.tsx",
+    "overview": "screen.staff-leaves.overview",
+    "workspace": "screen.staff-leaves.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/staff/payslip": {
+    "source": "app/staff/payslip.tsx",
+    "overview": "screen.staff-payslip.overview",
+    "workspace": "screen.staff-payslip.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/profile": {
+    "source": "app/staff/profile.tsx",
+    "overview": "screen.staff-profile.overview",
+    "workspace": "screen.staff-profile.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/staff/settings": {
+    "source": "app/staff/settings.tsx",
+    "overview": "screen.staff-settings.overview",
+    "workspace": "screen.staff-settings.workspace",
+    "overviewControl": "StaffHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/dashboard": {
+    "source": "app/admin/dashboard.tsx",
+    "overview": "screen.admin-dashboard.overview",
+    "workspace": "screen.admin-dashboard.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/students": {
+    "source": "app/admin/students.tsx",
+    "overview": "screen.admin-students.overview",
+    "workspace": "screen.admin-students.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/addStudent": {
+    "source": "app/admin/addStudent.tsx",
+    "overview": "screen.admin-add-student.overview",
+    "workspace": "screen.admin-add-student.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/admin/bulk-student-update": {
+    "source": "app/admin/bulk-student-update.tsx",
+    "overview": "screen.admin-bulk-student-update.overview",
+    "workspace": "screen.admin-bulk-student-update.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/manage-staff": {
+    "source": "app/admin/manage-staff.tsx",
+    "overview": "screen.admin-manage-staff.overview",
+    "workspace": "screen.admin-manage-staff.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "Animated.View"
+  },
+  "/admin/addStaff": {
+    "source": "app/admin/addStaff.tsx",
+    "overview": "screen.admin-add-staff.overview",
+    "workspace": "screen.admin-add-staff.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "TourPageContent"
+  },
+  "/admin/add-accounts-staff": {
+    "source": "app/admin/add-accounts-staff/index.tsx",
+    "overview": "screen.admin-add-accounts-staff.overview",
+    "workspace": "screen.admin-add-accounts-staff.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/academics": {
+    "source": "app/admin/academics.tsx",
+    "overview": "screen.admin-academics.overview",
+    "workspace": "screen.admin-academics.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/academic-planner": {
+    "source": "app/admin/academic-planner/index.tsx",
+    "overview": "screen.admin-academic-planner.overview",
+    "workspace": "screen.admin-academic-planner.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/academic-planner/curriculum": {
+    "source": "app/admin/academic-planner/curriculum.tsx",
+    "overview": "screen.admin-academic-planner-curriculum.overview",
+    "workspace": "screen.admin-academic-planner-curriculum.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/academic-planner/plans": {
+    "source": "app/admin/academic-planner/plans.tsx",
+    "overview": "screen.admin-academic-planner-plans.overview",
+    "workspace": "screen.admin-academic-planner-plans.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/academic-planner/risks": {
+    "source": "app/admin/academic-planner/risks.tsx",
+    "overview": "screen.admin-academic-planner-risks.overview",
+    "workspace": "screen.admin-academic-planner-risks.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/calendar": {
+    "source": "app/admin/calendar.tsx",
+    "overview": "screen.admin-calendar.overview",
+    "workspace": "screen.admin-calendar.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/events": {
+    "source": "app/admin/events/index.tsx",
+    "overview": "screen.admin-events.overview",
+    "workspace": "screen.admin-events.workspace",
+    "overviewControl": "Text",
+    "workspaceControl": "View"
+  },
+  "/admin/diary/viewer": {
+    "source": "app/admin/diary/viewer.tsx",
+    "overview": "screen.admin-diary-viewer.overview",
+    "workspace": "screen.admin-diary-viewer.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "Animated.View"
+  },
+  "/admin/diary/history": {
+    "source": "app/admin/diary/history.tsx",
+    "overview": "screen.admin-diary-history.overview",
+    "workspace": "screen.admin-diary-history.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/timetable": {
+    "source": "app/admin/timetable.tsx",
+    "overview": "screen.admin-timetable.overview",
+    "workspace": "screen.admin-timetable.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/substitutions": {
+    "source": "app/admin/substitutions.tsx",
+    "overview": "screen.admin-substitutions.overview",
+    "workspace": "screen.admin-substitutions.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/attendance": {
+    "source": "app/admin/attendance.tsx",
+    "overview": "screen.admin-attendance.overview",
+    "workspace": "screen.admin-attendance.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/attendance-risk": {
+    "source": "app/admin/attendance-risk.tsx",
+    "overview": "screen.admin-attendance-risk.overview",
+    "workspace": "screen.admin-attendance-risk.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/exams": {
+    "source": "app/admin/exams.tsx",
+    "overview": "screen.admin-exams.overview",
+    "workspace": "screen.admin-exams.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "View"
+  },
+  "/admin/omr": {
+    "source": "app/admin/omr/index.tsx",
+    "overview": "screen.admin-omr.overview",
+    "workspace": "screen.admin-omr.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/omr/answer-key": {
+    "source": "app/admin/omr/answer-key.tsx",
+    "overview": "screen.admin-omr-answer-key.overview",
+    "workspace": "screen.admin-omr-answer-key.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/omr/print": {
+    "source": "app/admin/omr/print.tsx",
+    "overview": "screen.admin-omr-print.overview",
+    "workspace": "screen.admin-omr-print.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "OmrPrintSheetsScreen"
+  },
+  "/admin/academic-year-upgrade": {
+    "source": "app/admin/academic-year-upgrade.tsx",
+    "overview": "screen.admin-academic-year-upgrade.overview",
+    "workspace": "screen.admin-academic-year-upgrade.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/certificate-generator": {
+    "source": "app/admin/certificate-generator.tsx",
+    "overview": "screen.admin-certificate-generator.overview",
+    "workspace": "screen.admin-certificate-generator.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admin/progress-report-generator": {
+    "source": "app/admin/progress-report-generator.tsx",
+    "overview": "screen.admin-progress-report-generator.overview",
+    "workspace": "screen.admin-progress-report-generator.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/student-portfolio": {
+    "source": "app/admin/student-portfolio.tsx",
+    "overview": "screen.admin-student-portfolio.overview",
+    "workspace": "screen.admin-student-portfolio.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/student-progress-tracker": {
+    "source": "app/admin/student-progress-tracker.tsx",
+    "overview": "screen.admin-student-progress-tracker.overview",
+    "workspace": "screen.admin-student-progress-tracker.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/school-intelligence": {
+    "source": "app/admin/school-intelligence.tsx",
+    "overview": "screen.admin-school-intelligence.overview",
+    "workspace": "screen.admin-school-intelligence.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/admissions": {
+    "source": "app/admin/admissions/index.tsx",
+    "overview": "screen.admin-admissions.overview",
+    "workspace": "screen.admin-admissions.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/admissions/analytics": {
+    "source": "app/admin/admissions/analytics.tsx",
+    "overview": "screen.admin-admissions-analytics.overview",
+    "workspace": "screen.admin-admissions-analytics.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/admissions/workflow-config": {
+    "source": "app/admin/admissions/workflow-config.tsx",
+    "overview": "screen.admin-admissions-workflow-config.overview",
+    "workspace": "screen.admin-admissions-workflow-config.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/student-login-qr": {
+    "source": "app/admin/student-login-qr.tsx",
+    "overview": "screen.admin-student-login-qr.overview",
+    "workspace": "screen.admin-student-login-qr.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "TourPageContent"
+  },
+  "/admin/udise-readiness": {
+    "source": "app/admin/udise-readiness.tsx",
+    "overview": "screen.admin-udise-readiness.overview",
+    "workspace": "screen.admin-udise-readiness.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/finance": {
+    "source": "app/admin/finance.tsx",
+    "overview": "screen.admin-finance.overview",
+    "workspace": "screen.admin-finance.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/expenses": {
+    "source": "app/admin/expenses.tsx",
+    "overview": "screen.admin-expenses.overview",
+    "workspace": "screen.admin-expenses.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/subscription": {
+    "source": "app/admin/subscription.tsx",
+    "overview": "screen.admin-subscription.overview",
+    "workspace": "screen.admin-subscription.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/fees/set-class-fee": {
+    "source": "app/admin/fees/set-class-fee.tsx",
+    "overview": "screen.admin-fees-set-class-fee.overview",
+    "workspace": "screen.admin-fees-set-class-fee.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/admin/fees/adjustments": {
+    "source": "app/admin/fees/adjustments.tsx",
+    "overview": "screen.admin-fees-adjustments.overview",
+    "workspace": "screen.admin-fees-adjustments.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/fee-approvals": {
+    "source": "app/admin/fee-approvals.tsx",
+    "overview": "screen.admin-fee-approvals.overview",
+    "workspace": "screen.admin-fee-approvals.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/fee-reminders": {
+    "source": "app/admin/fee-reminders.tsx",
+    "overview": "screen.admin-fee-reminders.overview",
+    "workspace": "screen.admin-fee-reminders.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/upi-settings": {
+    "source": "app/admin/upi-settings.tsx",
+    "overview": "screen.admin-upi-settings.overview",
+    "workspace": "screen.admin-upi-settings.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "UPISettingsScreen"
+  },
+  "/admin/fees/visibility": {
+    "source": "app/admin/fees/visibility.tsx",
+    "overview": "screen.admin-fees-visibility.overview",
+    "workspace": "screen.admin-fees-visibility.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/payroll": {
+    "source": "app/admin/payroll.tsx",
+    "overview": "screen.admin-payroll.overview",
+    "workspace": "screen.admin-payroll.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "PayrollScreen"
+  },
+  "/admin/reports": {
+    "source": "app/admin/reports.tsx",
+    "overview": "screen.admin-reports.overview",
+    "workspace": "screen.admin-reports.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/exam-analytics": {
+    "source": "app/admin/exam-analytics.tsx",
+    "overview": "screen.admin-exam-analytics.overview",
+    "workspace": "screen.admin-exam-analytics.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/smart-insights": {
+    "source": "app/admin/smart-insights.tsx",
+    "overview": "screen.admin-smart-insights.overview",
+    "workspace": "screen.admin-smart-insights.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/notices": {
+    "source": "app/admin/notices.tsx",
+    "overview": "screen.admin-notices.overview",
+    "workspace": "screen.admin-notices.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/messages": {
+    "source": "app/admin/messages.tsx",
+    "overview": "screen.admin-messages.overview",
+    "workspace": "screen.admin-messages.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "MessengerScreen"
+  },
+  "/admin/complaints": {
+    "source": "app/admin/complaints.tsx",
+    "overview": "screen.admin-complaints.overview",
+    "workspace": "screen.admin-complaints.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/helpdesk": {
+    "source": "app/admin/helpdesk.tsx",
+    "overview": "screen.admin-helpdesk.overview",
+    "workspace": "screen.admin-helpdesk.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/content": {
+    "source": "app/admin/content/index.tsx",
+    "overview": "screen.admin-content.overview",
+    "workspace": "screen.admin-content.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/hero-slides": {
+    "source": "app/admin/hero-slides.tsx",
+    "overview": "screen.admin-hero-slides.overview",
+    "workspace": "screen.admin-hero-slides.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/school-stories": {
+    "source": "app/admin/school-stories.tsx",
+    "overview": "screen.admin-school-stories.overview",
+    "workspace": "screen.admin-school-stories.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/website-gallery": {
+    "source": "app/admin/website-gallery.tsx",
+    "overview": "screen.admin-website-gallery.overview",
+    "workspace": "screen.admin-website-gallery.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/popup-manager": {
+    "source": "app/admin/popup-manager.tsx",
+    "overview": "screen.admin-popup-manager.overview",
+    "workspace": "screen.admin-popup-manager.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/popup-analytics": {
+    "source": "app/admin/popup-analytics.tsx",
+    "overview": "screen.admin-popup-analytics.overview",
+    "workspace": "screen.admin-popup-analytics.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/transport": {
+    "source": "app/admin/transport.tsx",
+    "overview": "screen.admin-transport.overview",
+    "workspace": "screen.admin-transport.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/live-bus-tracking": {
+    "source": "app/admin/live-bus-tracking.tsx",
+    "overview": "screen.admin-live-bus-tracking.overview",
+    "workspace": "screen.admin-live-bus-tracking.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/transport-import": {
+    "source": "app/admin/transport-import.tsx",
+    "overview": "screen.admin-transport-import.overview",
+    "workspace": "screen.admin-transport-import.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/hostel": {
+    "source": "app/admin/hostel.tsx",
+    "overview": "screen.admin-hostel.overview",
+    "workspace": "screen.admin-hostel.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "HostelManagementScreen"
+  },
+  "/admin/leaves": {
+    "source": "app/admin/leaves.tsx",
+    "overview": "screen.admin-leaves.overview",
+    "workspace": "screen.admin-leaves.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/question-papers": {
+    "source": "app/admin/question-papers.tsx",
+    "overview": "screen.admin-question-papers.overview",
+    "workspace": "screen.admin-question-papers.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/syllabus": {
+    "source": "app/admin/syllabus.tsx",
+    "overview": "screen.admin-syllabus.overview",
+    "workspace": "screen.admin-syllabus.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/approvals": {
+    "source": "app/admin/approvals.tsx",
+    "overview": "screen.admin-approvals.overview",
+    "workspace": "screen.admin-approvals.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/notifications": {
+    "source": "app/admin/notifications.tsx",
+    "overview": "screen.admin-notifications.overview",
+    "workspace": "screen.admin-notifications.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/audit-explorer": {
+    "source": "app/admin/audit-explorer.tsx",
+    "overview": "screen.admin-audit-explorer.overview",
+    "workspace": "screen.admin-audit-explorer.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admin/app-adoption": {
+    "source": "app/admin/app-adoption.tsx",
+    "overview": "screen.admin-app-adoption.overview",
+    "workspace": "screen.admin-app-adoption.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/access-requests": {
+    "source": "app/admin/access-requests.tsx",
+    "overview": "screen.admin-access-requests.overview",
+    "workspace": "screen.admin-access-requests.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/admin/policy": {
+    "source": "app/admin/policy/index.tsx",
+    "overview": "screen.admin-policy.overview",
+    "workspace": "screen.admin-policy.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admin/settings": {
+    "source": "app/admin/settings.tsx",
+    "overview": "screen.admin-settings.overview",
+    "workspace": "screen.admin-settings.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/visitors": {
+    "source": "app/admin/visitors/index.tsx",
+    "overview": "screen.admin-visitors.overview",
+    "workspace": "screen.admin-visitors.workspace",
+    "overviewControl": "Text",
+    "workspaceControl": "View"
+  },
+  "/admin/visitors/approvals": {
+    "source": "app/admin/visitors/approvals.tsx",
+    "overview": "screen.admin-visitors-approvals.overview",
+    "workspace": "screen.admin-visitors-approvals.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admin/visitors/live": {
+    "source": "app/admin/visitors/live.tsx",
+    "overview": "screen.admin-visitors-live.overview",
+    "workspace": "screen.admin-visitors-live.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admin/visitors/history": {
+    "source": "app/admin/visitors/history.tsx",
+    "overview": "screen.admin-visitors-history.overview",
+    "workspace": "screen.admin-visitors-history.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/visitors/gates": {
+    "source": "app/admin/visitors/gates.tsx",
+    "overview": "screen.admin-visitors-gates.overview",
+    "workspace": "screen.admin-visitors-gates.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/visitors/incidents": {
+    "source": "app/admin/visitors/incidents.tsx",
+    "overview": "screen.admin-visitors-incidents.overview",
+    "workspace": "screen.admin-visitors-incidents.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/visitors/policies": {
+    "source": "app/admin/visitors/policies.tsx",
+    "overview": "screen.admin-visitors-policies.overview",
+    "workspace": "screen.admin-visitors-policies.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admin/visitors/settings": {
+    "source": "app/admin/visitors/settings.tsx",
+    "overview": "screen.admin-visitors-settings.overview",
+    "workspace": "screen.admin-visitors-settings.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/admin/visitors/watchlist": {
+    "source": "app/admin/visitors/watchlist.tsx",
+    "overview": "screen.admin-visitors-watchlist.overview",
+    "workspace": "screen.admin-visitors-watchlist.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/admin/visitors/emergency": {
+    "source": "app/admin/visitors/emergency.tsx",
+    "overview": "screen.admin-visitors-emergency.overview",
+    "workspace": "screen.admin-visitors-emergency.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/accounts/fines": {
+    "source": "app/accounts/fines/index.tsx",
+    "overview": "screen.accounts-fines.overview",
+    "workspace": "screen.accounts-fines.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "TourPageContent"
+  },
+  "/updates": {
+    "source": "app/updates.tsx",
+    "overview": "screen.updates.overview",
+    "workspace": "screen.updates.workspace",
+    "overviewControl": "StudentSubpageHeader",
+    "workspaceControl": "ScreenLayout"
+  },
+  "/accounts/dashboard": {
+    "source": "app/accounts/dashboard.tsx",
+    "overview": "screen.accounts-dashboard.overview",
+    "workspace": "screen.accounts-dashboard.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/accounts/fees": {
+    "source": "app/accounts/fees/index.tsx",
+    "overview": "screen.accounts-fees.overview",
+    "workspace": "screen.accounts-fees.workspace",
+    "overviewControl": "WorkspaceHeader",
+    "workspaceControl": "View"
+  },
+  "/accounts/fees/today-collection": {
+    "source": "app/accounts/fees/today-collection.tsx",
+    "overview": "screen.accounts-fees-today-collection.overview",
+    "workspace": "screen.accounts-fees-today-collection.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/accounts/fees/fee-due-slips": {
+    "source": "app/accounts/fees/fee-due-slips.tsx",
+    "overview": "screen.accounts-fees-fee-due-slips.overview",
+    "workspace": "screen.accounts-fees-fee-due-slips.workspace",
+    "overviewControl": "FeeDueSlipsHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/accounts/receipts": {
+    "source": "app/accounts/receipts.tsx",
+    "overview": "screen.accounts-receipts.overview",
+    "workspace": "screen.accounts-receipts.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/accounts/defaulters": {
+    "source": "app/accounts/defaulters.tsx",
+    "overview": "screen.accounts-defaulters.overview",
+    "workspace": "screen.accounts-defaulters.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/accounts/event-collections": {
+    "source": "app/accounts/event-collections.tsx",
+    "overview": "screen.accounts-event-collections.overview",
+    "workspace": "screen.accounts-event-collections.workspace",
+    "overviewControl": "Text",
+    "workspaceControl": "SafeAreaView"
+  },
+  "/accounts/invoices": {
+    "source": "app/accounts/invoices.tsx",
+    "overview": "screen.accounts-invoices.overview",
+    "workspace": "screen.accounts-invoices.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/accounts/marks": {
+    "source": "app/accounts/marks.tsx",
+    "overview": "screen.accounts-marks.overview",
+    "workspace": "screen.accounts-marks.workspace",
+    "overviewControl": "Text",
+    "workspaceControl": "TourScrollView"
+  },
+  "/accounts/exams": {
+    "source": "app/accounts/exams.tsx",
+    "overview": "screen.accounts-exams.overview",
+    "workspace": "screen.accounts-exams.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "AdminExams"
+  },
+  "/accounts/omr-answer-key": {
+    "source": "app/accounts/omr-answer-key.tsx",
+    "overview": "screen.accounts-omr-answer-key.overview",
+    "workspace": "screen.accounts-omr-answer-key.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "OmrAnswerKeyScreen"
+  },
+  "/accounts/omr-print": {
+    "source": "app/accounts/omr-print.tsx",
+    "overview": "screen.accounts-omr-print.overview",
+    "workspace": "screen.accounts-omr-print.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "OmrPrintSheetsScreen"
+  },
+  "/accounts/certificate-generator": {
+    "source": "app/accounts/certificate-generator.tsx",
+    "overview": "screen.accounts-certificate-generator.overview",
+    "workspace": "screen.accounts-certificate-generator.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "CertificateGenerator"
+  },
+  "/accounts/manage-users": {
+    "source": "app/accounts/manage-users.tsx",
+    "overview": "screen.accounts-manage-users.overview",
+    "workspace": "screen.accounts-manage-users.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/accounts/addStudent": {
+    "source": "app/accounts/addStudent.tsx",
+    "overview": "screen.accounts-add-student.overview",
+    "workspace": "screen.accounts-add-student.workspace",
+    "overviewControl": "FormCanvas",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/accounts/addStaff": {
+    "source": "app/accounts/addStaff.tsx",
+    "overview": "screen.accounts-add-staff.overview",
+    "workspace": "screen.accounts-add-staff.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/accounts/addAdmin": {
+    "source": "app/accounts/addAdmin.tsx",
+    "overview": "screen.accounts-add-admin.overview",
+    "workspace": "screen.accounts-add-admin.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "KeyboardAwareScreen"
+  },
+  "/accounts/pending-enrollments": {
+    "source": "app/accounts/pending-enrollments.tsx",
+    "overview": "screen.accounts-pending-enrollments.overview",
+    "workspace": "screen.accounts-pending-enrollments.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "View"
+  },
+  "/accounts/student-login-qr": {
+    "source": "app/accounts/student-login-qr.tsx",
+    "overview": "screen.accounts-student-login-qr.overview",
+    "workspace": "screen.accounts-student-login-qr.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "TourPageContent"
+  },
+  "/accounts/hostel": {
+    "source": "app/accounts/hostel.tsx",
+    "overview": "screen.accounts-hostel.overview",
+    "workspace": "screen.accounts-hostel.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "HostelManagementScreen"
+  },
+  "/accounts/transport-fees": {
+    "source": "app/accounts/transport-fees.tsx",
+    "overview": "screen.accounts-transport-fees.overview",
+    "workspace": "screen.accounts-transport-fees.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/accounts/expenses": {
+    "source": "app/accounts/expenses.tsx",
+    "overview": "screen.accounts-expenses.overview",
+    "workspace": "screen.accounts-expenses.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/accounts/payroll": {
+    "source": "app/accounts/payroll.tsx",
+    "overview": "screen.accounts-payroll.overview",
+    "workspace": "screen.accounts-payroll.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "PayrollScreen"
+  },
+  "/accounts/leaves": {
+    "source": "app/accounts/leaves.tsx",
+    "overview": "screen.accounts-leaves.overview",
+    "workspace": "screen.accounts-leaves.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "ApplyLeave"
+  },
+  "/accounts/calendar": {
+    "source": "app/accounts/calendar.tsx",
+    "overview": "screen.accounts-calendar.overview",
+    "workspace": "screen.accounts-calendar.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/accounts/updates": {
+    "source": "app/accounts/updates.tsx",
+    "overview": "screen.accounts-updates.overview",
+    "workspace": "screen.accounts-updates.workspace",
+    "overviewControl": "AdminHeader",
+    "workspaceControl": "View"
+  },
+  "/accounts/settings": {
+    "source": "app/accounts/settings.tsx",
+    "overview": "screen.accounts-settings.overview",
+    "workspace": "screen.accounts-settings.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/driver/dashboard": {
+    "source": "app/driver/dashboard.tsx",
+    "overview": "screen.driver-dashboard.overview",
+    "workspace": "screen.driver-dashboard.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/driver/trip": {
+    "source": "app/driver/trip.tsx",
+    "overview": "screen.driver-trip.overview",
+    "workspace": "screen.driver-trip.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "FlatList"
+  },
+  "/driver/bus-attendance": {
+    "source": "app/driver/bus-attendance.tsx",
+    "overview": "screen.driver-bus-attendance.overview",
+    "workspace": "screen.driver-bus-attendance.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "Animated.ScrollView"
+  },
+  "/driver/students": {
+    "source": "app/driver/students.tsx",
+    "overview": "screen.driver-students.overview",
+    "workspace": "screen.driver-students.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "FlatList"
+  },
+  "/driver/calendar": {
+    "source": "app/driver/calendar.tsx",
+    "overview": "screen.driver-calendar.overview",
+    "workspace": "screen.driver-calendar.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/driver/payslip": {
+    "source": "app/driver/payslip.tsx",
+    "overview": "screen.driver-payslip.overview",
+    "workspace": "screen.driver-payslip.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/driver/profile": {
+    "source": "app/driver/profile.tsx",
+    "overview": "screen.driver-profile.overview",
+    "workspace": "screen.driver-profile.workspace",
+    "overviewControl": "StudentHeader",
+    "workspaceControl": "TourScrollView"
+  },
+  "/driver/updates": {
+    "source": "app/driver/updates.tsx",
+    "overview": "screen.driver-updates.overview",
+    "workspace": "screen.driver-updates.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "View"
+  },
+  "/gatekeeper/dashboard": {
+    "source": "app/gatekeeper/dashboard.tsx",
+    "overview": "screen.gatekeeper-dashboard.overview",
+    "workspace": "screen.gatekeeper-dashboard.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/gatekeeper/scanner": {
+    "source": "app/gatekeeper/scanner.tsx",
+    "overview": "screen.gatekeeper-scanner.overview",
+    "workspace": "screen.gatekeeper-scanner.workspace",
+    "overviewControl": "TourTarget",
+    "workspaceControl": "View"
+  },
+  "/gatekeeper/search": {
+    "source": "app/gatekeeper/search.tsx",
+    "overview": "screen.gatekeeper-search.overview",
+    "workspace": "screen.gatekeeper-search.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/walkin": {
+    "source": "app/gatekeeper/walkin.tsx",
+    "overview": "screen.gatekeeper-walkin.overview",
+    "workspace": "screen.gatekeeper-walkin.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/gatekeeper/expected": {
+    "source": "app/gatekeeper/expected.tsx",
+    "overview": "screen.gatekeeper-expected.overview",
+    "workspace": "screen.gatekeeper-expected.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/inside": {
+    "source": "app/gatekeeper/inside.tsx",
+    "overview": "screen.gatekeeper-inside.overview",
+    "workspace": "screen.gatekeeper-inside.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/gatekeeper/pickup": {
+    "source": "app/gatekeeper/pickup.tsx",
+    "overview": "screen.gatekeeper-pickup.overview",
+    "workspace": "screen.gatekeeper-pickup.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  },
+  "/gatekeeper/deliveries": {
+    "source": "app/gatekeeper/deliveries.tsx",
+    "overview": "screen.gatekeeper-deliveries.overview",
+    "workspace": "screen.gatekeeper-deliveries.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/materials": {
+    "source": "app/gatekeeper/materials.tsx",
+    "overview": "screen.gatekeeper-materials.overview",
+    "workspace": "screen.gatekeeper-materials.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/vehicles": {
+    "source": "app/gatekeeper/vehicles.tsx",
+    "overview": "screen.gatekeeper-vehicles.overview",
+    "workspace": "screen.gatekeeper-vehicles.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/contractors": {
+    "source": "app/gatekeeper/contractors.tsx",
+    "overview": "screen.gatekeeper-contractors.overview",
+    "workspace": "screen.gatekeeper-contractors.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/incidents": {
+    "source": "app/gatekeeper/incidents.tsx",
+    "overview": "screen.gatekeeper-incidents.overview",
+    "workspace": "screen.gatekeeper-incidents.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/gatekeeper/emergency": {
+    "source": "app/gatekeeper/emergency.tsx",
+    "overview": "screen.gatekeeper-emergency.overview",
+    "workspace": "screen.gatekeeper-emergency.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "FlatList"
+  },
+  "/gatekeeper/calendar": {
+    "source": "app/gatekeeper/calendar.tsx",
+    "overview": "screen.gatekeeper-calendar.overview",
+    "workspace": "screen.gatekeeper-calendar.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/admission/dashboard": {
+    "source": "app/admission/dashboard.tsx",
+    "overview": "screen.admission-dashboard.overview",
+    "workspace": "screen.admission-dashboard.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "View"
+  },
+  "/change-password": {
+    "source": "app/change-password.tsx",
+    "overview": "screen.change-password.overview",
+    "workspace": "screen.change-password.workspace",
+    "overviewControl": "KeyboardAvoidingView",
+    "workspaceControl": "TourScrollView"
+  },
+  "/notifications": {
+    "source": "app/notifications.tsx",
+    "overview": "screen.notifications.overview",
+    "workspace": "screen.notifications.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "NotificationInboxList"
+  },
+  "/verify-certificate": {
+    "source": "app/verify-certificate.tsx",
+    "overview": "screen.verify-certificate.overview",
+    "workspace": "screen.verify-certificate.workspace",
+    "overviewControl": "View",
+    "workspaceControl": "TourScrollView"
+  }
+}

@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
@@ -228,7 +229,7 @@ export default function StudentBottomDock({
           },
         ]}
       >
-        <View
+        <TourTarget id="student.navigation" native active><View
           style={[
             styles.dock,
             {
@@ -285,7 +286,7 @@ export default function StudentBottomDock({
               <View style={styles.menuNotificationDot} />
             </LinearGradient>
           </Pressable>
-        </View>
+        </View></TourTarget>
       </View>
 
       <StudentDockMenu visible={menuOpen} onClose={closeMenu} />

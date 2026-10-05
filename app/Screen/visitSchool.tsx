@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -335,9 +336,9 @@ export default function VisitSchoolScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: palette.bg }]} edges={['left', 'right']}>
+    <TourTarget id="screen.screen-visit-school.workspace" style={{ flex: 1 }}><SafeAreaView style={[styles.root, { backgroundColor: palette.bg }]} edges={['left', 'right']}>
       <View style={styles.pageShell}>
-      <View style={styles.header}>
+      <TourTarget id="screen.screen-visit-school.overview" native><View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: palette.card, borderColor: palette.border }]}
@@ -362,7 +363,7 @@ export default function VisitSchoolScreen() {
             <Ionicons name="refresh" size={18} color={palette.text} />
           )}
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
       <View style={[styles.tabTrack, { backgroundColor: palette.inset, borderColor: palette.border }]}>
         <TouchableOpacity
@@ -410,7 +411,7 @@ export default function VisitSchoolScreen() {
       >
         {activeTab === 'book' ? (
           <View style={styles.bookShell}>
-            <ScrollView
+            <TourScrollView
               style={styles.flex1}
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
@@ -788,7 +789,7 @@ export default function VisitSchoolScreen() {
                   {t('studentVisitSchool.trust')}
                 </Text>
               </View>
-            </ScrollView>
+            </TourScrollView>
 
             <View style={[styles.footer, { backgroundColor: palette.bg, borderTopColor: palette.border }]}>
               <View style={styles.footerSummary}>
@@ -818,7 +819,7 @@ export default function VisitSchoolScreen() {
             </View>
           </View>
         ) : (
-          <ScrollView
+          <TourScrollView
             style={styles.flex1}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
@@ -902,11 +903,11 @@ export default function VisitSchoolScreen() {
                 );
               })
             )}
-          </ScrollView>
+          </TourScrollView>
         )}
       </KeyboardAvoidingView>
       </View>
-    </SafeAreaView>
+    </SafeAreaView></TourTarget>
   );
 }
 

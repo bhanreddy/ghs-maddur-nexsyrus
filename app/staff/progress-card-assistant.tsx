@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -330,9 +331,9 @@ export default function ProgressCardAssistantScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.staff-progress-card-assistant.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <StaffHeader title="Progress Card Assistant" showBackButton />
+      <TourTarget id="screen.staff-progress-card-assistant.overview"><StaffHeader title="Progress Card Assistant" showBackButton /></TourTarget>
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
       {loadingContext ? (
@@ -350,7 +351,7 @@ export default function ProgressCardAssistantScreen() {
           <Text style={styles.stateText}>A current class section must be assigned to you before student progress cards can be viewed.</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <TourScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={styles.heroCard}>
             <View style={styles.heroIcon}><Ionicons name="reader-outline" size={26} color="#FFFFFF" /></View>
             <View style={styles.heroCopy}>
@@ -391,14 +392,14 @@ export default function ProgressCardAssistantScreen() {
               <Text style={styles.sectionTitle}>Assessment</Text>
             </View>
             {context.exams.length ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.examChips}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.examChips}>
                 {context.exams.map((exam) => {
                   const active = selectedExam?.id === exam.id;
                   return <TouchableOpacity key={exam.id} onPress={() => chooseExam(exam)} style={[styles.examChip, active && styles.examChipActive]}>
                     <Text style={[styles.examChipText, active && styles.examChipTextActive]}>{exam.name}</Text>
                   </TouchableOpacity>;
                 })}
-              </ScrollView>
+              </TourScrollView>
             ) : <Text style={styles.noMatch}>No assessments have been created for this class.</Text>}
           </View>
 
@@ -494,7 +495,7 @@ export default function ProgressCardAssistantScreen() {
                   <Text style={styles.tableTitle}>Subject-wise detailed marks</Text>
                   <Text style={styles.tableHint}>Swipe horizontally to view every component.</Text>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.tableScroll}>
+                <TourScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.tableScroll}>
                   <View>
                     <View style={[styles.tableRow, styles.tableHeader]}>
                       {[
@@ -531,7 +532,7 @@ export default function ProgressCardAssistantScreen() {
                       <Text style={[styles.grandValue, { width: (showComponentColumns ? 88 : 0) + 92 }]}>{displayMode === 'percentage' ? `${report.summary.percentage.toFixed(2)}%` : `${gradeForPercentage(report.summary.percentage)} · GPA ${gpaForPercentage(report.summary.percentage)}`}</Text>
                     </View>
                   </View>
-                </ScrollView>
+                </TourScrollView>
               </View>
 
               <View style={styles.finalCard}>
@@ -618,7 +619,7 @@ export default function ProgressCardAssistantScreen() {
                   <View style={styles.attendanceNumbers}><Text style={styles.attendanceOverallLabel}>Overall</Text><Text style={styles.attendanceBig}>{displayDayCount(report.attendance.days_present)}/{report.attendance.working_days}</Text><Text style={styles.attendancePct}>{report.attendance.percentage == null ? '—' : `${report.attendance.percentage.toFixed(1)}%`}</Text></View>
                 </View>
                 {report.attendance.monthly.length ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.attendanceMonths}>
+                  <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.attendanceMonths}>
                     {report.attendance.monthly.map((month) => (
                       <View key={month.month} style={styles.attendanceMonthCard}>
                         <View style={styles.attendanceMonthTop}>
@@ -632,7 +633,7 @@ export default function ProgressCardAssistantScreen() {
                         </View>
                       </View>
                     ))}
-                  </ScrollView>
+                  </TourScrollView>
                 ) : <Text style={styles.noAttendance}>No attendance has been recorded for this academic year.</Text>}
               </View>
 
@@ -644,9 +645,9 @@ export default function ProgressCardAssistantScreen() {
               </View>
             </>
           )}
-        </ScrollView>
+        </TourScrollView>
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 
@@ -326,9 +327,9 @@ export default function StudentProgressTracker() {
   };
   return <View style={styles.root}>
     <LinearGradient colors={[ADMIN_THEME.colors.background.app, '#F0F4FF']} style={StyleSheet.absoluteFill} />
-    <AdminHeader title="Parent-Principal Meeting" showBackButton />
+    <TourTarget id="screen.admin-student-progress-tracker.overview"><AdminHeader title="Parent-Principal Meeting" showBackButton /></TourTarget>
 
-    <ScrollView contentContainerStyle={styles.scroll}>
+    <TourTarget id="screen.admin-student-progress-tracker.workspace" native><TourScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.content}>
 
         {/* Search Input */}
@@ -361,7 +362,7 @@ export default function StudentProgressTracker() {
         </>}
 
       </View>
-    </ScrollView>
+    </TourScrollView></TourTarget>
   </View>;
 }
 const getStyles = () => StyleSheet.create({

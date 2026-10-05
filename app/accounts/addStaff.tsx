@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import AppDatePicker from '@/src/components/AppDatePicker';
@@ -742,11 +743,11 @@ export default function AddStaffScreen() {
   const heroGrad: [string, string] = desCfg.grad;
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-add-staff.overview" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#12101A' : '#F5F2FA'} />
       {!shellActive && <AdminHeader title={isEditMode ? 'Edit Staff' : 'Add Staff'} showBackButton />}
 
-      <KeyboardAwareScreen
+      <TourTarget id="screen.accounts-add-staff.workspace" style={{ flex: 1 }}><KeyboardAwareScreen
         variant="scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -939,8 +940,8 @@ export default function AddStaffScreen() {
             </Pressable>
           </Animated.View>
 
-      </KeyboardAwareScreen>
-    </View>
+      </KeyboardAwareScreen></TourTarget>
+    </View></TourTarget>
   );
 }
 

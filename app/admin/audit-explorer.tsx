@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -57,12 +58,12 @@ export default function AuditExplorerScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <TourTarget id="screen.admin-audit-explorer.overview" native><View style={styles.header}>
           <View>
             <Text style={styles.pageTitle}>Forensic Audit Explorer</Text>
             <Text style={styles.pageSubtitle}>
@@ -73,11 +74,11 @@ export default function AuditExplorerScreen() {
             <Ionicons name="refresh" size={16} color="#475569" />
             <Text style={styles.refreshBtnText}>Reload</Text>
           </TouchableOpacity>
-        </View>
+        </View></TourTarget>
 
         {/* Filters */}
         <View style={styles.filterCard}>
-          <View style={styles.filterRow}>
+          <TourTarget id="screen.admin-audit-explorer.workspace" native><View style={styles.filterRow}>
             <View style={styles.filterItem}>
               <Text style={styles.filterLabel}>Filter by Action</Text>
               <TextInput
@@ -98,7 +99,7 @@ export default function AuditExplorerScreen() {
                 onChangeText={setEntityFilter}
               />
             </View>
-          </View>
+          </View></TourTarget>
           <View style={styles.quickFilterRow}>
             {['', 'marks.revision', 'fees.collect', 'admission.document_reminder_attempt', 'approval.approved'].map((act) => (
               <TouchableOpacity
@@ -226,7 +227,7 @@ export default function AuditExplorerScreen() {
             );
           })
         )}
-      </ScrollView>
+      </TourScrollView>
     </SafeAreaView>
   );
 }

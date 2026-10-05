@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -307,9 +308,9 @@ export default function AdminLeaves() {
     tab === 'pending' ? 'No pending leave requests' : 'No processed leave history yet';
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.admin-leaves.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <AdminHeader title="Leave Management" showBackButton={true} />
+      <TourTarget id="screen.admin-leaves.overview"><AdminHeader title="Leave Management" showBackButton={true} /></TourTarget>
 
       <View style={styles.tabRow}>
         <TouchableOpacity
@@ -388,7 +389,7 @@ export default function AdminLeaves() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+            <TourScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
               {reviewing?.payroll_months?.map((month) => (
                 <View key={month.month_key} style={styles.modalBalanceCard}>
                   <View style={styles.modalBalanceHeader}>
@@ -494,7 +495,7 @@ export default function AdminLeaves() {
                   </Text>
                 </View>
               ) : null}
-            </ScrollView>
+            </TourScrollView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.cancelButton} onPress={closeReview} disabled={submitting}>
@@ -522,7 +523,7 @@ export default function AdminLeaves() {
           </View>
         </View>
       </Modal>
-    </View>
+    </View></TourTarget>
   );
 }
 

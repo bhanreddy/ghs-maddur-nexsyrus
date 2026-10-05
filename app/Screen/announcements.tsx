@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useMemo, useCallback, useState, memo } from 'react';
 import {
   View,
@@ -647,7 +648,7 @@ function AnnouncementsScreenInner() {
 }
 
 export default function AnnouncementsScreen() {
-  return <ErrorBoundary><AnnouncementsScreenInner /></ErrorBoundary>;
+  return <TourTarget id="screen.screen-announcements.overview" style={{ flex: 1 }}><TourTarget id="screen.screen-announcements.workspace" style={{ flex: 1 }}><ErrorBoundary><AnnouncementsScreenInner /></ErrorBoundary></TourTarget></TourTarget>;
 }
 
 const getStyles = (theme: SchoolTheme, isDark: boolean) => {

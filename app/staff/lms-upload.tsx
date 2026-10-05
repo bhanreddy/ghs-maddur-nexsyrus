@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import {
   View,
@@ -677,7 +678,7 @@ export default function StaffLMSUpload() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
       />
-      <StaffHeader title="Upload LMS Content" showBackButton={true} />
+      <TourTarget id="screen.staff-lms-upload.overview"><StaffHeader title="Upload LMS Content" showBackButton={true} /></TourTarget>
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
       {/* Soft ambient glow — static, painted once */}
@@ -704,7 +705,7 @@ export default function StaffLMSUpload() {
         />
       </View>
 
-      <KeyboardAwareScreen
+      <TourTarget id="screen.staff-lms-upload.workspace" style={{ flex: 1 }}><KeyboardAwareScreen
         variant="scroll"
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -900,7 +901,7 @@ export default function StaffLMSUpload() {
                   </Text>
                 </View>
               ) : assignments.length > 0 ? (
-                <ScrollView
+                <TourScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.chipsScroll}
@@ -914,7 +915,7 @@ export default function StaffLMSUpload() {
                       isDark={isDark}
                     />
                   ))}
-                </ScrollView>
+                </TourScrollView>
               ) : (
                 <View
                   style={[
@@ -1195,7 +1196,7 @@ export default function StaffLMSUpload() {
             </View>
           </View>
         </Animated.View>
-      </KeyboardAwareScreen>
+      </KeyboardAwareScreen></TourTarget>
 
       {/* Sticky upload dock — always in thumb zone */}
       <View

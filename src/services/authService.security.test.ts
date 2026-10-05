@@ -107,21 +107,18 @@ describe('AuthService security boundaries', () => {
         session: { user: { id: 'user-1', email: 'admin@example.com' } },
       },
     });
-    supabase.auth.signInWithPassword.mockResolvedValue({
-      data: {
-        session: { user: { id: 'user-1', email: 'admin@example.com' } },
-      },
-      error: null,
-    });
-    supabase.auth.updateUser.mockResolvedValue({ error: null });
+    (api.post as jest.Mock).mockResolvedValue({ success: true });
 
     await AuthService.changePassword('current-secret', 'new-secret');
 
-    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
-      email: 'admin@example.com',
-      password: 'current-secret',
-    });
-    expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'new-secret' });
+    expect(api.post).toHaveBeenCalledWith(
+      '/auth/change-password',
+      {
+        current_password: 'current-secret',
+        new_password: 'new-secret',
+      },
+      { silent: true }
+    );
     expect(accountVault.saveLoginRecoveryCredential).toHaveBeenCalledWith(
       'user-1',
       'admin@example.com',
@@ -136,15 +133,12 @@ describe('AuthService security boundaries', () => {
         session: { user: { id: 'user-1', email: 'admin@example.com' } },
       },
     });
-    supabase.auth.signInWithPassword.mockResolvedValue({
-      data: { session: null },
-      error: new Error('invalid credentials'),
-    });
+    (api.post as jest.Mock).mockRejectedValue(new Error('Current password is incorrect.'));
 
     await expect(
       AuthService.changePassword('wrong-secret', 'new-secret')
     ).rejects.toThrow('Current password is incorrect.');
-    expect(supabase.auth.updateUser).not.toHaveBeenCalled();
+    expect(accountVault.saveLoginRecoveryCredential).not.toHaveBeenCalled();
     expect(isInternalSessionSwap()).toBe(false);
   });
 

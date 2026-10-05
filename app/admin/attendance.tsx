@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -626,11 +627,11 @@ export default function AdminAttendanceScreen() {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: pageBg }]}>
+    <TourTarget id="screen.admin-attendance.workspace" native><View style={[styles.container, { backgroundColor: pageBg }]}>
       <View style={[styles.orb1, { backgroundColor: orb1Color }]} />
       <View style={[styles.orb2, { backgroundColor: orb2Color }]} />
 
-      <AdminHeader
+      <TourTarget id="screen.admin-attendance.overview"><AdminHeader
         title="Staff Attendance"
         showNotification
         scrollY={scrollY}
@@ -638,7 +639,7 @@ export default function AdminAttendanceScreen() {
           icon: 'warning-outline',
           onPress: () => router.push('/admin/attendance-risk' as any),
         }}
-      />
+      /></TourTarget>
 
       {loading && !refreshing ? (
         <View style={styles.loaderContainer}>
@@ -1043,7 +1044,7 @@ export default function AdminAttendanceScreen() {
         onClose={() => setExceptionsModalVisible(false)}
       />
 
-    </View>
+    </View></TourTarget>
   );
 }
 

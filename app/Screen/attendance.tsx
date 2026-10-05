@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 // OPT: Student attendance — profile + records via useStudentQuery (replaces useEffect + SyncService sync path for this screen).
 import React, { useState, useCallback, useMemo, memo } from 'react'; // OPT: No data-fetch useEffect; memo + useMemo for stable subtrees.
 import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native'; // OPT: Same layout primitives.
@@ -250,9 +251,9 @@ function AttendanceScreenInner() { // OPT: Inner tree wrapped by ErrorBoundary b
 
 export default function AttendanceScreen() { // OPT: Default export wraps with ErrorBoundary per request.
   return (
-    <ErrorBoundary>
+    <TourTarget id="screen.screen-attendance.overview" style={{ flex: 1 }}><TourTarget id="screen.screen-attendance.workspace" style={{ flex: 1 }}><ErrorBoundary>
       <AttendanceScreenInner />
-    </ErrorBoundary>
+    </ErrorBoundary></TourTarget></TourTarget>
   );
 }
 

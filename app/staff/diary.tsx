@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -199,11 +200,11 @@ export default function StaffDiary() {
   const { t } = useTranslation();
   const TE = t('staffDiary', { returnObjects: true }) as any;
   const { theme, isDark } = useTheme();
-  const { isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
+  const { isViewingAsAdmin, viewAsName, userId: viewedUserId } = useEffectiveStaffId();
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth >= 900;
   const styles = useMemo(() => getStyles(theme, isDark, isWide), [theme, isDark, isWide]);
-  const teacherId = user?.userId || '';
+  const teacherId = (isViewingAsAdmin ? viewedUserId : user?.userId) || '';
   const openedAtRef = useRef(Date.now());
 
   const [assignments, setAssignments] = useState<TeacherClassAssignment[]>([]);
@@ -241,6 +242,7 @@ export default function StaffDiary() {
 
   // Primary "Type / Edit" Composer state
   const [manualOpen, setManualOpen] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [manualTitle, setManualTitle] = useState('');
   const [manualContent, setManualContent] = useState('');
   const [manualDue, setManualDue] = useState(todayYmd);
@@ -289,7 +291,7 @@ export default function StaffDiary() {
   const calendarAvailableYmds = useMemo(() => [...new Set([...datesWithData, ...priorDates])], [datesWithData, priorDates]);
   const ss = getSubjectStyle(current?.subject_name);
   const greeting = `${greetingForHour()}, ${teacherFirstName(user?.displayName)}`;
-  const canWrite = !isViewingAsAdmin;
+  const canWrite = !isViewingAsAdmin || user?.role?.code === 'admin' || user?.roles?.includes('admin') === true;
   const clockLabel = current?.display_time || formatClock(new Date().getHours() * 60 + new Date().getMinutes());
   const periodLabel = current?.period_number ? `Period ${current.period_number}` : 'Not in a period';
 
@@ -480,6 +482,7 @@ export default function StaffDiary() {
     setVoiceMode('idle');
     setVoiceText('');
     setManualOpen(false);
+    setEditingEntryId(null);
     setManualTargets([]);
     setSendToOpen(false);
     setReuseSource(null);
@@ -686,8 +689,18 @@ export default function StaffDiary() {
     const content = 'content' in entry ? String(entry.content || '') : '';
     setReuseSource(entry);
     if (mode === 'edit') {
-      setManualTitle(entry.title || '');
-      setManualContent(content);
+      if (!canWrite) return;
+      setEditingEntryId(entry.id);
+      setCurrent({
+        class_section_id: entry.class_section_id,
+        class_name: entry.class_name,
+        section_name: entry.section_name,
+        subject_id: entry.subject_id,
+        subject_name: entry.subject_name,
+        display_class: `${entry.class_name || ''}${entry.section_name || ''}`,
+      });
+      setManualTitle(diaryDisplayTitle(entry as DiaryEntry));
+      setManualContent(diaryDisplayContent(entry as DiaryEntry));
       setManualDue(toDateKey(entry.homework_due_date) || todayYmd);
       setManualTargets([]);
       setManualOpen(true);
@@ -720,10 +733,31 @@ export default function StaffDiary() {
   };
 
   const saveManual = async () => {
+    if (!canWrite || busy) return;
     if (!manualContent.trim()) {
       alertCompat('Add homework text', 'Please write the homework before sending.');
       return;
     }
+    if (editingEntryId) {
+      setBusy(true);
+      try {
+        await DiaryService.update(editingEntryId, {
+          title: manualTitle.trim(),
+          content: manualContent.trim(),
+          homework_due_date: manualDue,
+          input_language: 'auto',
+        });
+        toast('Diary updated.');
+        resetFlows();
+        void loadLive();
+      } catch (error: any) {
+        alertCompat('Could not update diary', error?.message || 'Please try again.');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    if (!requireClass()) return;
     const targetClasses = [current!.class_section_id, ...manualTargets.filter((id) => id !== current!.class_section_id)];
     await publishNow({
       title: manualTitle.trim(),
@@ -946,10 +980,10 @@ export default function StaffDiary() {
   return (
     <View style={[styles.container, { backgroundColor: pageBg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={pageBg} />
-      <StaffHeader title="Smart Diary" showBackButton />
+      <TourTarget id="screen.staff-diary.overview"><StaffHeader title="Smart Diary" showBackButton /></TourTarget>
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -962,12 +996,12 @@ export default function StaffDiary() {
         }
       >
         <Animated.View entering={FadeInDown.delay(40).duration(280)} style={styles.tabWrap}>
-          <DiaryHistoryTabSwitcher
+          <TourTarget id="screen.staff-diary.workspace"><DiaryHistoryTabSwitcher
             active={activeTab}
             onChange={(tab) => { setActiveTab(tab); Haptics.selectionAsync(); }}
             todayLabel={TE.today}
             historyLabel={TE.history}
-          />
+          /></TourTarget>
         </Animated.View>
 
         {activeTab === 'today' ? (
@@ -995,7 +1029,7 @@ export default function StaffDiary() {
             </Animated.View>
 
             {/* Current Class Card */}
-            <Animated.View entering={FadeInDown.delay(100).duration(280)} style={[styles.currentCard, clayCard(isDark, 'md')]}>
+            <TourTarget id="staff.diary.class" native><Animated.View entering={FadeInDown.delay(100).duration(280)} style={[styles.currentCard, clayCard(isDark, 'md')]}>
               <ClaySheen isDark={isDark} radius={Radii.xxl} />
               <View style={[styles.currentIcon, { backgroundColor: isDark ? ss.softDark : ss.soft }]}>
                 <MaterialIcons name={ss.icon} size={24} color={ss.color} />
@@ -1022,12 +1056,12 @@ export default function StaffDiary() {
                   <Text style={[styles.changeText, { color: theme.colors.primary }]}>Switch</Text>
                 </View>
               </PressScale>
-            </Animated.View>
+            </Animated.View></TourTarget>
 
             {/* Horizontal Quick Class Selector Strip */}
             {assignments.length > 1 && (
               <View style={styles.classStripWrap}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classStripScroll}>
+                <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classStripScroll}>
                   {assignments.map((item) => {
                     const isSelected = current?.class_section_id === item.class_section_id;
                     const itemStyle = getSubjectStyle(item.subject_name);
@@ -1080,7 +1114,7 @@ export default function StaffDiary() {
                       </PressScale>
                     );
                   })}
-                </ScrollView>
+                </TourScrollView>
               </View>
             )}
 
@@ -1110,12 +1144,13 @@ export default function StaffDiary() {
             ) : null}
 
             {/* Enhanced Hero Action Bento Grid */}
-            <Animated.View entering={FadeInDown.delay(140).duration(280)} style={styles.heroGrid}>
+            <TourTarget id="staff.diary.compose" native><Animated.View entering={FadeInDown.delay(140).duration(280)} style={styles.heroGrid}>
               {/* Card 1: Type Homework (Primary) */}
               <PressScale
                 style={styles.heroGridItem}
                 onPress={() => {
                   setReuseSource(null);
+                  setEditingEntryId(null);
                   setManualTitle('');
                   setManualContent('');
                   setManualDue(todayYmd);
@@ -1159,7 +1194,7 @@ export default function StaffDiary() {
                   </View>
                 </PressScale>
               </View>
-            </Animated.View>
+            </Animated.View></TourTarget>
 
             {/* Secondary Action Row: Scan Blackboard OCR + Voice */}
             <View style={styles.secondaryActionRow}>
@@ -1217,11 +1252,11 @@ export default function StaffDiary() {
               </PressScale>
             )}
 
-            {/* Today's Posted Homework Feed */}
+            {/* Today&apos;s Posted Homework Feed */}
             <View style={styles.sectionRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.textStrong, marginVertical: 0 }]}>
-                  Today's Posted Homework
+                  Today&apos;s Posted Homework
                 </Text>
                 {todayEntries.length > 0 && (
                   <View style={[styles.countPill, { backgroundColor: theme.colors.primary }]}>
@@ -1418,19 +1453,7 @@ export default function StaffDiary() {
               diaryEntries={diaryEntries}
               displayYmd={historyDate}
               onEdit={(entry) => {
-                setCurrent({
-                  class_section_id: entry.class_section_id,
-                  class_name: entry.class_name,
-                  section_name: entry.section_name,
-                  subject_id: entry.subject_id,
-                  subject_name: entry.subject_name,
-                  display_class: `${entry.class_name || ''}${entry.section_name || ''}`,
-                });
-                setManualTitle(diaryDisplayTitle(entry));
-                setManualContent(diaryDisplayContent(entry));
-                setManualDue(toDateKey(entry.homework_due_date) || todayYmd);
-                setManualTargets([]);
-                setManualOpen(true);
+                void reuseEntry(entry, 'edit');
                 setActiveTab('today');
               }}
               onDelete={handleDelete}
@@ -1438,7 +1461,7 @@ export default function StaffDiary() {
             />
           </>
         )}
-      </ScrollView>
+      </TourScrollView>
 
       {/* Date picker for History tab */}
       <DiaryHistoryDatePickerSheet visible={pickerVisible} selectedYmd={historyDate} availableYmds={calendarAvailableYmds} onSelect={setHistoryDate} onClose={() => setPickerVisible(false)} subtitle={TE.calendarHint} />
@@ -1448,9 +1471,10 @@ export default function StaffDiary() {
       {/* ========================================================================= */}
       <Sheet
         visible={manualOpen}
-        onClose={() => setManualOpen(false)}
+        onClose={() => { setManualOpen(false); setEditingEntryId(null); }}
+        closeDisabled={busy}
         isDark={isDark}
-        title={reuseSource ? "Edit Homework" : "Write Homework"}
+        title={editingEntryId ? "Edit Homework" : "Write Homework"}
         subtitle="Students and parents will receive this in their diary"
         badge={current ? {
           text: `${classLabel(current)} • ${current.subject_name || 'General'}`,
@@ -1460,10 +1484,10 @@ export default function StaffDiary() {
         } : undefined}
       >
         {/* Sibling class sections multi-assign checkbox row */}
-        {siblingSections.length > 0 && (
+        {!editingEntryId && siblingSections.length > 0 && (
           <View style={styles.multiTargetWrap}>
             <Text style={[styles.multiTargetLabel, { color: theme.colors.textSecondary }]}>Also assign to:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {siblingSections.map((sec) => {
                 const isSelected = manualTargets.includes(sec.class_section_id);
                 return (
@@ -1500,7 +1524,7 @@ export default function StaffDiary() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </TourScrollView>
           </View>
         )}
 
@@ -1523,7 +1547,7 @@ export default function StaffDiary() {
         </View>
 
         <View style={styles.quickTagsRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
             {QUICK_TAGS.map((tag) => (
               <TouchableOpacity
                 key={tag.label}
@@ -1533,7 +1557,7 @@ export default function StaffDiary() {
                 <Text style={[styles.tagPillText, { color: isDark ? '#93C5FD' : '#2563EB' }]}>{tag.label}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </TourScrollView>
         </View>
 
         <AppTextInput
@@ -1598,7 +1622,7 @@ export default function StaffDiary() {
           <View style={styles.primaryBtn}>
             <LinearGradient colors={['#4F46E5', '#4338CA']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Text style={styles.primaryBtnText}>
-              {busy ? 'Sending…' : manualTargets.length > 0 ? `Post to ${manualTargets.length + 1} Classes` : 'Post Homework'}
+              {busy ? (editingEntryId ? 'Saving…' : 'Sending…') : editingEntryId ? 'Save Changes' : manualTargets.length > 0 ? `Post to ${manualTargets.length + 1} Classes` : 'Post Homework'}
             </Text>
           </View>
         </PressScale>
@@ -1622,11 +1646,11 @@ export default function StaffDiary() {
         } : undefined}
       >
         {photoUris.length > 1 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.confirmThumbs}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.confirmThumbs}>
             {photoUris.map((uri) => (
               <Image key={uri} source={{ uri }} style={styles.confirmThumb} />
             ))}
-          </ScrollView>
+          </TourScrollView>
         ) : photoUris[0] ? (
           <Image source={{ uri: photoUris[0] }} style={styles.previewImage} />
         ) : null}
@@ -1916,6 +1940,7 @@ export default function StaffDiary() {
         {recent.map((item) => (
           <PressScale key={`copy-${item.id}`} onPress={() => {
             setReuseSource(item);
+            setEditingEntryId(null);
             setManualTitle(item.title || '');
             setManualContent(item.content || '');
             setManualDue(toDateKey(item.homework_due_date) || todayYmd);
@@ -2185,14 +2210,14 @@ function Sheet({
 
             {/* Native Keyboard-Aware Scrollable Body */}
             {Platform.OS === 'web' ? (
-              <ScrollView
+              <TourScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 bounces={false}
                 contentContainerStyle={sheetStyles.scrollContent}
               >
                 {children}
-              </ScrollView>
+              </TourScrollView>
             ) : (
               <KeyboardAwareScrollView
                 showsVerticalScrollIndicator={false}

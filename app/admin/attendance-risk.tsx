@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -798,7 +799,7 @@ export default function AttendanceRiskScreen() {
       <View style={[styles.glowOrb, styles.glowOrb1, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.06)' }]} />
       <View style={[styles.glowOrb, styles.glowOrb2, { backgroundColor: isDark ? 'rgba(236,72,153,0.06)' : 'rgba(236,72,153,0.04)' }]} />
 
-      <AdminHeader title="Attendance Risk Intelligence" showBackButton={true} />
+      <TourTarget id="screen.admin-attendance-risk.overview"><AdminHeader title="Attendance Risk Intelligence" showBackButton={true} /></TourTarget>
 
       <FlatList
         ref={flatListRef}
@@ -890,7 +891,7 @@ export default function AttendanceRiskScreen() {
 
             {/* ─── Scope Bar: Lookback Days & Classes ─── */}
             <View style={styles.scopeBar}>
-              <ScrollView
+              <TourScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scopeScrollContent}
@@ -988,11 +989,11 @@ export default function AttendanceRiskScreen() {
                     })}
                   </View>
                 )}
-              </ScrollView>
+              </TourScrollView>
             </View>
 
             {/* ─── Frosted Glass Search Bar ─── */}
-            <View
+            <TourTarget id="screen.admin-attendance-risk.workspace" native><View
               style={[
                 styles.searchBar,
                 glassCard(isDark, false),
@@ -1023,11 +1024,11 @@ export default function AttendanceRiskScreen() {
                   </TouchableOpacity>
                 )}
               </View>
-            </View>
+            </View></TourTarget>
 
             {/* ─── Risk Tier Filter Chips ─── */}
             <View style={styles.filterSection}>
-              <ScrollView
+              <TourScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filterChipScroll}
@@ -1078,12 +1079,12 @@ export default function AttendanceRiskScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </TourScrollView>
             </View>
 
             {/* ─── Secondary Status Filter Row ─── */}
             <View style={styles.statusFilterSection}>
-              <ScrollView
+              <TourScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filterChipScroll}
@@ -1130,7 +1131,7 @@ export default function AttendanceRiskScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </TourScrollView>
             </View>
 
             {/* ─── Results Bar ─── */}
@@ -1465,7 +1466,7 @@ export default function AttendanceRiskScreen() {
             <Text style={[styles.inputLabel, { color: isDark ? '#A5B4FC' : '#4F46E5' }]}>
               Quick Action Presets
             </Text>
-            <ScrollView
+            <TourScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.quickNotesScroll}
@@ -1488,7 +1489,7 @@ export default function AttendanceRiskScreen() {
                   <Text style={[styles.quickNoteChipTxt, { color: isDark ? '#A5B4FC' : '#4F46E5' }]}>{qn}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </TourScrollView>
 
             {/* Notes TextInput */}
             <Text style={[styles.inputLabel, { color: isDark ? '#A5B4FC' : '#4F46E5' }]}>

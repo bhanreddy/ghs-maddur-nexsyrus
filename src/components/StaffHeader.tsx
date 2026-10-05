@@ -1,10 +1,11 @@
+import { AppTourHeaderButton, TourTarget } from '@/src/features/app-tour';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as Haptics from '../utils/haptics';
 import { useRouter } from 'expo-router';
 
-import MenuOverlay from './MenuOverlay';
+import StaffToolsDrawer from './StaffToolsDrawer';
 import ClayIconButton from './ClayIconButton';
 import { SCHOOL_NAME } from '../constants/school';
 import { schoolColorWithAlpha } from '../constants/schoolConfig';
@@ -116,16 +117,16 @@ const StaffHeader: React.FC<StaffHeaderProps> = ({
             {/* Soft gloss sweeping across the top of the clay slab. */}
             {isWeb ? <View pointerEvents="none" style={styles.claySheen} /> : null}
 
-            <View style={styles.contentRow}>
+            <TourTarget id="staff.navigation" native><View style={styles.contentRow}>
                 {/* Left: native = menu on home, back on inner; web = both when menu enabled */}
                 <View style={[styles.leftSection, showNavBack && showNavMenu && styles.leftSectionDual]}>
                     {showNavBack ? (
-                        <ClayIconButton onPress={runBack} isDark={isDark} accent={accent}>
+                        <ClayIconButton accessibilityLabel="Go back" size={44} onPress={runBack} isDark={isDark} accent={accent}>
                             <Ionicons name="arrow-back" size={19} color={accent} />
                         </ClayIconButton>
                     ) : null}
                     {showNavMenu ? (
-                        <ClayIconButton onPress={handleMenuPress} isDark={isDark} accent={accent}>
+                        <ClayIconButton accessibilityLabel="Open staff tools" size={44} onPress={handleMenuPress} isDark={isDark} accent={accent}>
                             <Feather name="menu" size={19} color={accent} />
                         </ClayIconButton>
                     ) : null}
@@ -149,30 +150,33 @@ const StaffHeader: React.FC<StaffHeaderProps> = ({
 
                 {/* Right: Actions */}
                 <View style={styles.rightSection}>
+                    <AppTourHeaderButton />
                     <ClayIconButton
+                        accessibilityLabel="Open notifications"
                         onPress={() => router.push('/notifications' as any)}
                         isDark={isDark}
                         accent={accent}
                         round
-                        size={40}
+                        size={44}
                     >
                         <Ionicons name="notifications-outline" size={18} color={accent} />
                     </ClayIconButton>
                     {showProfileButton && (
                         <ClayIconButton
+                            accessibilityLabel="Open staff settings"
                             onPress={() => router.push({ pathname: '/staff/settings', params: viewAsParams } as any)}
                             isDark={isDark}
                             accent={accent}
                             round
-                            size={40}
+                            size={44}
                         >
                             <Ionicons name="settings-outline" size={18} color={accent} />
                         </ClayIconButton>
                     )}
                 </View>
-            </View>
+            </View></TourTarget>
 
-            <MenuOverlay visible={menuVisible} onClose={() => setMenuVisible(false)} userType="staff" photoUrl={user?.photoUrl} />
+            {menuVisible && <StaffToolsDrawer onClose={() => setMenuVisible(false)} photoUrl={user?.photoUrl} />}
         </Animated.View>
     );
 };
@@ -203,14 +207,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: 54,
+        minHeight: 54,
+        gap: 8,
     },
     leftSection: {
-        width: 84,
+        width: 44,
         alignItems: 'flex-start',
     },
     leftSectionDual: {
-        width: 100,
+        width: 98,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
@@ -220,7 +225,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     rightSection: {
-        width: 92,
+        flexShrink: 0,
+        gap: 4,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'flex-end',

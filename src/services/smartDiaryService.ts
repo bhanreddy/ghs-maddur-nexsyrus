@@ -2,6 +2,9 @@ import { Platform } from 'react-native';
 import { api } from './apiClient';
 import type { DiaryExtraction } from '../utils/smartDiary/compose';
 
+// Freeze the selected staff identity across queued uploads and publishing.
+type DiaryRequestOptions = { _staffPortalId?: string };
+
 export type SmartCurrentClass = {
   class_section_id: string;
   class_name?: string;
@@ -135,12 +138,13 @@ export const SmartDiaryService = {
   renderTemplate: (id: string, values: Record<string, string>) =>
     api.post<{ content: string; name: string }>(`/diary/smart/templates/${id}/render`, { values }),
 
-  uploadPhotos: async (uris: string[]) => {
+  uploadPhotos: async (uris: string[], options: DiaryRequestOptions = {}) => {
     const form = new FormData();
     for (let index = 0; index < uris.length; index += 1) {
       appendFile(form, 'photos', uris[index], `diary-${index}.jpg`, 'image/jpeg');
     }
     return api.uploadFormData<{ attachments: string[]; can_send: boolean }>('/diary/smart/upload', form, {
+      ...options,
       silent: true,
       timeoutMs: 45000,
     });
@@ -162,28 +166,29 @@ export const SmartDiaryService = {
     return api.uploadFormData<ExtractResult>('/diary/smart/transcribe', form, { silent: true, timeoutMs: 90000 });
   },
 
-  publish: (data: Record<string, unknown>) =>
+  publish: (data: Record<string, unknown>, options: DiaryRequestOptions = {}) =>
     api.post<{ message: string; entries: { id: string; class_section_id: string; createdNew?: boolean; duplicate?: boolean }[]; results: unknown[] }>(
       '/diary/smart/publish',
       data,
-      { silent: true, timeoutMs: 45000 },
+      { ...options, silent: true, timeoutMs: 45000 },
     ),
 
   copy: (data: { source_id: string; class_section_ids: string[]; submission_ids?: string[]; subject_id?: string }) =>
     api.post('/diary/smart/copy', data, { silent: true }),
 
-  extractClassDiary: async (uri: string, context: Record<string, string | number | null | undefined> = {}) => {
+  extractClassDiary: async (uri: string, context: Record<string, string | number | null | undefined> = {}, options: DiaryRequestOptions = {}) => {
     const form = new FormData();
     appendContext(form, context);
     appendFile(form, 'photos', uri, 'class-diary.jpg', 'image/jpeg');
     return api.uploadFormData<ClassDiaryExtractResult>('/diary/smart/class-diary/extract', form, {
+      ...options,
       silent: true,
       timeoutMs: 90000,
     });
   },
 
-  publishClassDiary: (data: Record<string, unknown>) =>
-    api.post('/diary/smart/class-diary/publish', data, { silent: true, timeoutMs: 45000 }),
+  publishClassDiary: (data: Record<string, unknown>, options: DiaryRequestOptions = {}) =>
+    api.post('/diary/smart/class-diary/publish', data, { ...options, silent: true, timeoutMs: 45000 }),
 };
 
 function appendContext(form: FormData, context: Record<string, string | number | null | undefined>) {

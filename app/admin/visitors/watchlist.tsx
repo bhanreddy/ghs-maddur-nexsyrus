@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -100,7 +101,7 @@ export default function AdminWatchlistScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.admin-visitors-watchlist.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -111,9 +112,9 @@ export default function AdminWatchlistScreen() {
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Ionicons name="add" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.admin-visitors-watchlist.workspace" native><FlatList
         data={watchlist}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -191,7 +192,7 @@ export default function AdminWatchlistScreen() {
             </View>
           );
         }}
-      />
+      /></TourTarget>
 
       {/* Add to Watchlist Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -204,7 +205,7 @@ export default function AdminWatchlistScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <TourScrollView contentContainerStyle={styles.modalScroll}>
               <Text style={[styles.label, { color: subColor }]}>PERSON FULL NAME *</Text>
               <TextInput
                 style={[styles.input, { color: textColor, borderColor }]}
@@ -286,7 +287,7 @@ export default function AdminWatchlistScreen() {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </SafeAreaView>
         </View>
       </Modal>

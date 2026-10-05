@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -124,8 +125,8 @@ export default function SubscriptionScreen() {
 
   return (
     <View style={styles.screen}>
-      <AdminHeader title="Subscription & Billing" showNotification />
-      <ScrollView
+      <TourTarget id="screen.admin-subscription.overview"><AdminHeader title="Subscription & Billing" showNotification /></TourTarget>
+      <TourTarget id="screen.admin-subscription.workspace" native><TourScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.colors.primary} />}
       >
@@ -202,7 +203,7 @@ export default function SubscriptionScreen() {
             })}
           </>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

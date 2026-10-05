@@ -1,6 +1,8 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -11,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import AdminHeader from '../../src/components/AdminHeader';
+import HtmlPreview from '../../src/components/HtmlPreview';
+import { printAssessmentMarks } from '../../src/utils/assessmentMarksPrint';
 import { useAccountsWebChrome } from '../../src/contexts/AccountsWebChromeContext';
 import { useTheme } from '../../src/hooks/useTheme';
 import type { Theme } from '../../src/theme/themes';
@@ -18,6 +22,7 @@ import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import {
   AccountsMarksClassSection,
   AccountsMarksExam,
+  AccountsMarksPrintDocument,
   AccountsMarksResultFilter,
   AccountsMarksService,
 } from '../../src/services/accountsMarksService';
@@ -57,6 +62,10 @@ export default function AccountsMarksExportScreen() {
   const [rankingMethod, setRankingMethod] = useState<keyof typeof rankingLabels>('competition');
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [preparingPrint, setPreparingPrint] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [printDocument, setPrintDocument] = useState<AccountsMarksPrintDocument | null>(null);
+  const [printExamName, setPrintExamName] = useState('');
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -96,6 +105,7 @@ export default function AccountsMarksExportScreen() {
   const filteredClassCount = useMemo(() => new Set(filteredSections.map((section) => section.class_id)).size, [filteredSections]);
   const selectedResultLabel = resultFilters.find((option) => option.value === resultFilter)?.label || 'All students';
   const hasActiveFilters = Boolean(selectedClassId || selectedSectionId || resultFilter !== 'all');
+  const canPrintAssessment = selectedExam?.exam_type === 'fa_results' || selectedExam?.exam_type === 'sa_results';
 
   useEffect(() => {
     if (selectedClassId && !classOptions.some((option) => option.id === selectedClassId)) {
@@ -131,16 +141,46 @@ export default function AccountsMarksExportScreen() {
     }
   }, [resultFilter, selectedClassId, selectedExam, selectedSectionId]);
 
+  const previewPrint = useCallback(async () => {
+    if (!selectedExam) return;
+    try {
+      setPreparingPrint(true);
+      const document = await AccountsMarksService.getPrintDocument(selectedExam, {
+        classId: selectedClassId || undefined,
+        sectionId: selectedSectionId || undefined,
+        resultStatus: resultFilter,
+      });
+      setPrintExamName(selectedExam.name);
+      setPrintDocument(document);
+    } catch (requestError: any) {
+      alertCompat('Preview failed', requestError?.message || 'Could not prepare the assessment marks list.');
+    } finally {
+      setPreparingPrint(false);
+    }
+  }, [resultFilter, selectedClassId, selectedExam, selectedSectionId]);
+
+  const print = useCallback(async () => {
+    if (!printDocument) return;
+    try {
+      setPrinting(true);
+      await printAssessmentMarks(printDocument.html);
+    } catch (printError: any) {
+      alertCompat('Print failed', printError?.message || 'Could not print the assessment marks list.');
+    } finally {
+      setPrinting(false);
+    }
+  }, [printDocument]);
+
   return <View style={styles.screen}>
     <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
     {!shellActive && <AdminHeader title="School Marks Export" showBackButton />}
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <TourTarget id="screen.accounts-marks.workspace" native><TourScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}><Ionicons name="school-outline" size={27} color="#FFFFFF" /></View>
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>ACCOUNTS DEPARTMENT</Text>
-          <Text style={styles.title}>Download complete school marks</Text>
-          <Text style={styles.subtitle}>Select an exam to create one Excel workbook containing an overview and a separate marks sheet for every class and section.</Text>
+          <TourTarget id="screen.accounts-marks.overview" native><Text style={styles.title}>School marks — print & export</Text></TourTarget>
+          <Text style={styles.subtitle}>Print formative and summative assessment marks lists in the school register format, or download an Excel workbook for every class and section.</Text>
         </View>
       </View>
 
@@ -170,31 +210,41 @@ export default function AccountsMarksExportScreen() {
           </View>
           <View style={styles.filtersCard}>
             <View style={styles.filtersHeader}>
-              <View><Text style={styles.filtersTitle}>Export filters</Text><Text style={styles.filtersHint}>Filters apply to the Excel workbook.</Text></View>
+              <View><Text style={styles.filtersTitle}>Print & export filters</Text><Text style={styles.filtersHint}>Filters apply to the printed marks list and Excel workbook.</Text></View>
               {hasActiveFilters && <TouchableOpacity onPress={() => { setSelectedClassId(''); setSelectedSectionId(''); setResultFilter('all'); }}><Text style={styles.resetText}>Reset</Text></TouchableOpacity>}
             </View>
             <View style={styles.filterGroup}>
               <Text style={styles.filterLabel}>Class</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
                 <TouchableOpacity onPress={() => { setSelectedClassId(''); setSelectedSectionId(''); }} style={[styles.filterChip, !selectedClassId && styles.filterChipActive]}><Text style={[styles.filterChipText, !selectedClassId && styles.filterChipTextActive]}>All classes</Text></TouchableOpacity>
                 {classOptions.map((option) => <TouchableOpacity key={option.id} onPress={() => { setSelectedClassId(option.id); setSelectedSectionId(''); }} style={[styles.filterChip, selectedClassId === option.id && styles.filterChipActive]}><Text style={[styles.filterChipText, selectedClassId === option.id && styles.filterChipTextActive]}>{option.name}</Text></TouchableOpacity>)}
-              </ScrollView>
+              </TourScrollView>
             </View>
             <View style={styles.filterGroup}>
               <Text style={styles.filterLabel}>Section</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
                 <TouchableOpacity onPress={() => setSelectedSectionId('')} style={[styles.filterChip, !selectedSectionId && styles.filterChipActive]}><Text style={[styles.filterChipText, !selectedSectionId && styles.filterChipTextActive]}>All sections</Text></TouchableOpacity>
                 {sectionOptions.map((option) => <TouchableOpacity key={option.id} onPress={() => setSelectedSectionId(option.id)} style={[styles.filterChip, selectedSectionId === option.id && styles.filterChipActive]}><Text style={[styles.filterChipText, selectedSectionId === option.id && styles.filterChipTextActive]}>{option.name}</Text></TouchableOpacity>)}
-              </ScrollView>
+              </TourScrollView>
             </View>
             <View style={styles.filterGroup}>
               <Text style={styles.filterLabel}>Result status</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
                 {resultFilters.map((option) => <TouchableOpacity key={option.value} onPress={() => setResultFilter(option.value)} style={[styles.filterChip, resultFilter === option.value && styles.resultChipActive]}><Text style={[styles.filterChipText, resultFilter === option.value && styles.filterChipTextActive]}>{option.label}</Text></TouchableOpacity>)}
-              </ScrollView>
+              </TourScrollView>
             </View>
           </View>
           <View style={styles.infoBanner}><Ionicons name="information-circle-outline" size={18} color="#1D4ED8" /><Text style={styles.infoText}>The workbook includes matching active students with direct and component marks, grades, totals, percentages, original class ranks, absences, and incomplete-entry status.</Text></View>
+          {canPrintAssessment && <View style={styles.printCard}>
+            <Text style={styles.filtersTitle}>Assessment marks list</Text>
+            <Text style={styles.filtersHint}>{selectedExam?.exam_type === 'sa_results'
+              ? 'A4 landscape · Sample grades including A2. Classes 6–10 add the FA contribution to the entered exam marks, with subject totals, grand total, grade, GPA and rank.'
+              : 'A4 landscape · Class teacher & class/section · Sample grades including A2. Component papers include Res, Wri, Pro, ST, Total, 20% and G/GPA.'}</Text>
+            <TouchableOpacity accessibilityRole="button" disabled={preparingPrint} style={[styles.printButton, preparingPrint && styles.disabled]} onPress={previewPrint}>
+              {preparingPrint ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="print-outline" size={20} color="#FFFFFF" />}
+              <Text style={styles.downloadText}>{preparingPrint ? 'Preparing marks list…' : 'Preview & print marks list'}</Text>
+            </TouchableOpacity>
+          </View>}
           <TouchableOpacity disabled={downloading} style={[styles.downloadButton, downloading && styles.disabled]} onPress={download}>
             {downloading ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="download-outline" size={20} color="#FFFFFF" />}
             <Text style={styles.downloadText}>{downloading ? 'Creating marks workbook…' : hasActiveFilters ? 'Download filtered marks' : 'Download all classes & sections'}</Text>
@@ -213,7 +263,26 @@ export default function AccountsMarksExportScreen() {
           })}
         </View>
       </>}
-    </ScrollView>
+    </TourScrollView></TourTarget>
+    <Modal visible={printDocument !== null} animationType="slide" onRequestClose={() => setPrintDocument(null)}>
+      <View style={styles.previewScreen}>
+        <View style={styles.previewHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.filtersTitle}>{printExamName} — Print preview</Text>
+            <Text style={styles.filtersHint}>{printDocument?.student_count} students · {printDocument?.page_count} pages · A4 landscape</Text>
+          </View>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close print preview" onPress={() => setPrintDocument(null)} style={styles.closeButton}><Ionicons name="close" size={24} color={theme.colors.textStrong} /></TouchableOpacity>
+        </View>
+        {printDocument && <HtmlPreview html={printDocument.html} />}
+        <View style={styles.previewFooter}>
+          <Text style={styles.filtersHint}>Print at 100% scale on A4 landscape with browser headers and footers off. Choose Save as PDF in the print dialog to save a copy.</Text>
+          <TouchableOpacity accessibilityRole="button" disabled={printing} style={[styles.printButton, printing && styles.disabled]} onPress={print}>
+            {printing ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="print-outline" size={20} color="#FFFFFF" />}
+            <Text style={styles.downloadText}>{printing ? 'Opening print dialog…' : 'Print marks list'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   </View>;
 }
 
@@ -235,6 +304,11 @@ const createStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   filterGroup: { gap: 7 }, filterLabel: { color: theme.colors.textTertiary, fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .5 }, chipsRow: { gap: 7, paddingRight: 8 }, filterChip: { minHeight: 34, paddingHorizontal: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card }, filterChipActive: { borderColor: '#2563EB', backgroundColor: isDark ? 'rgba(37,99,235,.16)' : '#DBEAFE' }, resultChipActive: { borderColor: '#7C3AED', backgroundColor: isDark ? 'rgba(124,58,237,.16)' : '#EDE9FE' }, filterChipText: { color: theme.colors.textSecondary, fontSize: 10.5, fontWeight: '800' }, filterChipTextActive: { color: isDark ? '#DBEAFE' : '#1D4ED8' },
   infoBanner: { padding: 12, borderRadius: 13, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: isDark ? 'rgba(37,99,235,.12)' : '#EFF6FF' }, infoText: { flex: 1, color: isDark ? '#BFDBFE' : '#1E40AF', fontSize: 11.5, lineHeight: 17, fontWeight: '600' },
   downloadButton: { minHeight: 52, paddingHorizontal: 18, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#2563EB' }, downloadText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' }, disabled: { opacity: .58 },
+  printCard: { padding: 15, gap: 10, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+  printButton: { minHeight: 48, paddingHorizontal: 18, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#047857' },
+  previewScreen: { flex: 1, backgroundColor: theme.colors.background },
+  previewHeader: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  closeButton: { padding: 8 }, previewFooter: { padding: 18, gap: 12, borderTopWidth: 1, borderTopColor: theme.colors.border },
   listCard: { borderRadius: 22, overflow: 'hidden', backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border }, listHeader: { minHeight: 58, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: theme.colors.border }, listTitle: { color: theme.colors.textStrong, fontSize: 15, fontWeight: '900' }, listCount: { minWidth: 28, paddingVertical: 5, paddingHorizontal: 8, borderRadius: 10, overflow: 'hidden', textAlign: 'center', color: '#2563EB', fontSize: 11, fontWeight: '900', backgroundColor: isDark ? 'rgba(37,99,235,.15)' : '#DBEAFE' },
   examRow: { minHeight: 72, paddingHorizontal: 18, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }, examRowActive: { backgroundColor: isDark ? 'rgba(37,99,235,.09)' : '#F8FAFF' }, radio: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.colors.border }, radioActive: { borderColor: '#2563EB' }, radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#2563EB' }, examName: { color: theme.colors.textStrong, fontSize: 13, fontWeight: '800' }, examNameActive: { color: '#2563EB' }, examMeta: { marginTop: 4, color: theme.colors.textSecondary, fontSize: 10.5 }, publishedBadge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9, backgroundColor: isDark ? 'rgba(16,185,129,.14)' : '#D1FAE5' }, publishedText: { color: '#047857', fontSize: 9, fontWeight: '900' },
 });

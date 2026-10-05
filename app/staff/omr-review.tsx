@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -155,7 +156,7 @@ export default function OmrReviewScreen() {
 
   return (
     <View style={styles.root}>
-      <StaffHeader title="OMR Review & Verification" subtitle="Resolve ambiguous bubbles and flagged sheets" />
+      <TourTarget id="screen.staff-omr-review.overview"><StaffHeader title="OMR Review & Verification" subtitle="Resolve ambiguous bubbles and flagged sheets" /></TourTarget>
 
       {/* Top Exception Counter Banner */}
       <View style={styles.counterBanner}>
@@ -180,8 +181,8 @@ export default function OmrReviewScreen() {
       </View>
 
       {/* Filter Tabs */}
-      <View style={styles.filterRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+      <TourTarget id="screen.staff-omr-review.workspace" native><View style={styles.filterRow}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           {(['FLAGGED', 'ALL', 'LOW_CONFIDENCE', 'MULTIPLE', 'UNIDENTIFIED'] as FilterType[]).map((filter) => {
             const isActive = activeFilter === filter;
             return (
@@ -196,8 +197,8 @@ export default function OmrReviewScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
-      </View>
+        </TourScrollView>
+      </View></TourTarget>
 
       {/* Scans List */}
       {loading && !refreshing ? (
@@ -292,7 +293,7 @@ export default function OmrReviewScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <TourScrollView style={styles.modalBody}>
               {/* Question list with bubbles */}
               <Text style={styles.sectionHeader}>Detected Answers & Fill States</Text>
               <View style={styles.questionsGrid}>
@@ -388,7 +389,7 @@ export default function OmrReviewScreen() {
                   </TouchableOpacity>
                 </View>
               )}
-            </ScrollView>
+            </TourScrollView>
           </View>
         </View>
       </Modal>

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -393,7 +394,7 @@ export default function LMSPage() {
           ) : null}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContent}>
           {SUBJECTS.map((subject) => {
             const active = selectedSubject === subject;
             const tabMeta = SUBJECT_TAB[subject] ?? SUBJECT_TAB.All;
@@ -414,7 +415,7 @@ export default function LMSPage() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
 
         <View style={styles.sectionHeadingRow}>
           <View>
@@ -438,9 +439,9 @@ export default function LMSPage() {
   );
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.screen-lms.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.card} />
-      <StudentHeader showBackButton={true} title="LMS" />
+      <TourTarget id="screen.screen-lms.overview"><StudentHeader showBackButton={true} title="LMS" /></TourTarget>
 
       {loading ? (
         <View style={styles.loaderWrap}>
@@ -491,7 +492,7 @@ export default function LMSPage() {
         onClose={closeVideoModal}
         onProgressUpdated={refreshProgressMap}
       />
-    </View>
+    </View></TourTarget>
   );
 }
 

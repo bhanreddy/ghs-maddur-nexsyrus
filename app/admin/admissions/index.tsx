@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -573,18 +574,18 @@ export default function AdminAdmissionsPipelineScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader
+      <TourTarget id="screen.admin-admissions.overview"><AdminHeader
         title="Admission Pipeline"
         showBackButton
         rightAction={{
           icon: 'refresh-outline',
           onPress: () => fetchPipeline(true),
         }}
-      />
+      /></TourTarget>
 
       {/* Top Executive Control Bar */}
       <View style={styles.topControlBar}>
-        <ScrollView
+        <TourScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.actionButtonsScroll}
@@ -645,7 +646,7 @@ export default function AdminAdmissionsPipelineScreen() {
             <Ionicons name="download-outline" size={15} color="#4F46E5" />
             <Text style={styles.secondaryActionBtnText}>Export</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </TourScrollView>
 
         {/* View Mode Toggle Pill */}
         <View style={styles.viewModeToggle}>
@@ -687,7 +688,7 @@ export default function AdminAdmissionsPipelineScreen() {
 
       {/* Executive KPI Summary Bar (Compact, Fixed proportions to avoid layout stretching) */}
       <View style={styles.kpiWrapper}>
-        <ScrollView
+        <TourScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.kpiScrollContent}
@@ -825,12 +826,12 @@ export default function AdminAdmissionsPipelineScreen() {
               <Text style={styles.kpiSubText}>In Stage</Text>
             </View>
           ))}
-        </ScrollView>
+        </TourScrollView>
       </View>
 
       {/* Class / Grade Filter Bar (Crucial for Principals tracking seat capacity) */}
-      <View style={styles.classFilterBar}>
-        <ScrollView
+      <TourTarget id="admin.admissions.filters" native><View style={styles.classFilterBar}>
+        <TourScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.classFilterScroll}
@@ -874,14 +875,14 @@ export default function AdminAdmissionsPipelineScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
-      </View>
+        </TourScrollView>
+      </View></TourTarget>
 
       {/* Search & Active Filter Strip */}
-      <View style={styles.searchBarRow}>
+      <TourTarget id="screen.admin-admissions.workspace" native><View style={styles.searchBarRow}>
         <View style={styles.searchWrapper}>
           <Ionicons name="search" size={17} color="#94A3B8" style={{ marginRight: 8 }} />
-          <TextInput
+          <TourTarget id="admin.admissions.search" native event="admin.admissions.search"><TextInput
             style={styles.searchInput}
             placeholder="Search candidate name, app no, phone..."
             placeholderTextColor="#94A3B8"
@@ -889,7 +890,7 @@ export default function AdminAdmissionsPipelineScreen() {
             onChangeText={setSearchQuery}
             onSubmitEditing={() => fetchPipeline()}
             returnKeyType="search"
-          />
+          /></TourTarget>
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={18} color="#94A3B8" />
@@ -913,7 +914,7 @@ export default function AdminAdmissionsPipelineScreen() {
             <Ionicons name="close-circle" size={14} color="#6366F1" />
           </TouchableOpacity>
         )}
-      </View>
+      </View></TourTarget>
 
       {/* Principal Quick Attention Banner */}
       {needsDecisionCount > 0 && triageFilter !== 'NEEDS_DECISION' ? (
@@ -947,7 +948,7 @@ export default function AdminAdmissionsPipelineScreen() {
         </View>
       ) : viewMode === 'kanban' ? (
         /* KANBAN PIPELINE VIEW */
-        <ScrollView
+        <TourScrollView
           horizontal
           style={styles.kanbanScroll}
           contentContainerStyle={styles.kanbanContent}
@@ -991,7 +992,7 @@ export default function AdminAdmissionsPipelineScreen() {
               </View>
 
               {/* Cards Container */}
-              <ScrollView
+              <TourScrollView
                 style={styles.columnScroll}
                 contentContainerStyle={styles.columnCardsContainer}
                 showsVerticalScrollIndicator={false}
@@ -1004,13 +1005,13 @@ export default function AdminAdmissionsPipelineScreen() {
                 ) : (
                   stage.applications.map((app) => renderKanbanCard(app))
                 )}
-              </ScrollView>
+              </TourScrollView>
             </View>
           ))}
-        </ScrollView>
+        </TourScrollView>
       ) : (
         /* LIST VIEW */
-        <ScrollView
+        <TourScrollView
           style={styles.listScroll}
           contentContainerStyle={styles.listContent}
           refreshControl={
@@ -1028,7 +1029,7 @@ export default function AdminAdmissionsPipelineScreen() {
           ) : (
             filteredApplications.map((app) => renderListItem(app))
           )}
-        </ScrollView>
+        </TourScrollView>
       )}
 
       {/* QUICK DECISION MODAL FOR PRINCIPALS */}
@@ -1194,7 +1195,7 @@ export default function AdminAdmissionsPipelineScreen() {
             </View>
 
             <Text style={styles.decisionSectionLabel}>Select Target Stage:</Text>
-            <ScrollView style={{ maxHeight: 220 }}>
+            <TourScrollView style={{ maxHeight: 220 }}>
               {pipelineData?.pipeline?.map((stage) => {
                 const isSelected = selectedTargetStage === stage.stageCode || selectedTargetStage === stage.stageName;
                 return (
@@ -1222,7 +1223,7 @@ export default function AdminAdmissionsPipelineScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </TourScrollView>
 
             <Text style={[styles.decisionSectionLabel, { marginTop: 12 }]}>Transition Notes:</Text>
             <TextInput

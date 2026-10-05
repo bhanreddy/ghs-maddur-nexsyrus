@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -425,10 +426,10 @@ export default function AdminNotices() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      <AdminHeader title="Notices" showBackButton={true} hideAppSearch />
+      <TourTarget id="screen.admin-notices.overview"><AdminHeader title="Notices" showBackButton={true} hideAppSearch /></TourTarget>
 
       {/* Toolbar: search + compact stats */}
-      <View style={styles.toolbar}>
+      <TourTarget id="screen.admin-notices.workspace" native><View style={styles.toolbar}>
         <View style={[styles.searchContainer, ds.searchBarWrapper, searchFocused && styles.searchFocused]}>
           <Ionicons
             name="search-outline" size={16}
@@ -471,11 +472,11 @@ export default function AdminNotices() {
             ) : null}
           </View>
         ) : null}
-      </View>
+      </View></TourTarget>
 
       {/* Audience filter — single segmented track */}
       <View style={styles.filterWrap}>
-        <ScrollView
+        <TourScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRow}
@@ -512,7 +513,7 @@ export default function AdminNotices() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
       </View>
 
       {/* List */}
@@ -627,7 +628,7 @@ export default function AdminNotices() {
               </PressScale>
             </View>
 
-            <ScrollView
+            <TourScrollView
               style={styles.sheetScrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.sheetScroll}
@@ -722,7 +723,7 @@ export default function AdminNotices() {
 
                 {needsClass && (
                   <Animated.View entering={FadeInDown.duration(220)} style={{ marginTop: 10 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classRow}>
+                    <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classRow}>
                       {classes.map((cls) => {
                         const active = targetClassId === cls.id;
                         return (
@@ -735,7 +736,7 @@ export default function AdminNotices() {
                           </PressScale>
                         );
                       })}
-                    </ScrollView>
+                    </TourScrollView>
                     {attemptedSubmit && !classOk && (
                       <Text style={styles.fieldError}>Pick a class to continue</Text>
                     )}
@@ -788,7 +789,7 @@ export default function AdminNotices() {
                   inactiveColor={schoolColorWithAlpha(c.textMuted, 0.35)}
                 />
               </Pressable>
-            </ScrollView>
+            </TourScrollView>
 
             <View style={styles.stickyFooter}>
               {!canPublish && attemptedSubmit && (

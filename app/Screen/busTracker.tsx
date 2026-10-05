@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import { useTransportPolling } from '../../src/hooks/useTransportPolling';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
@@ -530,16 +531,16 @@ export default function StudentBusTrackerScreen() {
   return (
     <ScreenLayout>
       <StatusBar barStyle="dark-content" backgroundColor={C.white} />
-      <StudentHeader
+      <TourTarget id="screen.screen-bus-tracker.overview"><StudentHeader
         title={
           data.route_name
             ? t('busTracker.header_route', { route: data.route_name })
             : t('busTracker.title')
         }
-      />
+      /></TourTarget>
 
       {(loadError || liveError) && <Text accessibilityLiveRegion="polite" style={{ padding: 12, color: '#92400E' }}>Connection interrupted. Showing the last received update.</Text>}
-      <ScrollView
+      <TourTarget id="screen.screen-bus-tracker.workspace" native><TourScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -1106,7 +1107,7 @@ export default function StudentBusTrackerScreen() {
         </Animated.View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </ScreenLayout>
   );
 }

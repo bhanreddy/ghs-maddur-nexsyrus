@@ -1,3 +1,4 @@
+import { AppTourHeaderButton, TourTarget } from '@/src/features/app-tour';
 import React, { useState } from 'react';
 import { View, StyleSheet, Platform, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -157,7 +158,7 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
     const leftCount = 1 + (showNavBack ? 1 : 0) + (showNavMenu ? 1 : 0);
 
     return (
-        <Animated.View style={[
+        <TourTarget id={menuUserType === 'driver' ? 'driver.navigation' : menuUserType === 'staff' ? 'staff.navigation' : 'student.header'} native><Animated.View style={[
             styles.container,
             // On the student tabs the header sits inside a nested SafeAreaProvider
             // (ScreenLayout), so insets.top collapses to ~0 and the header rode up
@@ -205,6 +206,7 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
             </View>
 
             <View style={[styles.sideRegion, styles.rightRegion]}>
+                <AppTourHeaderButton color="#F4F0FB" />
                 {rightCount < leftCount ? <View style={styles.sideBalance} /> : null}
 
                 <ClayIconButton
@@ -255,7 +257,7 @@ const StudentHeader: React.FC<StudentHeaderProps & { showBackButton?: boolean, t
             {menuUserType !== 'student' && (
                 <MenuOverlay visible={menuVisible} onClose={() => setMenuVisible(false)} userType={menuUserType} photoUrl={user?.photoUrl} />
             )}
-        </Animated.View>
+        </Animated.View></TourTarget>
     );
 };
 
@@ -288,6 +290,8 @@ const styles = StyleSheet.create({
     },
     rightRegion: {
         justifyContent: 'flex-end',
+        flexBasis: 'auto',
+        flexGrow: 0,
     },
     sideBalance: {
         width: ICON_SIZE,

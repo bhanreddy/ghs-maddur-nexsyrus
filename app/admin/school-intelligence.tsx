@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -84,9 +85,9 @@ export default function AdminSchoolIntelligenceScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#080B14' : '#F1F5F9' }]}>
-      <AdminHeader title="School Intelligence Cockpit" />
+      <TourTarget id="screen.admin-school-intelligence.overview"><AdminHeader title="School Intelligence Cockpit" /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.admin-school-intelligence.workspace" native><TourScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -304,7 +305,7 @@ export default function AdminSchoolIntelligenceScreen() {
         </View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

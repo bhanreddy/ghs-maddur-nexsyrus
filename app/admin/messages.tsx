@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRequireRole } from '@/src/hooks/useRequireRole';
@@ -13,7 +14,7 @@ export default function AdminMessages() {
   const { t } = useTranslation();
 
   return (
-    <MessengerScreen
+    <TourTarget id="screen.admin-messages.overview" style={{ flex: 1 }}><TourTarget id="screen.admin-messages.workspace" style={{ flex: 1 }}><MessengerScreen
       title={t('messages.title', 'Messages')}
       canCreateGroup
       directoryTabs={[
@@ -28,6 +29,6 @@ export default function AdminMessages() {
           rightAction={{ icon: 'people-circle-outline', onPress: onCreateGroup }}
         />
       )}
-    />
+    /></TourTarget></TourTarget>
   );
 }

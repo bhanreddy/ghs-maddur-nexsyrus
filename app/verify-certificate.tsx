@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -86,9 +87,9 @@ export default function VerifyCertificateScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <TourTarget id="screen.verify-certificate.workspace" native><TourScrollView contentContainerStyle={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <TourTarget id="screen.verify-certificate.overview" native><View style={styles.header}>
           <View style={styles.badgeRow}>
             <Ionicons name="shield-checkmark" size={26} color="#2563eb" />
             <Text style={styles.appTitle}>SchoolIMS Verification Portal</Text>
@@ -97,7 +98,7 @@ export default function VerifyCertificateScreen() {
           <Text style={styles.pageSubtitle}>
             Verify official Transfer Certificates and Bonafide Certificates issued by SchoolIMS.
           </Text>
-        </View>
+        </View></TourTarget>
 
         {/* Search Box */}
         <View style={styles.searchCard}>
@@ -227,7 +228,7 @@ export default function VerifyCertificateScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </SafeAreaView>
   );
 }

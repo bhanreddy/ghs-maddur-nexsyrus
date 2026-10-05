@@ -1,3 +1,4 @@
+import { AppTourQuickAction, TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -83,8 +84,8 @@ export default function GatekeeperDashboard() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: bgColor }]}>
-      <ScrollView
+    <TourTarget id="screen.gatekeeper-dashboard.overview" native><View style={[styles.root, { backgroundColor: bgColor }]}>
+      <TourTarget id="screen.gatekeeper-dashboard.workspace" native><TourScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
@@ -105,7 +106,7 @@ export default function GatekeeperDashboard() {
         )}
 
         {/* Security Officer Header */}
-        <View style={styles.heroSection}>
+        <TourTarget id="gatekeeper.navigation" native><View style={styles.heroSection}>
           <View style={styles.officerRow}>
             <View>
               <Text style={[styles.greetingLabel, { color: subColor }]}>GATE OFFICER ON DUTY</Text>
@@ -118,7 +119,7 @@ export default function GatekeeperDashboard() {
               <Text style={styles.shiftText}>ACTIVE POST</Text>
             </View>
           </View>
-        </View>
+        </View></TourTarget>
 
         {/* PRIMARY SCAN BUTTON CTA */}
         <TouchableOpacity
@@ -381,8 +382,9 @@ export default function GatekeeperDashboard() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </View>
+        <AppTourQuickAction portal="gatekeeper" />
+      </TourScrollView></TourTarget>
+    </View></TourTarget>
   );
 }
 

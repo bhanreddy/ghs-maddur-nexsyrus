@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -228,13 +229,13 @@ export default function SyllabusScreen() {
 
   return (
     <View style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
-      <AdminHeader
+      <TourTarget id="screen.admin-syllabus.overview"><AdminHeader
         title="Syllabus Tracker"
         rightAction={{
           icon: 'refresh-outline',
           onPress: onRefresh,
         }}
-      />
+      /></TourTarget>
 
       <FlatList
         data={filteredOverview}
@@ -294,7 +295,7 @@ export default function SyllabusScreen() {
             </View>
 
             {/* Search Input */}
-            <View
+            <TourTarget id="screen.admin-syllabus.workspace" native><View
               style={[
                 styles.searchContainer,
                 isDark ? styles.searchContainerDark : styles.searchContainerLight,
@@ -313,7 +314,7 @@ export default function SyllabusScreen() {
                   <Ionicons name="close-circle" size={18} color={isDark ? '#64748b' : '#94a3b8'} />
                 </TouchableOpacity>
               )}
-            </View>
+            </View></TourTarget>
 
             {/* Dynamic Class Cohort Filter Chips */}
             <View style={styles.filterSection}>
@@ -624,7 +625,7 @@ export default function SyllabusScreen() {
                 </Text>
               </View>
             ) : (
-              <ScrollView style={styles.chaptersScroll}>
+              <TourScrollView style={styles.chaptersScroll}>
                 {chapters.map((ch) => (
                   <View
                     key={ch.id}
@@ -685,7 +686,7 @@ export default function SyllabusScreen() {
                     )}
                   </View>
                 ))}
-              </ScrollView>
+              </TourScrollView>
             )}
 
             {/* Footer button to Add Chapter */}

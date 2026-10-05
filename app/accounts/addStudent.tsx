@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, Text, StatusBar, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -340,12 +341,12 @@ export default function AddStudentScreen() {
     : STUDENT_STATUSES.filter((status) => status.code === 'active');
 
   return (
-    <FormCanvas isDark={isDark}>
+    <TourTarget id="screen.accounts-add-student.overview" style={{ flex: 1 }}><FormCanvas isDark={isDark}>
     <View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       {!shellActive && <AdminHeader title={isEditMode ? 'Edit Student' : 'Add Student'} showBackButton />}
 
-      <KeyboardAwareScreen
+      <TourTarget id="screen.accounts-add-student.workspace" style={{ flex: 1 }}><KeyboardAwareScreen
         variant="scroll"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -696,7 +697,7 @@ export default function AddStudentScreen() {
             hint={!isEditMode ? 'Students use this password for first login' : undefined}
           />
         </SectionCard>
-      </KeyboardAwareScreen>
+      </KeyboardAwareScreen></TourTarget>
 
       <StickySaveBar
         loading={loading}
@@ -714,6 +715,6 @@ export default function AddStudentScreen() {
         onClose={() => { setEnrolledForm(null); router.back(); }}
       />
     </View>
-    </FormCanvas>
+    </FormCanvas></TourTarget>
   );
 }

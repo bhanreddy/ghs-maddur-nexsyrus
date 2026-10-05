@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform, Pressable, Modal, ScrollView, TouchableOpacity } from 'react-native';
 import {
@@ -1068,12 +1069,12 @@ const TimeTableScreen = () => {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0B1020' : '#EFF2F9' }]}>
+    <TourTarget id="screen.staff-timetable.overview" native><View style={[styles.container, { backgroundColor: isDark ? '#0B1020' : '#EFF2F9' }]}>
       {/* Background Sparkles */}
       <FloatingElement delay={0} top={height * 0.11} left={width * 0.76} size={42} color={isDark ? '#6366F1' : '#BFCFFE'} opacity={0.30} />
       <FloatingElement delay={900} top={height * 0.54} left={width * 0.07} size={52} color={isDark ? '#A855F7' : '#DDD6FE'} opacity={0.20} />
 
-      <Animated.ScrollView
+      <TourTarget id="screen.staff-timetable.workspace" style={{ flex: 1 }}><Animated.ScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
@@ -1519,7 +1520,7 @@ const TimeTableScreen = () => {
         }
         </>
         )}
-      </Animated.ScrollView>
+      </Animated.ScrollView></TourTarget>
 
       {editSlot && (
         <SyllabusEditorModal
@@ -1532,7 +1533,7 @@ const TimeTableScreen = () => {
           }}
         />
       )}
-    </View>);
+    </View></TourTarget>);
 
 };
 

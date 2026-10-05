@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +18,7 @@ export default function StaffMessages() {
   const { isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
 
   return (
-    <MessengerScreen
+    <TourTarget id="screen.staff-messages.overview" style={{ flex: 1 }}><TourTarget id="screen.staff-messages.workspace" style={{ flex: 1 }}><MessengerScreen
       title={t('messages.title', 'Messages')}
       pinAdminInDirectory
       directoryTabs={[
@@ -35,6 +36,6 @@ export default function StaffMessages() {
           {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
         </View>
       )}
-    />
+    /></TourTarget></TourTarget>
   );
 }

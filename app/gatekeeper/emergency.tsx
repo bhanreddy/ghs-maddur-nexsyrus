@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -128,7 +129,7 @@ export default function GatekeeperEmergencyScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.gatekeeper-emergency.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -136,9 +137,9 @@ export default function GatekeeperEmergencyScreen() {
           <Text style={[styles.headerTitle, { color: textColor }]}>Emergency Muster Roll</Text>
           <Text style={[styles.headerSub, { color: subColor }]}>Live Evacuation Accounting</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
-      <FlatList
+      <TourTarget id="screen.gatekeeper-emergency.workspace" native><FlatList
         data={muster}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -304,7 +305,7 @@ export default function GatekeeperEmergencyScreen() {
             </View>
           );
         }}
-      />
+      /></TourTarget>
     </SafeAreaView>
   );
 }

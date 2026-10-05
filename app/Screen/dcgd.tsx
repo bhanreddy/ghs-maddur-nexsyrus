@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -220,9 +221,9 @@ const DCGDScreen = () => {
 
   return (
     <ScreenLayout>
-      <StudentHeader showBackButton title="Career Growth & Development" />
+      <TourTarget id="screen.screen-dcgd.overview"><StudentHeader showBackButton title="Career Growth & Development" /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.screen-dcgd.workspace" native><TourScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingHorizontal: padH, paddingBottom: 56 }]}
       >
@@ -414,7 +415,7 @@ const DCGDScreen = () => {
           </Animated.View>
 
         </View>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </ScreenLayout>
   );
 };

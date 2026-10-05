@@ -10,6 +10,7 @@ import { schoolColorWithAlpha } from '../constants/schoolConfig';
 
 interface ClayIconButtonProps {
     onPress: () => void;
+    accessibilityLabel?: string;
     /** Renders a dark, deep-set puck (for dark surfaces/themes) instead of a pearl-light one. */
     isDark: boolean;
     /** Brand tint driving the colored shadow — keeps the glow on-brand instead of generic gray/black. */
@@ -23,6 +24,7 @@ interface ClayIconButtonProps {
 
 export default function ClayIconButton({
     onPress,
+    accessibilityLabel,
     isDark,
     accent,
     round = false,
@@ -52,6 +54,8 @@ export default function ClayIconButton({
     return (
         <Pressable
             onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel}
             hitSlop={6}
             style={({ pressed }) => [
                 {

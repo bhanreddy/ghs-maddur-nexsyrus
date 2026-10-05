@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Image,
@@ -710,15 +711,15 @@ export default function StudentPortfolioScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <StaffHeader
+      <TourTarget id="screen.staff-student-portfolio.overview"><StaffHeader
         title={isCompact && compactDetailOpen && detail ? detail.student.display_name : 'Student Portfolio'}
         subtitle={isCompact && compactDetailOpen && detail
           ? `Class ${detail.student.class_name}-${detail.student.section_name} · Roll ${display(detail.student.roll_number)}`
           : 'First-class student records'}
         showBackButton={isCompact && compactDetailOpen}
         onBack={isCompact && compactDetailOpen ? closeCompactDetail : undefined}
-      />
-      <ScrollView
+      /></TourTarget>
+      <TourTarget id="screen.staff-student-portfolio.workspace" native><TourScrollView
         ref={pageScrollRef}
         contentContainerStyle={[styles.page, isCompact && styles.pageCompact]}
         keyboardShouldPersistTaps="handled"
@@ -787,7 +788,7 @@ export default function StudentPortfolioScreen() {
             <View style={{ flex: 1, minWidth: 0 }}>{detailPane}</View>
           </View>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

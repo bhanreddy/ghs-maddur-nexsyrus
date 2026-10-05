@@ -1,0 +1,38 @@
+{
+  "overview": {
+    "en": "Overview and planning",
+    "te": "సారాంశం మరియు ప్రణాళిక"
+  },
+  "learning": {
+    "en": "Learning and academics",
+    "te": "అభ్యాసం మరియు విద్య"
+  },
+  "people": {
+    "en": "People and admissions",
+    "te": "వ్యక్తులు మరియు ప్రవేశాలు"
+  },
+  "finance": {
+    "en": "Fees and finance",
+    "te": "ఫీజులు మరియు ఆర్థికం"
+  },
+  "communication": {
+    "en": "Messages and content",
+    "te": "సందేశాలు మరియు విషయాలు"
+  },
+  "services": {
+    "en": "Transport and student services",
+    "te": "రవాణా మరియు విద్యార్థి సేవలు"
+  },
+  "analytics": {
+    "en": "Insights and reports",
+    "te": "విశ్లేషణ మరియు నివేదికలు"
+  },
+  "security": {
+    "en": "Gate and security",
+    "te": "గేట్ మరియు భద్రత"
+  },
+  "account": {
+    "en": "Account and settings",
+    "te": "ఖాతా మరియు సెట్టింగ్‌లు"
+  }
+}

@@ -40,18 +40,38 @@ export interface AccountsMarksContext {
   ranking_method: ResultRankingMethod;
 }
 
+export interface AccountsMarksPrintDocument {
+  html: string;
+  page_count: number;
+  student_count: number;
+}
+
+const exportParams = (filters: AccountsMarksExportFilters) => {
+  const params = new URLSearchParams({ result_status: filters.resultStatus });
+  if (filters.classId) params.set('class_id', filters.classId);
+  if (filters.sectionId) params.set('section_id', filters.sectionId);
+  return params;
+};
+
 export const AccountsMarksService = {
   getContext: (): Promise<AccountsMarksContext> =>
     api.get('/results/accounts/marks-export/context', undefined, { silent: true }),
+
+  getPrintDocument: (
+    exam: AccountsMarksExam,
+    filters: AccountsMarksExportFilters,
+  ): Promise<AccountsMarksPrintDocument> => {
+    const params = exportParams(filters);
+    params.set('format', 'print');
+    return api.get(`/results/accounts/exams/${exam.id}/marks/export?${params.toString()}`, undefined, { silent: true });
+  },
 
   exportSchoolMarks: async (
     exam: AccountsMarksExam,
     filters: AccountsMarksExportFilters,
   ): Promise<void> => {
     const safeExam = exam.name.replace(/[^A-Za-z0-9_-]+/g, '-');
-    const params = new URLSearchParams({ result_status: filters.resultStatus });
-    if (filters.classId) params.set('class_id', filters.classId);
-    if (filters.sectionId) params.set('section_id', filters.sectionId);
+    const params = exportParams(filters);
     return api.downloadFile(
       `/results/accounts/exams/${exam.id}/marks/export?${params.toString()}`,
       `${safeExam || 'exam'}-filtered-marks.xlsx`,

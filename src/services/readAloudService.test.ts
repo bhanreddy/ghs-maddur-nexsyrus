@@ -1,4 +1,6 @@
-import { buildSpeechSegments, detectSpeechLanguage } from './readAloudService';
+import * as Speech from 'expo-speech';
+jest.mock('expo-speech', () => ({ stop: jest.fn().mockResolvedValue(undefined), speak: jest.fn(), getAvailableVoicesAsync: jest.fn().mockResolvedValue([{ language: 'en-IN', identifier: 'english', name: 'English' }]), VoiceQuality: { Enhanced: 'Enhanced' } }));
+import { buildSpeechSegments, detectSpeechLanguage, readAloudService } from './readAloudService';
 
 describe('readAloudService language selection', () => {
   it('selects an English India voice for English card content', () => {
@@ -24,4 +26,15 @@ describe('readAloudService language selection', () => {
       { text: 'School holiday tomorrow', language: 'en-IN' },
     ]);
   });
+});
+
+test('late stop completion cannot erase a newer read-aloud request', async () => {
+  await readAloudService.toggle('first', ['First reading.']);
+  let resolve!: () => void;
+  (Speech.stop as jest.Mock).mockReturnValueOnce(new Promise<void>(done => { resolve = done; }));
+  const oldStop = readAloudService.stop('first');
+  await readAloudService.toggle('second', ['Second reading.']);
+  resolve(); await oldStop;
+  expect(readAloudService.getSnapshot().activeId).toBe('second');
+  await readAloudService.stop('second');
 });

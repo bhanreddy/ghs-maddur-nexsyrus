@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import KeyboardAwareScreen from '@/components/keyboard/KeyboardAwareScreen';
@@ -962,7 +963,7 @@ export default function StaffComplaints() {
         end={{ x: 0.55, y: 1 }}
       />
 
-      <StaffHeader title="Complaints & Remarks" showBackButton />
+      <TourTarget id="screen.staff-complaints.overview"><StaffHeader title="Complaints & Remarks" showBackButton /></TourTarget>
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
       <KeyboardAwareScreen
@@ -1099,7 +1100,7 @@ export default function StaffComplaints() {
             style={[isDesktop && ms.controlsPanel, isDesktop && (clayCard(isDark, 'sm') as any)]}
           >
             <View style={[ms.controlsRow, isDesktop && ms.controlsRowDesktop]}>
-              <View style={[
+              <TourTarget id="screen.staff-complaints.workspace" native><View style={[
                 ms.searchWrap,
                 isDesktop && ms.searchWrapDesktop,
                 clayInset(isDark, searchFocused) as any,
@@ -1122,9 +1123,9 @@ export default function StaffComplaints() {
                     </View>
                   </PressScale>
                 )}
-              </View>
+              </View></TourTarget>
 
-              <ScrollView
+              <TourScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={[ms.filterScroller, isDesktop && ms.filterScrollerDesktop]}
@@ -1175,7 +1176,7 @@ export default function StaffComplaints() {
                   </PressScale>
                 );
               })}
-              </ScrollView>
+              </TourScrollView>
             </View>
           </Animated.View>
 
@@ -1458,7 +1459,7 @@ export default function StaffComplaints() {
                       {classSections.length > 0 ? (
                         <>
                           <Text style={[ms.fieldLabel, { color: isDark ? '#CBD5E1' : '#334155', fontFamily: FONT }]}>Class</Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ms.classChipRow}>
+                          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ms.classChipRow}>
                             {classSections.map((section) => {
                               const active = selectedClassSectionId === section.class_section_id;
                               return (
@@ -1480,7 +1481,7 @@ export default function StaffComplaints() {
                                 </PressScale>
                               );
                             })}
-                          </ScrollView>
+                          </TourScrollView>
                           <View style={ms.classHeaderRow}>
                             <Text style={[ms.classLabel, { color: isDark ? '#CBD5E1' : '#475569', fontFamily: FONT }]}>
                               {classStudents.length} student{classStudents.length === 1 ? '' : 's'}
@@ -1520,7 +1521,7 @@ export default function StaffComplaints() {
                           </Text>
                         </View>
                       ) : (
-                        <ScrollView
+                        <TourScrollView
                           horizontal
                           showsHorizontalScrollIndicator={false}
                           nestedScrollEnabled
@@ -1566,7 +1567,7 @@ export default function StaffComplaints() {
                               </PressScale>
                             );
                           })}
-                        </ScrollView>
+                        </TourScrollView>
                       )}
                     </View>
                   )}
@@ -1575,7 +1576,7 @@ export default function StaffComplaints() {
             {wizardStep === 2 && (
               <Animated.View entering={FadeIn.duration(220)}>
                 <StepHeader step={2} title="What happened?" subtitle="Pick a type or write your own" isDark={isDark} done={titleReady && descReady} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
+                <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 14 }}>
                   {INCIDENT_PRESETS.map((preset) => {
                     const active = selectedPreset === preset.key;
                     return (
@@ -1592,7 +1593,7 @@ export default function StaffComplaints() {
                       </PressScale>
                     );
                   })}
-                </ScrollView>
+                </TourScrollView>
                 <FormField
                   label="Incident title"
                   required

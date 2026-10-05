@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import { useTransportPolling } from '../../src/hooks/useTransportPolling';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -69,13 +70,13 @@ export default function AdminLiveBusTracking() {
   const location = data?.location ? { ...data.location, age_seconds: age ?? 0, is_fresh: isLive && age != null && age <= 120 } : null;
 
   return (
-    <View style={[s.page, { backgroundColor: theme.colors.background }]}> 
-      <AdminHeader title="Live bus tracking" showBackButton />
+    <TourTarget id="screen.admin-live-bus-tracking.workspace" native><View style={[s.page, { backgroundColor: theme.colors.background }]}>
+      <TourTarget id="screen.admin-live-bus-tracking.overview"><AdminHeader title="Live bus tracking" showBackButton /></TourTarget>
       {error && <Text accessibilityLiveRegion="polite" style={{ padding: 12, color: '#92400E' }}>{error}</Text>}
       {loading && !data ? (
         <View style={s.loader}><LogoLoader size={52} color={theme.colors.primary} /></View>
       ) : (
-        <ScrollView
+        <TourScrollView
           contentContainerStyle={s.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
         >
@@ -134,9 +135,9 @@ export default function AdminLiveBusTracking() {
           </View>
 
           <Text style={[s.note, { color: theme.colors.textSecondary }]}>The map refreshes every 5 seconds while this screen is open. Automatic stop updates are driven by the same live GPS feed.</Text>
-        </ScrollView>
+        </TourScrollView>
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 

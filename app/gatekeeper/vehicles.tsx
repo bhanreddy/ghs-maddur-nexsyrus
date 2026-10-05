@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, StyleSheet, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -44,10 +45,10 @@ export default function VehicleEntryScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <View style={styles.header}>
+      <TourTarget id="screen.gatekeeper-vehicles.overview" native><View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={22} color={text} /></TouchableOpacity>
         <Text style={[styles.title, { color: text }]}>Vehicle Entry</Text>
-      </View>
+      </View></TourTarget>
       <View style={[styles.form, { backgroundColor: card }]}>
         <TextInput value={registrationNumber} onChangeText={setRegistrationNumber} autoCapitalize="characters" placeholder="KA-01-AB-1234" placeholderTextColor={sub} style={[styles.input, { color: text }]} />
         <View style={styles.types}>
@@ -59,7 +60,7 @@ export default function VehicleEntryScreen() {
         </View>
         <TouchableOpacity style={styles.cta} onPress={logEntry}><Text style={styles.ctaText}>Log vehicle in</Text></TouchableOpacity>
       </View>
-      <FlatList
+      <TourTarget id="screen.gatekeeper-vehicles.workspace" native><FlatList
         data={rows}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -70,7 +71,7 @@ export default function VehicleEntryScreen() {
             <Text style={{ color: sub }}>{item.vehicle_type} · {item.visitor_name || 'Unlinked'}</Text>
           </View>
         )}
-      />
+      /></TourTarget>
     </View>
   );
 }

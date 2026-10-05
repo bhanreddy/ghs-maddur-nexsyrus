@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import ScreenLayout from '../../src/components/ScreenLayout';
@@ -17,10 +18,10 @@ const ExamLinksScreen = () => {
   return <ScreenLayout>
 
     {/* ===== HEADER ===== */}
-    <StudentHeader showBackButton={true} title="Exams" />
+    <TourTarget id="screen.screen-exam-links.overview"><StudentHeader showBackButton={true} title="Exams" /></TourTarget>
 
     {/* ===== CONTENT ===== */}
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+    <TourTarget id="screen.screen-exam-links.workspace" native><TourScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
 
       {/* TITLE */}
       <Text style={styles.pageTitle}>Important Exam Links</Text>
@@ -48,7 +49,7 @@ const ExamLinksScreen = () => {
         </TouchableOpacity>;
       })}
 
-    </ScrollView>
+    </TourScrollView></TourTarget>
 
   </ScreenLayout>;
 };

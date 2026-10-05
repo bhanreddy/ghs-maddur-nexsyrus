@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
@@ -403,7 +404,7 @@ export default function ReceiptsScreen() {
     </Animated.View>;
   };
 
-  return <View style={styles.container}>
+  return <TourTarget id="screen.accounts-receipts.overview" native><View style={styles.container}>
     <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#0F1117' : '#FFFFFF'} />
     {!shellActive && <AdminHeader title="Receipts" showBackButton={true} />}
     <View style={styles.content}>
@@ -553,7 +554,7 @@ export default function ReceiptsScreen() {
           {canPickCollector ? (
             <View style={{ zIndex: 2 }}>
               <Text style={[styles.filterLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280' }]}>ACCOUNTANT</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                 <TouchableOpacity
                   style={[
                     styles.collectorChip,
@@ -642,7 +643,7 @@ export default function ReceiptsScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </TourScrollView>
             </View>
           ) : (
             <Text style={[styles.selfCollectorNote, { zIndex: 2, color: isDark ? 'rgba(255,255,255,0.5)' : '#6B7280' }]}>
@@ -729,7 +730,7 @@ export default function ReceiptsScreen() {
       </Pressable>
 
       {/* Search Bar */}
-      <View
+      <TourTarget id="screen.accounts-receipts.workspace" native><View
         style={[
           styles.searchContainerFrame,
           searchFocused && styles.searchContainerFrameFocused
@@ -751,7 +752,7 @@ export default function ReceiptsScreen() {
             color={searchFocused ? '#3B82F6' : (isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF')}
             style={styles.searchIcon}
           />
-          <AppTextInput
+          <TourTarget id="accounts.receipts.search" native event="accounts.receipts.search"><AppTextInput
             style={[ds.inputInChrome, styles.searchInput, { zIndex: 2 }]}
             placeholder="Search by receipt no, name, or admission no"
             placeholderTextColor={isDark ? 'rgba(255,255,255,0.25)' : '#9CA3AF'}
@@ -759,13 +760,13 @@ export default function ReceiptsScreen() {
             onChangeText={setSearchQuery}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
-          />
+          /></TourTarget>
         </View>
-      </View>
+      </View></TourTarget>
 
       {/* Filters */}
       <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+        <TourTarget id="accounts.receipts.filters" native><TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
           {filters.map((filter, index) => {
             const active = selectedFilter === filter;
             return (
@@ -819,7 +820,7 @@ export default function ReceiptsScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView></TourTarget>
       </View>
 
       {loading ? (
@@ -839,7 +840,7 @@ export default function ReceiptsScreen() {
         />
       )}
     </View>
-  </View>;
+  </View></TourTarget>;
 }
 const getStyles = (theme: Theme, isDark: boolean) => StyleSheet.create({
   container: {

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -201,8 +202,8 @@ export default function WebsiteGalleryScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <AdminHeader title="Website Gallery" showBackButton />
-      <ScrollView
+      <TourTarget id="screen.admin-website-gallery.overview"><AdminHeader title="Website Gallery" showBackButton /></TourTarget>
+      <TourTarget id="screen.admin-website-gallery.workspace" native><TourScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         refreshControl={(
@@ -249,7 +250,7 @@ export default function WebsiteGalleryScreen() {
 
             {!!selected.length && (
               <>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.previewRow}>
+                <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.previewRow}>
                   {selected.map((photo, index) => (
                     <View key={`${photo.uri}-${index}`} style={styles.previewWrap}>
                       <Image source={{ uri: photo.uri }} style={styles.previewImage} />
@@ -262,7 +263,7 @@ export default function WebsiteGalleryScreen() {
                       </TouchableOpacity>
                     </View>
                   ))}
-                </ScrollView>
+                </TourScrollView>
 
                 <Text style={styles.fieldLabel}>Category</Text>
                 <View style={styles.chipRow}>
@@ -379,7 +380,7 @@ export default function WebsiteGalleryScreen() {
             </View>
           )}
         </ResponsiveCard>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

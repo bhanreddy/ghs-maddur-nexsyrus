@@ -3,12 +3,11 @@ import {
     View,
     Text,
     StyleSheet,
-    Dimensions,
+    useWindowDimensions,
     Platform,
-    ViewStyle,
     TouchableOpacity,
 } from 'react-native';
-import { GestureDetector, Gesture, Pressable } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -19,11 +18,9 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useTheme } from '../hooks/useTheme';
 import { HapticFeedback } from '../utils/animations';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
-const IS_WEB = Platform.OS === 'web';
 
 export interface StudentCardData {
     id: string;
@@ -35,7 +32,7 @@ export interface StudentCardData {
     consecutiveAbsenceDays?: number;
     absenceStreakStartDate?: string | null;
     absenceStreakEndDate?: string | null;
-    absenceStreakDates?: Array<{ date: string; status: string }>;
+    absenceStreakDates?: { date: string; status: string }[];
     monthlyAttendancePercentage?: number | null;
     absenceRiskLevel?: string | null;
     isIrregular?: boolean;
@@ -47,6 +44,7 @@ interface Props {
     onStatusChange: (id: string, status: 'present' | 'absent' | 'unmarked') => void;
     onPressStreak?: (student: StudentCardData) => void;
     isDark?: boolean;
+    disabled?: boolean;
 }
 
 function formatDateLabel(dateStr?: string | null): string {
@@ -63,37 +61,17 @@ function formatDateLabel(dateStr?: string | null): string {
     }
 }
 
-function clayCard(isDark: boolean): ViewStyle {
-    const base = isDark ? '#1E293B' : '#FFFFFF';
-    return {
-        backgroundColor: base,
-        borderRadius: 18,
-        borderWidth: 1,
-        borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#E7EBF0',
-        ...(Platform.select({
-            ios: {
-                shadowColor: isDark ? '#000' : '#64748B',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: isDark ? 0.4 : 0.08,
-                shadowRadius: 12,
-            },
-            android: { elevation: 3 },
-            web: {
-                boxShadow: isDark
-                    ? '0 6px 20px rgba(0,0,0,0.4)'
-                    : '0 4px 16px rgba(100,116,139,0.1)',
-            } as object,
-            default: {},
-        })),
-    };
-}
-
 const SwipeableStudentCard: React.FC<Props> = ({
     student,
     onStatusChange,
     onPressStreak,
     isDark = false,
+    disabled = false,
 }) => {
+    const { theme } = useTheme();
+    const { width, fontScale } = useWindowDimensions();
+    const compact = width < 500 || fontScale > 1.3;
+    const swipeThreshold = Math.min(width, 900) * 0.28;
     const translateX = useSharedValue(0);
     const status = student.status;
     const styles = useMemo(() => getStyles(isDark), [isDark]);
@@ -114,11 +92,11 @@ const SwipeableStudentCard: React.FC<Props> = ({
 
     const statusColors = useMemo(
         () => ({
-            unmarked: isDark ? '#1E293B' : '#FFFFFF',
+            unmarked: theme.colors.surface,
             present: isDark ? 'rgba(5,150,105,0.16)' : '#ECFDF5',
             absent: isDark ? 'rgba(225,29,72,0.16)' : '#FFF1F2',
         }),
-        [isDark]
+        [isDark, theme.colors.surface]
     );
 
     const handlePresentPress = useCallback(() => {
@@ -160,16 +138,17 @@ const SwipeableStudentCard: React.FC<Props> = ({
     }, [status, translateX]);
 
     const panGesture = Gesture.Pan()
+        .enabled(!disabled)
         .activeOffsetX([-20, 20])
         .failOffsetY([-12, 12])
         .onUpdate((event) => {
             translateX.value = event.translationX;
         })
         .onEnd(() => {
-            if (translateX.value > SWIPE_THRESHOLD) {
+            if (translateX.value > swipeThreshold) {
                 runOnJS(HapticFeedback.success)();
                 runOnJS(onStatusChange)(student.id, 'present');
-            } else if (translateX.value < -SWIPE_THRESHOLD) {
+            } else if (translateX.value < -swipeThreshold) {
                 runOnJS(HapticFeedback.error)();
                 runOnJS(onStatusChange)(student.id, 'absent');
             }
@@ -186,7 +165,7 @@ const SwipeableStudentCard: React.FC<Props> = ({
 
         const backgroundColor = interpolateColor(
             translateX.value,
-            [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+            [-width, 0, width],
             [statusColors.absent, base, statusColors.present]
         );
 
@@ -205,22 +184,14 @@ const SwipeableStudentCard: React.FC<Props> = ({
     return (
         <View style={styles.container}>
             <GestureDetector gesture={panGesture} touchAction="pan-y">
-                <Animated.View style={[styles.card, clayCard(isDark), animatedStyle]}>
-                    <LinearGradient
-                        colors={
-                            isDark
-                                ? ['rgba(255,255,255,0.05)', 'transparent']
-                                : ['rgba(255,255,255,0.6)', 'transparent']
-                        }
-                        style={styles.sheen}
-                        pointerEvents="none"
-                    />
-
-                    <View style={styles.cardContent}>
+                <Animated.View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1, borderRadius: theme.shape.borderRadiusLG, opacity: disabled ? 0.65 : 1 }, animatedStyle]}>
+                    <View style={[styles.cardContent, compact && { flexDirection: 'column', alignItems: 'stretch' }]}>
                         {/* Student Card Primary Tap Area (cycles unmarked -> present -> absent -> unmarked) */}
                         <TouchableOpacity
-                            style={styles.cardMainTapArea}
+                            style={[styles.cardMainTapArea, { minHeight: 48 }]}
                             activeOpacity={0.78}
+                            disabled={disabled}
+                            accessibilityState={{ disabled }}
                             onPress={handleCycleStatus}
                             accessibilityRole="button"
                             accessibilityLabel={`${student.name}, currently marked ${status}. Tap to cycle status between present, absent, and unmarked.`}
@@ -250,7 +221,7 @@ const SwipeableStudentCard: React.FC<Props> = ({
 
                             {/* Student Details & Streak */}
                             <View style={styles.info}>
-                                <Text style={styles.name} numberOfLines={1}>
+                                <Text style={[styles.name, { color: theme.colors.textStrong }]}>
                                     {student.name}
                                 </Text>
 
@@ -350,7 +321,7 @@ const SwipeableStudentCard: React.FC<Props> = ({
                         </TouchableOpacity>
 
                         {/* Quick Attendance Action Buttons */}
-                        <View style={styles.actionsGroup}>
+                        <View style={[styles.actionsGroup, compact && { justifyContent: 'flex-end' }]}>
                             {/* Present Button */}
                             <TouchableOpacity
                                 style={[
@@ -360,9 +331,10 @@ const SwipeableStudentCard: React.FC<Props> = ({
                                         : styles.quickActionInactive,
                                 ]}
                                 activeOpacity={0.75}
+                                disabled={disabled}
                                 onPress={handlePresentPress}
                                 accessibilityRole="button"
-                                accessibilityState={{ selected: status === 'present' }}
+                                accessibilityState={{ selected: status === 'present', disabled }}
                                 accessibilityLabel={`Mark ${student.name} present`}
                             >
                                 <Ionicons
@@ -376,7 +348,7 @@ const SwipeableStudentCard: React.FC<Props> = ({
                                         { color: status === 'present' ? '#fff' : isDark ? '#6EE7B7' : '#059669' },
                                     ]}
                                 >
-                                    P
+                                    Present
                                 </Text>
                             </TouchableOpacity>
 
@@ -389,9 +361,10 @@ const SwipeableStudentCard: React.FC<Props> = ({
                                         : styles.quickActionInactive,
                                 ]}
                                 activeOpacity={0.75}
+                                disabled={disabled}
                                 onPress={handleAbsentPress}
                                 accessibilityRole="button"
-                                accessibilityState={{ selected: status === 'absent' }}
+                                accessibilityState={{ selected: status === 'absent', disabled }}
                                 accessibilityLabel={`Mark ${student.name} absent`}
                             >
                                 <Ionicons
@@ -405,7 +378,7 @@ const SwipeableStudentCard: React.FC<Props> = ({
                                         { color: status === 'absent' ? '#fff' : isDark ? '#FDA4AF' : '#E11D48' },
                                     ]}
                                 >
-                                    A
+                                    Absent
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -589,14 +562,16 @@ const getStyles = (isDark: boolean) =>
             gap: 6,
         },
         quickActionBtn: {
-            width: 44,
-            height: 44,
+            minWidth: 96,
+            minHeight: 48,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
             borderRadius: 14,
             alignItems: 'center',
             justifyContent: 'center',
             borderWidth: 1.5,
-            flexDirection: 'column',
-            gap: 1,
+            flexDirection: 'row',
+            gap: 6,
         },
         quickActionInactive: {
             backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
@@ -633,13 +608,14 @@ const getStyles = (isDark: boolean) =>
             })),
         },
         quickActionLabel: {
-            fontSize: 10,
-            fontWeight: '800',
+            fontSize: 13,
+            fontWeight: '600',
         },
     });
 
 export default React.memo(SwipeableStudentCard, (previous, next) =>
     previous.isDark === next.isDark &&
+    previous.disabled === next.disabled &&
     previous.onStatusChange === next.onStatusChange &&
     previous.onPressStreak === next.onPressStreak &&
     Object.keys(previous.student).length === Object.keys(next.student).length &&

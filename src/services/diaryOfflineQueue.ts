@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { SCHOOL_ID } from '../constants/school';
 import { SmartDiaryService } from './smartDiaryService';
+import { getStaffPortalSession } from './staffPortalSession';
 import { newDiaryId } from '../utils/smartDiary/ids';
 import { retryDelayMs, shouldAttempt } from '../utils/smartDiary/queuePolicy';
 
@@ -87,6 +88,12 @@ export async function enqueueDiary(teacherId: string, payload: Record<string, un
 }
 
 export async function flushDiaryQueue(teacherId: string) {
+  const portal = getStaffPortalSession();
+  // An old screen's reconnect listener must not send another teacher's drafts.
+  if (portal.staffId && portal.userId !== teacherId) {
+    return { flushed: 0, remaining: (await readQueue(teacherId)).length };
+  }
+  const requestOptions = { _staffPortalId: portal.staffId || '' };
   const net = await NetInfo.fetch();
   const online = net.isConnected && net.isInternetReachable !== false;
   if (!online) return { flushed: 0, remaining: (await readQueue(teacherId)).length };
@@ -106,7 +113,7 @@ export async function flushDiaryQueue(teacherId: string) {
     try {
       let attachments = Array.isArray(working.payload.attachments) ? [...(working.payload.attachments as string[])] : [];
       if (working.localUris.length && attachments.length === 0) {
-        const uploaded = await SmartDiaryService.uploadPhotos(working.localUris);
+        const uploaded = await SmartDiaryService.uploadPhotos(working.localUris, requestOptions);
         attachments = uploaded.attachments || [];
       }
       if (working.payload.kind === 'class_diary') {
@@ -115,13 +122,13 @@ export async function flushDiaryQueue(teacherId: string) {
             ...working.payload,
             image_url: attachments[0],
             send_original: true,
-          });
+          }, requestOptions);
         } else {
           const extracted = await SmartDiaryService.extractClassDiary(working.localUris[0], {
             class_section_id: String(working.payload.class_section_id || ''),
             entry_date: String(working.payload.entry_date || ''),
             submission_id: String(working.payload.submission_id || working.id),
-          });
+          }, requestOptions);
           await writePendingClassDiary(teacherId, {
             ...extracted,
             submission_id: working.payload.submission_id || working.id,
@@ -137,7 +144,7 @@ export async function flushDiaryQueue(teacherId: string) {
         ...working.payload,
         attachments,
         extract_async: Boolean(working.payload.extract_async),
-      });
+      }, requestOptions);
       flushed += 1;
     } catch (error: any) {
       next.push({

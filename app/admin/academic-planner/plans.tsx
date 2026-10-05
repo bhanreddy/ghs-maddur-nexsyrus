@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AdminHeader from '../../../src/components/AdminHeader';
@@ -45,8 +46,8 @@ export default function AcademicPlansScreen() {
 
   return (
     <View style={styles.root}>
-      <AdminHeader title="Academic Plans" showBackButton />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <TourTarget id="screen.admin-academic-planner-plans.overview"><AdminHeader title="Academic Plans" showBackButton /></TourTarget>
+      <TourTarget id="screen.admin-academic-planner-plans.workspace" native><TourScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <Text style={styles.h}>Generate from curriculum</Text>
         {curricula.map((c) => (
           <TouchableOpacity key={c.id} style={styles.card} onPress={() => generateFromCurriculum(c)}>
@@ -64,7 +65,7 @@ export default function AcademicPlansScreen() {
             </TouchableOpacity>
           </View>
         ))}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AdminHeader from '../../../src/components/AdminHeader';
@@ -21,8 +22,8 @@ export default function AcademicRisksScreen() {
 
   return (
     <View style={styles.root}>
-      <AdminHeader title="Academic Risks" showBackButton />
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <TourTarget id="screen.admin-academic-planner-risks.overview"><AdminHeader title="Academic Risks" showBackButton /></TourTarget>
+      <TourTarget id="screen.admin-academic-planner-risks.workspace" native><TourScrollView contentContainerStyle={{ padding: 16 }}>
         <TouchableOpacity style={styles.primary} onPress={async () => {
           await AcademicPlannerService.scanRisks();
           await load();
@@ -45,7 +46,7 @@ export default function AcademicRisksScreen() {
             </TouchableOpacity>
           </View>
         ))}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

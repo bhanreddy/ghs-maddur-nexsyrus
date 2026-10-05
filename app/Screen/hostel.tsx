@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -98,10 +99,10 @@ export default function HostelProfileScreen() {
   };
 
   return (
-    <ScreenLayout style={{ backgroundColor: theme.colors.background }}>
-      <StudentHeader showBackButton title="Hostel" />
+    <TourTarget id="screen.screen-hostel.workspace" style={{ flex: 1 }}><ScreenLayout style={{ backgroundColor: theme.colors.background }}>
+      <TourTarget id="screen.screen-hostel.overview"><StudentHeader showBackButton title="Hostel" /></TourTarget>
       {loading ? <LogoLoader /> : (
-        <ScrollView
+        <TourScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(true); }} tintColor="#4F46E5" />}
@@ -154,7 +155,7 @@ export default function HostelProfileScreen() {
               {request.admin_note ? <View style={styles.adminNote}><Ionicons name="chatbubble-outline" size={15} color="#4F46E5" /><Text style={styles.adminNoteText}>{request.admin_note}</Text></View> : null}
             </View>
           ))}
-        </ScrollView>
+        </TourScrollView>
       )}
 
       <Modal visible={requestOpen} transparent animationType="slide" onRequestClose={() => setRequestOpen(false)}>
@@ -163,18 +164,18 @@ export default function HostelProfileScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}><View><Text style={styles.modalTitle}>Request hostel permission</Text><Text style={styles.modalSub}>The hostel admin will review this request.</Text></View><Pressable onPress={() => setRequestOpen(false)}><Ionicons name="close" size={24} color={theme.colors.textSecondary} /></Pressable></View>
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalBody}>
+            <TourScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalBody}>
               <Text style={styles.fieldLabel}>Permission type</Text>
               <View style={styles.typeGrid}>{REQUEST_TYPES.map((item) => <Pressable key={item.key} onPress={() => setRequestType(item.key)} style={[styles.typeChip, requestType === item.key && styles.typeChipActive]}><Ionicons name={item.icon} size={17} color={requestType === item.key ? '#fff' : '#4F46E5'} /><Text style={[styles.typeChipText, requestType === item.key && styles.typeChipTextActive]}>{item.label}</Text></Pressable>)}</View>
               <View style={styles.twoFields}><Field label="Start date" value={startsOn} onChangeText={setStartsOn} placeholder="YYYY-MM-DD" styles={styles} /><Field label="End date" value={endsOn} onChangeText={setEndsOn} placeholder="YYYY-MM-DD" styles={styles} /></View>
               <Field label="Reason" value={reason} onChangeText={setReason} placeholder="Example: Family function in Hyderabad" multiline styles={styles} />
               <Text style={styles.helper}>Give a clear reason. Two useful examples are “medical appointment” and “family wedding.”</Text>
-            </ScrollView>
+            </TourScrollView>
             <View style={styles.modalFooter}><TouchableOpacity style={styles.cancelButton} onPress={() => setRequestOpen(false)}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity><TouchableOpacity disabled={saving} style={[styles.submitButton, saving && { opacity: 0.6 }]} onPress={() => void submitRequest()}><Text style={styles.submitText}>{saving ? 'Sending…' : 'Send request'}</Text></TouchableOpacity></View>
           </View>
         </View>
       </Modal>
-    </ScreenLayout>
+    </ScreenLayout></TourTarget>
   );
 }
 

@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -92,7 +93,7 @@ export default function AdminVisitorsLiveScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.admin-visitors-live.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -102,10 +103,10 @@ export default function AdminVisitorsLiveScreen() {
             {visitors.length} inside campus • {overstayCount} overstayed
           </Text>
         </View>
-      </View>
+      </View></TourTarget>
 
       {/* Filter Row */}
-      <View style={styles.topFilterRow}>
+      <TourTarget id="screen.admin-visitors-live.workspace" native><View style={styles.topFilterRow}>
         <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor }]}>
           <Ionicons name="search" size={16} color={subColor} />
           <TextInput
@@ -141,7 +142,7 @@ export default function AdminVisitorsLiveScreen() {
             Overstayed ({overstayCount})
           </Text>
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
       <FlatList
         data={filteredVisitors}

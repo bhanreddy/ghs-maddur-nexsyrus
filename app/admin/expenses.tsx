@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -343,9 +344,9 @@ export default function AdminExpenses() {
   };
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.admin-expenses.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
-      <AdminHeader title="Expense Tracker" showBackButton={true} />
+      <TourTarget id="screen.admin-expenses.overview"><AdminHeader title="Expense Tracker" showBackButton={true} /></TourTarget>
 
       {/* Segmented tabs */}
       <Animated.View entering={FadeInDown.duration(280)} style={styles.tabContainer}>
@@ -921,7 +922,7 @@ export default function AdminExpenses() {
           </Animated.View>
         </View>
       </Modal>
-    </View>
+    </View></TourTarget>
   );
 }
 

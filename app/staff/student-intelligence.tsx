@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -115,9 +116,9 @@ export default function StaffStudentIntelligenceScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#080B14' : '#F1F5F9' }]}>
-      <StaffHeader title="Student Intelligence Cockpit" />
+      <TourTarget id="screen.staff-student-intelligence.overview"><StaffHeader title="Student Intelligence Cockpit" /></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -168,7 +169,7 @@ export default function StaffStudentIntelligenceScreen() {
         </View>
 
         {/* Tier Selector Pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
+        <TourTarget id="screen.staff-student-intelligence.workspace" native><TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
           {TIERS.map((t) => {
             const active = activeTier === t.key;
             return (
@@ -202,7 +203,7 @@ export default function StaffStudentIntelligenceScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView></TourTarget>
 
         {/* Students List */}
         {isLoading ? (
@@ -338,7 +339,7 @@ export default function StaffStudentIntelligenceScreen() {
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </TourScrollView>
 
       {/* "Why?" Insight Explanation Modal */}
       <InsightExplanationModal

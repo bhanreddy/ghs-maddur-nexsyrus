@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
@@ -110,13 +111,13 @@ export default function ParentEventsScreen() {
   return (
     <ScreenLayout>
       <View style={styles.root}>
-        <StudentSubpageHeader
+        <TourTarget id="screen.screen-events.overview"><StudentSubpageHeader
           title={t('studentEventDesk.title')}
           subtitle={t('studentEventDesk.subtitle')}
           onBack={() => router.back()}
-        />
+        /></TourTarget>
 
-        <View style={styles.filters}>
+        <TourTarget id="screen.screen-events.workspace" native><View style={styles.filters}>
           {([
             { key: 'upcoming' as Filter, label: t('studentEventDesk.upcoming'), count: upcomingCount },
             { key: 'all' as Filter, label: t('studentEventDesk.allEvents'), count: events.length },
@@ -140,7 +141,7 @@ export default function ParentEventsScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </View></TourTarget>
 
         {loading ? (
           <View style={styles.loader}>
@@ -148,7 +149,7 @@ export default function ParentEventsScreen() {
             <Text style={styles.loaderLabel}>{t('studentEventDesk.finding')}</Text>
           </View>
         ) : (
-          <ScrollView
+          <TourScrollView
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.colors.primary} />
             }
@@ -237,7 +238,7 @@ export default function ParentEventsScreen() {
                 );
               })
             )}
-          </ScrollView>
+          </TourScrollView>
         )}
       </View>
     </ScreenLayout>

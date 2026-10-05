@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useMemo, useEffect, useRef, memo } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import { styles as ds } from '@/src/theme/styles';
@@ -1774,10 +1775,10 @@ export default function SmartInsights() {
     <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
       <LinearGradient colors={['#E4E9F5', COLORS.bg, '#EEF1F8']} style={StyleSheet.absoluteFill} />
 
-      <AdminHeader title="Smart Insights" showBackButton />
+      <TourTarget id="screen.admin-smart-insights.overview"><AdminHeader title="Smart Insights" showBackButton /></TourTarget>
       <TabBar active={activeTab} onChange={setActiveTab} />
 
-      <ScrollView
+      <TourTarget id="screen.admin-smart-insights.workspace" native><TourScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 72 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -1796,7 +1797,7 @@ export default function SmartInsights() {
         {activeTab === 'RISK' && renderRiskDashboard()}
         {activeTab === 'TALKING_POINTS' && renderTalkingPoints()}
         {activeTab === 'HEATMAP' && renderHeatmap()}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       <Modal
         visible={visitModalOpen}
@@ -1829,7 +1830,7 @@ export default function SmartInsights() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
+            <TourScrollView
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               style={{ maxHeight: 440 }}
@@ -1886,7 +1887,7 @@ export default function SmartInsights() {
                   </>
                 )}
               </TouchableOpacity>
-            </ScrollView>
+            </TourScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>

@@ -46,6 +46,7 @@ import ForceUpdateScreen from '../src/components/ForceUpdateScreen';
 import { useVersionCheck } from '../src/hooks/useVersionCheck';
 import FestivalPosterGate from '../src/components/FestivalPosterGate';
 import PopupQueueProvider from '../src/features/popups/components/PopupQueueProvider';
+import { TourProvider, TourOverlayHost } from '../src/features/app-tour';
 import { selectDisposableVersionCacheKeys } from '../src/utils/updateCachePolicy';
 
 // Keep the splash screen visible while we fetch resources
@@ -150,7 +151,7 @@ export default function Layout() {
       <ThemeProvider>
         <KeyboardProvider>
           <CustomAlertProvider>
-            <ThemeSyncWrapper />
+            <TourProvider><ThemeSyncWrapper /></TourProvider>
           </CustomAlertProvider>
         </KeyboardProvider>
       </ThemeProvider>
@@ -234,6 +235,7 @@ function ThemeSyncWrapper() {
         <FestivalPosterGate />
         {/* SchoolIMS Smart Popup Manager — after dashboard bootstrap, never blocks login */}
         <PopupQueueProvider />
+        <TourOverlayHost />
 
         <Toast config={toastConfig} />
         {/* Global Animated Splash Screen Overlay removed - now native AnimatedSplash handles this */}

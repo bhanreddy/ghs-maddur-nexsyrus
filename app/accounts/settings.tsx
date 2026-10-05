@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -53,11 +54,11 @@ export default function AccountsSettings() {
   const redChevron = <MaterialIcons name="chevron-right" size={18} color="#EF4444" />;
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.accounts-settings.overview" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       {!shellActive && <AdminHeader title="Settings" showBackButton={true} />}
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <TourTarget id="screen.accounts-settings.workspace" native><TourScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Profile card ── */}
         <Animated.View entering={FadeInDown.delay(80).duration(600)} style={styles.profileCard}>
@@ -254,10 +255,10 @@ export default function AccountsSettings() {
           <View style={styles.footerDot} />
         </Animated.View>
 
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       <SettingsAccountSwitcherSheet visible={switcherOpen} onClose={closeSwitcher} />
-    </View>);
+    </View></TourTarget>);
 
 }
 

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -173,7 +174,7 @@ export default function AdminHelpdeskScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader title="Parent Support Help Desk" />
+      <TourTarget id="screen.admin-helpdesk.overview"><AdminHeader title="Parent Support Help Desk" /></TourTarget>
 
       {/* Main Layout: Split view on Desktop, Stack on Mobile */}
       <View style={[styles.mainLayout, isDesktop && styles.desktopRow]}>
@@ -192,7 +193,7 @@ export default function AdminHelpdeskScreen() {
           </View>
 
           {/* Category Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+          <TourTarget id="screen.admin-helpdesk.workspace" native><TourScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
             <TouchableOpacity
               style={[styles.chip, categoryFilter === null && styles.chipActive]}
               onPress={() => setCategoryFilter(null)}
@@ -210,7 +211,7 @@ export default function AdminHelpdeskScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </TourScrollView></TourTarget>
 
           {loading && !refreshing ? (
             <LogoLoader />

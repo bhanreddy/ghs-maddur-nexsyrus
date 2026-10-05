@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -375,11 +376,11 @@ export default function DailySubstitutionsScreen() {
   });
 
   return (
-    <View style={styles.screen}>
+    <TourTarget id="screen.admin-substitutions.overview" native><View style={styles.screen}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={c.page} />
       {!shellActive && <AdminHeader title="Daily Substitutions" showBackButton />}
 
-      <ScrollView
+      <TourTarget id="screen.admin-substitutions.workspace" native><TourScrollView
         ref={scrollRef}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -518,7 +519,7 @@ export default function DailySubstitutionsScreen() {
             </View>
 
             <Text style={[styles.controlLabel, { marginTop: 18 }]}>UNAVAILABLE TEACHER</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teacherChips}>
+            <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teacherChips}>
               <FilterChip
                 label="All teachers"
                 active={!teacherFilter}
@@ -538,7 +539,7 @@ export default function DailySubstitutionsScreen() {
                   c={c}
                 />
               ))}
-            </ScrollView>
+            </TourScrollView>
 
             <TouchableOpacity
               onPress={openPlanning}
@@ -730,7 +731,7 @@ export default function DailySubstitutionsScreen() {
         )}
         </>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       <CandidateSheet
         visible={sheetVisible}
@@ -760,7 +761,7 @@ export default function DailySubstitutionsScreen() {
         onClose={() => !reportDownloading && setReportVisible(false)}
         c={c}
       />
-    </View>
+    </View></TourTarget>
   );
 }
 

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import ScreenLayout from '../../src/components/ScreenLayout';
@@ -82,10 +83,10 @@ const WeekendTestScreen = () => {
   return <ScreenLayout>
 
             {/* ===== HEADER ===== */}
-            <StudentHeader showBackButton={true} title="Weekend Tests" />
+            <TourTarget id="screen.screen-weekend-test.overview"><StudentHeader showBackButton={true} title="Weekend Tests" /></TourTarget>
 
             {/* ===== CONTENT ===== */}
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+            <TourTarget id="screen.screen-weekend-test.workspace" native><TourScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
 
                 {/* ===== TIMER ===== */}
                 <View style={styles.timerBox}>
@@ -124,7 +125,7 @@ const selected = selectedOption === option.id;
                     </TouchableOpacity>
                 </View>
 
-            </ScrollView>
+            </TourScrollView></TourTarget>
 
         </ScreenLayout>;
 };

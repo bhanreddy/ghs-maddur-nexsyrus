@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -65,16 +66,16 @@ export default function AdmissionAnalyticsScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader
+      <TourTarget id="screen.admin-admissions-analytics.overview"><AdminHeader
         title="Admissions Analytics"
         showBackButton
         rightAction={{
           icon: 'refresh-outline',
           onPress: () => fetchAnalytics(true),
         }}
-      />
+      /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.admin-admissions-analytics.workspace" native><TourScrollView
         style={styles.mainScroll}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -187,7 +188,7 @@ export default function AdmissionAnalyticsScreen() {
             </View>
           </View>
         </View>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

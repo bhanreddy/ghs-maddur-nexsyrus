@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import ClayInput from '@/src/components/ClayInput';
 import { clayCard, clayInset } from '@/src/theme/clayStyles';
@@ -697,13 +698,13 @@ export default function ApplyLeave() {
   const titleColor = isDark ? '#EEF2FF' : '#0F172A';
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? '#121824' : '#E9EDF6' }}>
+    <TourTarget id="screen.staff-leaves.overview" native><View style={{ flex: 1, backgroundColor: isDark ? '#121824' : '#E9EDF6' }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
       {shellActive ? null : <StaffHeader title="Apply Leave" showBackButton={true} />}
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
-      <KeyboardAwareScreen
+      <TourTarget id="screen.staff-leaves.workspace" style={{ flex: 1 }}><KeyboardAwareScreen
         variant="scroll"
         contentContainerStyle={mainStyles.scroll}
         showsVerticalScrollIndicator={false}
@@ -1091,8 +1092,8 @@ export default function ApplyLeave() {
             ))}
           </View>
         )}
-      </KeyboardAwareScreen>
-    </View>
+      </KeyboardAwareScreen></TourTarget>
+    </View></TourTarget>
   );
 }
 

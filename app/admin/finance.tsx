@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ActivityIndicator, Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, useWindowDimensions, Platform, KeyboardAvoidingView } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -427,8 +428,8 @@ export default function AdminFinanceScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <AdminHeader title="Finance & Collection" showNotification scrollY={scrollY} />
+    <TourTarget id="screen.admin-finance.workspace" native><View style={styles.container}>
+      <TourTarget id="screen.admin-finance.overview"><AdminHeader title="Finance & Collection" showNotification scrollY={scrollY} /></TourTarget>
       {loading && !refreshing ?
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <LogoLoader size={60} color={theme.colors.primary} />
@@ -1005,7 +1006,7 @@ export default function AdminFinanceScreen() {
           setShowDatePicker(false);
         }} 
       />
-    </View>);
+    </View></TourTarget>);
 
 }
 

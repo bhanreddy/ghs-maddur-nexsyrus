@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -283,7 +284,7 @@ export default function AppAdoptionScreen() {
           )}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {STATUS_FILTERS.map((filter) => {
             const selected = status === filter.value;
             const count = filter.value === 'all'
@@ -303,9 +304,9 @@ export default function AppAdoptionScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {ROLE_FILTERS.map((filter) => {
             const selected = role === filter.value;
             return (
@@ -318,7 +319,7 @@ export default function AppAdoptionScreen() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
       </View>
 
       <View style={styles.resultsHeader}>
@@ -388,8 +389,8 @@ export default function AppAdoptionScreen() {
 
   return (
     <View style={styles.screen}>
-      <AdminHeader title="App Adoption" showNotification />
-      <FlatList
+      <TourTarget id="screen.admin-app-adoption.overview"><AdminHeader title="App Adoption" showNotification /></TourTarget>
+      <TourTarget id="screen.admin-app-adoption.workspace" native><FlatList
         key={isWide ? 'wide' : 'narrow'}
         data={loading ? [] : users}
         keyExtractor={(item) => item.user_id}
@@ -407,7 +408,7 @@ export default function AppAdoptionScreen() {
             tintColor={theme.colors.primary}
           />
         }
-      />
+      /></TourTarget>
     </View>
   );
 }

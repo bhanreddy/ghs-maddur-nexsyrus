@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import AppTextInput from '@/src/components/AppTextInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -2543,19 +2544,19 @@ export default function UploadMarks() {
   // ── Main Render ───────────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.container}>
+    <TourTarget id="screen.staff-results.workspace" native><View style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <View style={[styles.orb1, { backgroundColor: isDark ? 'rgba(124,111,255,0.14)' : 'rgba(124,111,255,0.10)' }]} pointerEvents="none" />
       <View style={[styles.orb2, { backgroundColor: isDark ? 'rgba(59,130,246,0.10)' : 'rgba(59,130,246,0.08)' }]} pointerEvents="none" />
 
-      <StaffHeader
+      <TourTarget id="screen.staff-results.overview"><StaffHeader
         title={selectedCategory?.title ?? 'Upload Marks'}
-        showBackButton={true} />
+        showBackButton={true} /></TourTarget>
       {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
       {selectedCategory ? renderUploadForm() : renderDashboard()}
-    </View>);
+    </View></TourTarget>);
 
 }
 

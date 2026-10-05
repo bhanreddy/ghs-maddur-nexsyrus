@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -174,16 +175,16 @@ export default function AdminCalendarScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader
+      <TourTarget id="screen.admin-calendar.overview"><AdminHeader
         title="Academic Calendar"
         showBackButton={true}
         rightAction={{
           icon: 'download-outline',
           onPress: handleExportIcs,
         }}
-      />
+      /></TourTarget>
 
-      <View style={styles.toolbar}>
+      <TourTarget id="screen.admin-calendar.workspace" native><View style={styles.toolbar}>
         <View style={styles.viewTabs}>
           {tabs.map((tab) => {
             const active = viewMode === tab.key;
@@ -214,7 +215,7 @@ export default function AdminCalendarScreen() {
             <Text style={styles.primaryAddBtnText}>Add Event</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </View></TourTarget>
 
       {loading ? (
         <View style={styles.centeredLoader}>
@@ -222,7 +223,7 @@ export default function AdminCalendarScreen() {
           <Text style={styles.loadingLabel}>Loading Academic Calendar...</Text>
         </View>
       ) : (
-        <ScrollView
+        <TourScrollView
           style={styles.scrollContent}
           contentContainerStyle={styles.scrollInner}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -336,7 +337,7 @@ export default function AdminCalendarScreen() {
               </View>
             </View>
           )}
-        </ScrollView>
+        </TourScrollView>
       )}
 
       {compact && !loading && (

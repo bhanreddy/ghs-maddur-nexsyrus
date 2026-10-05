@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -242,12 +243,12 @@ function OmrAnswerKeyContent() {
 
   return (
     <View style={styles.root}>
-      <AdminHeader title="Answer Key Mapping" showBackButton={true} />
+      <TourTarget id="screen.admin-omr-answer-key.overview"><AdminHeader title="Answer Key Mapping" showBackButton={true} /></TourTarget>
 
       {/* Exam Selector Bar */}
       <View style={styles.examBar}>
         <Text style={styles.examBarLabel}>Select Exam:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.examScroll}>
+        <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.examScroll}>
           {exams.map((exam: OmrExam) => {
             const isSelected = exam.id === selectedExamId;
             return (
@@ -262,7 +263,7 @@ function OmrAnswerKeyContent() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
       </View>
 
       {/* Key Status & Version Banner */}
@@ -294,7 +295,7 @@ function OmrAnswerKeyContent() {
         </View>
 
         {/* Mode Selector Tabs */}
-        <View style={styles.modeTabs}>
+        <TourTarget id="screen.admin-omr-answer-key.workspace" native><View style={styles.modeTabs}>
           <TouchableOpacity
             style={[styles.modeTab, mappingMode === 'GRID' && styles.modeTabActive]}
             onPress={() => setMappingMode('GRID')}
@@ -325,7 +326,7 @@ function OmrAnswerKeyContent() {
               </>
             )}
           </TouchableOpacity>
-        </View>
+        </View></TourTarget>
       </View>
 
       {/* Main Content Area */}
@@ -358,7 +359,7 @@ function OmrAnswerKeyContent() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.gridContent}>
+        <TourScrollView contentContainerStyle={styles.gridContent}>
           <View style={styles.gridContainer}>
             {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((qNum) => {
               const currentOpt = questions[qNum] || '';
@@ -388,7 +389,7 @@ function OmrAnswerKeyContent() {
               );
             })}
           </View>
-        </ScrollView>
+        </TourScrollView>
       )}
 
       {/* Bottom Action Footer */}

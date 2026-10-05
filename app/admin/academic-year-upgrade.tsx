@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
@@ -127,9 +128,9 @@ export default function AcademicYearUpgradeScreen() {
   // --- RENDER ---
   return (
     <View style={[styles.root, { backgroundColor: bg, paddingTop: insets.top }]}>
-      <AdminHeader title="Academic Year Upgrade" showBackButton showMenuButton={false} showProfileButton={false} />
+      <TourTarget id="screen.admin-academic-year-upgrade.overview"><AdminHeader title="Academic Year Upgrade" showBackButton showMenuButton={false} showProfileButton={false} /></TourTarget>
 
-      <ScrollView
+      <TourTarget id="screen.admin-academic-year-upgrade.workspace" native><TourScrollView
         contentContainerStyle={[styles.scroll, isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' }]}
         showsVerticalScrollIndicator={false}
       >
@@ -300,7 +301,7 @@ export default function AcademicYearUpgradeScreen() {
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </TourScrollView></TourTarget>
 
       {/* ── CONFIRMATION MODAL ── */}
       <Modal visible={showConfirm} transparent animationType="fade" onRequestClose={() => setShowConfirm(false)}>

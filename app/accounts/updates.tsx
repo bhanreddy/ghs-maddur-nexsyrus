@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View } from 'react-native';
 import AdminHeader from '../../src/components/AdminHeader';
@@ -7,9 +8,9 @@ import PopupHistoryScreen from '../../src/features/popups/screens/PopupHistorySc
 export default function AccountsUpdatesRoute() {
   const { theme } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <AdminHeader title="Updates" showBackButton />
+    <TourTarget id="screen.accounts-updates.workspace" native><View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <TourTarget id="screen.accounts-updates.overview"><AdminHeader title="Updates" showBackButton /></TourTarget>
       <PopupHistoryScreen embedded />
-    </View>
+    </View></TourTarget>
   );
 }

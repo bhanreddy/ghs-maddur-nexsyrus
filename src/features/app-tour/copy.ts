@@ -1,0 +1,36 @@
+import type { TourLocale } from './types';
+const en = {
+  appTour: 'App Tour', tagline: 'A little guidance. A lot more confidence.', subtitle: 'Learn your school tools, one step at a time.', welcome: 'Welcome tour', tasks: 'Learn a task',
+  start: 'Start', resume: 'Resume', replay: 'Replay', restart: 'Restart', back: 'Back', next: 'Next', finish: 'Finish', skip: 'Skip step', exit: 'Exit', close: 'Close',
+  retry: 'Retry', later: 'Maybe later', invite: 'Let’s find your way around', inviteBody: 'A short guide to your portal, with English and Telugu narration. Start whenever you are ready.',
+  narration: 'Narration', language: 'Tour language', speed: 'Playback speed', auto: 'Advance explanations automatically', play: 'Play narration', pause: 'Pause narration', resumeNarration: 'Resume narration', replayNarration: 'Replay narration',
+  loading: 'Finding the control…', missing: 'This control is not ready', missingBody: 'The screen may still be loading or there may be no records to show. Retry, skip this step, or leave the guide.',
+  access: 'This guide is unavailable for your current access. You can skip it or return to App Tour.', interrupted: 'Your guide is paused', interruptedBody: 'Resume when you are ready. Your place has been saved.',
+  unavailable: 'Audio is unavailable. You can continue with the written instructions.', action: 'Try the highlighted control to continue.', done: 'You’re ready to explore', doneBody: 'You have finished this guide. Your progress is saved on this device.',
+  skippedDone: 'Guide ended with skipped steps. Replay it whenever the controls are available.', device: 'Progress stays on this device and is separate for each school profile.',
+  packs: 'Offline narration', download: 'Download language pack', remove: 'Remove downloaded audio', downloading: 'Downloading…', downloaded: 'Language pack ready', downloadFailed: 'Some audio could not be downloaded. Try again when you are online.',
+  noPremium: 'Premium audio has not been published yet. Matching device voices are available when installed.', safe: 'You stay in control. Guides never submit or change school records.',
+  quickGuides: 'Current screen, welcome and task guides',
+  complete: 'Complete walkthrough', features: 'Every feature', chapters: 'Chapters', search: 'Search features in English or Telugu', all: 'All categories', allStatus: 'All progress', inProgress: 'In progress', completed: 'Completed', unstarted: 'Not started',
+  noResults: 'No matching guides. Try another search or category.', showMore: 'Show more features', thisScreen: 'Learn this screen', coverage: 'features available to this profile', explanations: 'explanations', settings: 'Narration and language settings', hideSettings: 'Hide settings',
+  partialDone: 'Your place is saved. Some chapters are still unfinished; resume the complete walkthrough to finish them.', chapterProgress: 'Chapter progress',
+  switched: 'Your portal changed. Open App Tour for this profile.', disabled: 'Tours are not enabled in this release.',
+};
+const te: typeof en = {
+  appTour: 'యాప్ టూర్', tagline: 'చిన్న మార్గదర్శకం. మరింత నమ్మకం.', subtitle: 'మీ పాఠశాల సాధనాలను ఒక్కో దశలో నేర్చుకోండి.', welcome: 'పరిచయ టూర్', tasks: 'ఒక పని నేర్చుకోండి',
+  start: 'ప్రారంభించండి', resume: 'కొనసాగించండి', replay: 'మళ్లీ వినండి', restart: 'మళ్లీ ప్రారంభించండి', back: 'వెనుకకు', next: 'తరువాత', finish: 'ముగించండి', skip: 'దశను దాటండి', exit: 'బయటకు', close: 'మూసివేయండి',
+  retry: 'మళ్లీ ప్రయత్నించండి', later: 'తరువాత', invite: 'మీ పోర్టల్‌ను తెలుసుకుందాం', inviteBody: 'ఇంగ్లీష్ మరియు తెలుగు వివరణతో మీ పోర్టల్‌కు చిన్న గైడ్. మీరు సిద్ధమైనప్పుడు ప్రారంభించండి.',
+  narration: 'ఆడియో వివరణ', language: 'టూర్ భాష', speed: 'ఆడియో వేగం', auto: 'వివరణలను స్వయంచాలకంగా కొనసాగించండి', play: 'వివరణను వినండి', pause: 'వివరణను ఆపండి', resumeNarration: 'వివరణను కొనసాగించండి', replayNarration: 'వివరణను మళ్లీ వినండి',
+  loading: 'నియంత్రణను కనుగొంటున్నాం…', missing: 'ఈ నియంత్రణ ఇంకా సిద్ధంగా లేదు', missingBody: 'తెర ఇంకా లోడ్ అవుతూ ఉండవచ్చు లేదా చూపించడానికి రికార్డులు లేకపోవచ్చు. మళ్లీ ప్రయత్నించండి, ఈ దశను దాటండి లేదా గైడ్ నుండి బయటకు వెళ్లండి.',
+  access: 'మీ ప్రస్తుత అనుమతులతో ఈ గైడ్ అందుబాటులో లేదు. దాటవేయండి లేదా యాప్ టూర్‌కు తిరిగి వెళ్లండి.', interrupted: 'మీ గైడ్ ఆపబడింది', interruptedBody: 'మీరు సిద్ధమైనప్పుడు కొనసాగించండి. మీరు ఆపిన దశ సేవ్ చేయబడింది.',
+  unavailable: 'ఆడియో అందుబాటులో లేదు. వ్రాతపూర్వక సూచనలతో కొనసాగించవచ్చు.', action: 'కొనసాగించడానికి గుర్తించిన నియంత్రణను ఉపయోగించండి.', done: 'మీరు అన్వేషించడానికి సిద్ధంగా ఉన్నారు', doneBody: 'మీరు ఈ గైడ్‌ను పూర్తి చేశారు. మీ పురోగతి ఈ పరికరంలో సేవ్ చేయబడింది.',
+  skippedDone: 'కొన్ని దశలను దాటుతూ గైడ్ ముగిసింది. నియంత్రణలు అందుబాటులో ఉన్నప్పుడు మళ్లీ ప్రారంభించండి.', device: 'పురోగతి ఈ పరికరంలోనే ఉంటుంది. ప్రతి పాఠశాల ప్రొఫైల్‌కు వేరుగా సేవ్ అవుతుంది.',
+  packs: 'ఆఫ్‌లైన్ ఆడియో', download: 'భాష ఆడియో ప్యాక్‌ను డౌన్‌లోడ్ చేయండి', remove: 'డౌన్‌లోడ్ చేసిన ఆడియోను తొలగించండి', downloading: 'డౌన్‌లోడ్ అవుతోంది…', downloaded: 'భాష ఆడియో ప్యాక్ సిద్ధంగా ఉంది', downloadFailed: 'కొంత ఆడియో డౌన్‌లోడ్ కాలేదు. ఇంటర్నెట్ ఉన్నప్పుడు మళ్లీ ప్రయత్నించండి.',
+  noPremium: 'ప్రీమియం ఆడియో ఇంకా ప్రచురించబడలేదు. పరికరంలో ఇన్‌స్టాల్ చేసిన సరైన భాష వాయిస్‌లను ఉపయోగించవచ్చు.', safe: 'నియంత్రణ మీ చేతుల్లోనే ఉంటుంది. గైడ్‌లు పాఠశాల రికార్డులను సమర్పించవు లేదా మార్చవు.',
+  quickGuides: 'ప్రస్తుత తెర, పరిచయ మరియు పని గైడ్‌లు',
+  complete: 'పూర్తి మార్గదర్శనం', features: 'ప్రతి ఫీచర్', chapters: 'అధ్యాయాలు', search: 'ఇంగ్లీష్ లేదా తెలుగులో ఫీచర్‌లను శోధించండి', all: 'అన్ని వర్గాలు', allStatus: 'అన్ని పురోగతి స్థితులు', inProgress: 'కొనసాగుతున్నవి', completed: 'పూర్తయినవి', unstarted: 'ప్రారంభించనివి',
+  noResults: 'సరిపోయే గైడ్‌లు లేవు. వేరే శోధన లేదా వర్గాన్ని ప్రయత్నించండి.', showMore: 'మరిన్ని ఫీచర్‌లు చూపించండి', thisScreen: 'ఈ తెరను నేర్చుకోండి', coverage: 'ఈ ప్రొఫైల్‌కు అందుబాటులో ఉన్న ఫీచర్‌లు', explanations: 'వివరణలు', settings: 'ఆడియో మరియు భాష సెట్టింగ్‌లు', hideSettings: 'సెట్టింగ్‌లు దాచండి',
+  partialDone: 'మీ పురోగతి సేవ్ అయింది. కొన్ని అధ్యాయాలు ఇంకా పూర్తి కాలేదు; వాటి కోసం పూర్తి మార్గదర్శనాన్ని కొనసాగించండి.', chapterProgress: 'అధ్యాయం పురోగతి',
+  switched: 'మీ పోర్టల్ మారింది. ఈ ప్రొఫైల్ కోసం యాప్ టూర్‌ను తెరవండి.', disabled: 'ఈ విడుదలలో టూర్‌లు ప్రారంభించబడలేదు.',
+};
+export const tourCopy = (locale: TourLocale) => locale === 'te' ? te : en;

@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
@@ -575,7 +576,7 @@ function HistoryOverview({
           : t('studentDiary.noRecentHistory')}
       </Text>
 
-      <ScrollView
+      <TourScrollView
         ref={railRef}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -635,7 +636,7 @@ function HistoryOverview({
             </Pressable>
           );
         })}
-      </ScrollView>
+      </TourScrollView>
     </Animated.View>
   );
 }
@@ -1091,9 +1092,9 @@ export default function DiaryScreen() {
         />
       ) : null}
 
-      <StudentHeader showBackButton title={t('home.diary', 'Diary')} />
+      <TourTarget id="screen.screen-diary.overview"><StudentHeader showBackButton title={t('home.diary', 'Diary')} /></TourTarget>
 
-      <ScrollView
+      <TourScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingHorizontal: hPad }]}
         showsVerticalScrollIndicator={false}
@@ -1151,9 +1152,9 @@ export default function DiaryScreen() {
           </Animated.View>
 
           {/* ── Tab Switcher ──────────────────────────── */}
-          <Animated.View entering={FadeInDown.delay(120).duration(500).springify()} style={styles.tabWrap}>
-            <TabSwitcher active={activeTab} onChange={onTabChange} />
-          </Animated.View>
+          <TourTarget id="student.diary.date" native><Animated.View entering={FadeInDown.delay(120).duration(500).springify()} style={styles.tabWrap}>
+            <TourTarget id="screen.screen-diary.workspace"><TabSwitcher active={activeTab} onChange={onTabChange} /></TourTarget>
+          </Animated.View></TourTarget>
 
           {/* ── History: date selector ────────────────── */}
           {activeTab === 'history' ? (
@@ -1181,7 +1182,7 @@ export default function DiaryScreen() {
           ) : null}
 
           {/* ── Task content ──────────────────────────── */}
-          <Animated.View
+          <TourTarget id="student.diary.entries" native><Animated.View
             key={activeDate}
             entering={FadeInDown.delay(60).duration(360).springify()}
           >
@@ -1205,10 +1206,10 @@ export default function DiaryScreen() {
                 )}
               />
             ) : null}
-          </Animated.View>
+          </Animated.View></TourTarget>
 
         </View>
-      </ScrollView>
+      </TourScrollView>
 
       {/* ── Date Picker Bottom Sheet ──────────────── */}
       <DatePickerSheet

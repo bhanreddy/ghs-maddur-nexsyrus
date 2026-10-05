@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -119,7 +120,7 @@ export default function AdminVisitorSettingsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: borderColor }]}>
+      <TourTarget id="screen.admin-visitors-settings.overview" native><View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -127,9 +128,9 @@ export default function AdminVisitorSettingsScreen() {
           <Text style={[styles.title, { color: textColor }]}>Visitor Policies & Rules</Text>
           <Text style={[styles.subTitle, { color: subColor }]}>Perimeter Timing, Buffers & Workflows</Text>
         </View>
-      </View>
+      </View></TourTarget>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TourTarget id="screen.admin-visitors-settings.workspace" native><TourScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Timing Buffers Card */}
         <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
           <Text style={[styles.cardTitle, { color: textColor }]}>Time Buffers & Tolerances</Text>
@@ -282,7 +283,7 @@ export default function AdminVisitorSettingsScreen() {
             )}
           </LinearGradient>
         </TouchableOpacity>
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </SafeAreaView>
   );
 }

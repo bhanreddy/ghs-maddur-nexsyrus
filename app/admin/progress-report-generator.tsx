@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -655,12 +656,12 @@ export default function ProgressReportGenerator() {
         colors={[colors.background, schoolColorWithAlpha(colors.primary, isDark ? 0.18 : 0.06)]}
         style={StyleSheet.absoluteFill}
       />
-      <AdminHeader title="Progress Reports" showBackButton />
+      <TourTarget id="screen.admin-progress-report-generator.overview"><AdminHeader title="Progress Reports" showBackButton /></TourTarget>
       <KeyboardAvoidingView
         style={styles.keyboardRoot}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-      <ScrollView
+      <TourTarget id="screen.admin-progress-report-generator.workspace" native><TourScrollView
         contentContainerStyle={[
           styles.scroll,
           {
@@ -897,7 +898,7 @@ export default function ProgressReportGenerator() {
                   <LogoLoader size={22} color={colors.primary} />
                 )}
               </View>
-              <ScrollView
+              <TourScrollView
                 horizontal={mobile}
                 scrollEnabled={mobile}
                 showsHorizontalScrollIndicator={false}
@@ -968,7 +969,7 @@ export default function ProgressReportGenerator() {
                     </Pressable>
                   );
                 })}
-              </ScrollView>
+              </TourScrollView>
             </View>
           )}
 
@@ -1167,7 +1168,7 @@ export default function ProgressReportGenerator() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </TourScrollView></TourTarget>
       </KeyboardAvoidingView>
 
       {hasPrintableReport && (

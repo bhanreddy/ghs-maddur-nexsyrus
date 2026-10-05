@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, StatusBar } from 'react-native';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
@@ -68,7 +69,7 @@ export default function AccountsInvoices() {
       margin: 20
     }} color="#4F46E5" />;
   };
-  return <View style={styles.container}>
+  return <TourTarget id="screen.accounts-invoices.overview" native><View style={styles.container}>
     <StatusBar barStyle="dark-content" backgroundColor="#fff" />
     {!shellActive && <AdminHeader title="Invoices" showBackButton={true} />}
 
@@ -76,10 +77,10 @@ export default function AccountsInvoices() {
       <Text style={styles.errorText}>Error loading invoices: {error}</Text>
     </View>}
 
-    <FlatList data={invoices} keyExtractor={item => item.id} renderItem={renderItem} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} onEndReached={hasMore ? loadMore : null} onEndReachedThreshold={0.5} ListFooterComponent={renderFooter} ListEmptyComponent={!loading ? <View style={styles.centered}>
+    <TourTarget id="screen.accounts-invoices.workspace" native><FlatList data={invoices} keyExtractor={item => item.id} renderItem={renderItem} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} onEndReached={hasMore ? loadMore : null} onEndReachedThreshold={0.5} ListFooterComponent={renderFooter} ListEmptyComponent={!loading ? <View style={styles.centered}>
       <Text style={styles.emptyText}>No invoices found</Text>
-    </View> : null} refreshing={loading && invoices.length === 0} onRefresh={refresh} />
-  </View>;
+    </View> : null} refreshing={loading && invoices.length === 0} onRefresh={refresh} /></TourTarget>
+  </View></TourTarget>;
 }
 const getStyles = (theme: Theme) => StyleSheet.create({
   container: {

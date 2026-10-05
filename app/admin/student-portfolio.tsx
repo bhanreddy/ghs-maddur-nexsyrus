@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Image,
@@ -555,7 +556,7 @@ export default function AdminStudentPortfolioScreen() {
         </View>
       </View>
       {classSections.length ? (
-        <ScrollView
+        <TourScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.classFilterRow}
@@ -596,7 +597,7 @@ export default function AdminStudentPortfolioScreen() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </TourScrollView>
       ) : null}
       <View style={[styles.searchBox, { backgroundColor: isDark ? '#111827' : '#F8FAFC', borderColor: border }]}>
         <Ionicons name="search" size={17} color={muted} />
@@ -782,12 +783,12 @@ export default function AdminStudentPortfolioScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
-      <AdminHeader
+      <TourTarget id="screen.admin-student-portfolio.overview"><AdminHeader
         title={isCompact && compactDetailOpen && detail ? detail.student.display_name : 'Student Portfolio'}
         showBackButton
         showMenuButton={false}
-      />
-      <ScrollView
+      /></TourTarget>
+      <TourTarget id="screen.admin-student-portfolio.workspace" native><TourScrollView
         ref={pageScrollRef}
         contentContainerStyle={[styles.page, isCompact && styles.pageCompact]}
         keyboardShouldPersistTaps="handled"
@@ -855,7 +856,7 @@ export default function AdminStudentPortfolioScreen() {
             <View style={{ flex: 1, minWidth: 0 }}>{detailPane}</View>
           </View>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </View>
   );
 }

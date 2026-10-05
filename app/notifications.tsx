@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +19,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+      <TourTarget id="screen.notifications.overview" native><View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
@@ -41,8 +42,8 @@ export default function NotificationsScreen() {
         >
           <Ionicons name="megaphone-outline" size={18} color={theme.colors.textStrong} />
         </Pressable>
-      </View>
-      <NotificationInboxList />
+      </View></TourTarget>
+      <TourTarget id="screen.notifications.workspace"><NotificationInboxList /></TourTarget>
     </View>
   );
 }

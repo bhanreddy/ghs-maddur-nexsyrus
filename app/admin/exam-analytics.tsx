@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -147,15 +148,15 @@ export default function ExamAnalyticsScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <AdminHeader title="Exam Analytics" showBackButton />
+    <TourTarget id="screen.admin-exam-analytics.workspace" native><View style={styles.root}>
+      <TourTarget id="screen.admin-exam-analytics.overview"><AdminHeader title="Exam Analytics" showBackButton /></TourTarget>
       {loadingContext ? (
         <View style={styles.centerState}>
           <LogoLoader size={72} color="#7C3AED" />
           <Text style={styles.stateText}>Preparing exam analytics…</Text>
         </View>
       ) : (
-        <ScrollView
+        <TourScrollView
           contentContainerStyle={styles.page}
           keyboardShouldPersistTaps="handled"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void loadContext(selectedClass?.id, true)} tintColor="#7C3AED" />}
@@ -172,7 +173,7 @@ export default function ExamAnalyticsScreen() {
           {context?.class_sections.length ? (
             <View style={styles.selectorCard}>
               <Text style={styles.selectorLabel}>1 · Select class</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                 {context.class_sections.map((classSection) => {
                   const active = selectedClass?.id === classSection.id;
                   return <TouchableOpacity key={classSection.id} onPress={() => chooseClass(classSection)} style={[styles.chip, active && styles.chipActive]}>
@@ -180,14 +181,14 @@ export default function ExamAnalyticsScreen() {
                     <Text style={[styles.chipMeta, active && styles.chipMetaActive]}>{classSection.student_count} students</Text>
                   </TouchableOpacity>;
                 })}
-              </ScrollView>
+              </TourScrollView>
             </View>
           ) : <View style={styles.emptyCard}><Text style={styles.emptyTitle}>No current classes</Text><Text style={styles.stateText}>Create a class section before opening exam analytics.</Text></View>}
 
           {!!selectedClass && (
             <View style={styles.selectorCard}>
               <Text style={styles.selectorLabel}>2 · Select exam</Text>
-              {context?.exams.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {context?.exams.length ? <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                 {context.exams.map((exam) => {
                   const active = selectedExam?.id === exam.id;
                   return <TouchableOpacity key={exam.id} onPress={() => chooseExam(exam)} style={[styles.examChip, active && styles.examChipActive]}>
@@ -195,7 +196,7 @@ export default function ExamAnalyticsScreen() {
                     <Text style={[styles.examChipText, active && styles.examChipTextActive]}>{exam.name}</Text>
                   </TouchableOpacity>;
                 })}
-              </ScrollView> : <Text style={styles.stateText}>No exam papers are configured for this class.</Text>}
+              </TourScrollView> : <Text style={styles.stateText}>No exam papers are configured for this class.</Text>}
             </View>
           )}
 
@@ -270,7 +271,7 @@ export default function ExamAnalyticsScreen() {
                   {SERIES.filter((item) => item.key !== 'student' || report.selected_student).map((item) => <View key={item.key} style={styles.legendItem}><View style={[styles.legendLine, { backgroundColor: item.color }]} /><Text style={styles.legendText}>{item.key === 'student' ? report.selected_student?.display_name : item.label}</Text></View>)}
                 </View>
 
-                {report.subjects.length ? <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.chartScroll}>
+                {report.subjects.length ? <TourScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.chartScroll}>
                   <LineChart
                     data={series.highest}
                     data2={series.average}
@@ -315,7 +316,7 @@ export default function ExamAnalyticsScreen() {
                     animateTogether
                     animationDuration={700}
                   />
-                </ScrollView> : <Text style={styles.noMatch}>No subject papers are available for this exam.</Text>}
+                </TourScrollView> : <Text style={styles.noMatch}>No subject papers are available for this exam.</Text>}
 
                 {!!report.selected_student && (
                   <View style={[styles.rangeNote, allStudentPointsInRange ? styles.rangeNoteGood : styles.rangeNoteWarn]}>
@@ -327,7 +328,7 @@ export default function ExamAnalyticsScreen() {
 
               <View style={styles.tableCard}>
                 <View style={styles.tableHeading}><Text style={styles.tableTitle}>Subject statistics</Text><Text style={styles.tableHint}>Highest and lowest are observed marks, excluding absent and missing entries.</Text></View>
-                <ScrollView horizontal showsHorizontalScrollIndicator>
+                <TourScrollView horizontal showsHorizontalScrollIndicator>
                   <View>
                     <View style={[styles.tableRow, styles.tableHeader]}>
                       {['Subject', 'Exam max', 'Class min', 'Average', 'Class max', report.selected_student ? 'Student' : 'Graded'].map((label, index) => <Text key={label} style={[styles.headerCell, { width: index === 0 ? 160 : 100 }]}>{label}</Text>)}
@@ -341,15 +342,15 @@ export default function ExamAnalyticsScreen() {
                       <Text style={[styles.studentCell, { width: 100 }]}>{report.selected_student ? (subject.student_status === 'absent' ? 'Absent' : displayScore(subject.student_score)) : `${subject.graded_students}/${subject.total_students}`}</Text>
                     </View>)}
                   </View>
-                </ScrollView>
+                </TourScrollView>
               </View>
 
               {!!report.selected_student && <View style={styles.insightCard}><Ionicons name="sparkles" size={20} color="#7C3AED" /><View style={{ flex: 1 }}><Text style={styles.insightTitle}>Management insight</Text><Text style={styles.insightText}>{report.selected_student.display_name} is at or above the class average in {report.summary.student_above_class_average ?? 0} of {report.subjects.filter((subject) => subject.student_score != null).length} graded subjects.</Text></View></View>}
             </>
           )}
-        </ScrollView>
+        </TourScrollView>
       )}
-    </View>
+    </View></TourTarget>
   );
 }
 

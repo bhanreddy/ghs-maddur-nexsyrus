@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
@@ -105,10 +106,10 @@ export default function AdminDiaryHistoryScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: pageBg }]}>
-      <AdminHeader
+      <TourTarget id="screen.admin-diary-history.overview"><AdminHeader
         title="Diary History"
         showBackButton
-      />
+      /></TourTarget>
 
       <View style={styles.filterContainer}>
         {/* Date Selection */}
@@ -122,9 +123,9 @@ export default function AdminDiaryHistoryScreen() {
         </View>
 
         {/* Class Selection */}
-        <View style={styles.filterRow}>
+        <TourTarget id="screen.admin-diary-history.workspace" native><View style={styles.filterRow}>
           <Text style={[styles.filterLabel, { color: subColor }]}>CLASS:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
             <TouchableOpacity
               style={[
                 styles.chip,
@@ -148,13 +149,13 @@ export default function AdminDiaryHistoryScreen() {
                 <Text style={[styles.chipText, { color: titleColor }, selectedClass === cls.id && styles.chipTextActive]}>{cls.name}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </View>
+          </TourScrollView>
+        </View></TourTarget>
 
         {/* Section Selection */}
         <View style={styles.filterRow}>
           <Text style={[styles.filterLabel, { color: subColor }]}>SECTION:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+          <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
             <TouchableOpacity
               style={[
                 styles.chip,
@@ -178,11 +179,11 @@ export default function AdminDiaryHistoryScreen() {
                 <Text style={[styles.chipText, { color: titleColor }, selectedSection === sec.id && styles.chipTextActive]}>{sec.name}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </TourScrollView>
         </View>
       </View>
 
-      <ScrollView
+      <TourScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7C6FFF" />}
       >
@@ -235,7 +236,7 @@ export default function AdminDiaryHistoryScreen() {
             );
           })
         )}
-      </ScrollView>
+      </TourScrollView>
     </View>
   );
 }

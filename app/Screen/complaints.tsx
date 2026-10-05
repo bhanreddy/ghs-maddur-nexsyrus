@@ -1,3 +1,4 @@
+import { TourTarget } from '@/src/features/app-tour';
 // OPT: Student complaints — profile id gates useStudentQuery('/complaints') (replaces useEffect + ComplaintService.getStudentComplaints).
 import React, { useState, useEffect, useRef, useMemo, memo, useCallback } from 'react'; // OPT: memo/useCallback for subtree stability; useEffect retained only for FadeSlide animation.
 import {
@@ -340,9 +341,9 @@ function ComplaintsScreenInner() { // OPT: Wrapped by ErrorBoundary at default e
 
 export default function ComplaintsScreen() { // OPT: Per-screen ErrorBoundary matches requested isolation pattern.
   return (
-    <ErrorBoundary>
+    <TourTarget id="screen.screen-complaints.overview" style={{ flex: 1 }}><TourTarget id="screen.screen-complaints.workspace" style={{ flex: 1 }}><ErrorBoundary>
       <ComplaintsScreenInner />
-    </ErrorBoundary>
+    </ErrorBoundary></TourTarget></TourTarget>
   );
 }
 

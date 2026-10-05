@@ -1,0 +1,1439 @@
+[
+  {
+    "id": "student.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "student",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Family portal",
+      "te": "కుటుంబ పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/(tabs)/home",
+        "target": "student.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/(tabs)/home",
+        "target": "student.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "staff.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "staff",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Staff portal",
+      "te": "సిబ్బంది పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/staff/dashboard",
+        "target": "staff.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/staff/dashboard",
+        "target": "staff.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "admin.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "admin",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Admin portal",
+      "te": "నిర్వాహక పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/admin/dashboard",
+        "target": "admin.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/admin/dashboard",
+        "target": "admin.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "accounts.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "accounts",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Accounts portal",
+      "te": "ఖాతాల పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/accounts/dashboard",
+        "target": "accounts.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/accounts/dashboard",
+        "target": "accounts.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "driver.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "driver",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Driver portal",
+      "te": "డ్రైవర్ పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/driver/dashboard",
+        "target": "driver.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/driver/dashboard",
+        "target": "driver.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "gatekeeper.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "gatekeeper",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Gatekeeper portal",
+      "te": "గేట్ భద్రత పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/gatekeeper/dashboard",
+        "target": "gatekeeper.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/gatekeeper/dashboard",
+        "target": "gatekeeper.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "applicant.welcome",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "applicant",
+    "kind": "welcome",
+    "title": {
+      "en": "Welcome to Admissions portal",
+      "te": "ప్రవేశాల పోర్టల్ పరిచయం"
+    },
+    "description": {
+      "en": "Find your way around in two short steps.",
+      "te": "రెండు చిన్న దశల్లో మీ పోర్టల్‌ను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "start",
+        "route": "/admission/dashboard",
+        "target": "applicant.launcher",
+        "title": {
+          "en": "Your personal guide",
+          "te": "మీ వ్యక్తిగత మార్గదర్శి"
+        },
+        "body": {
+          "en": "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu.",
+          "te": "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+        },
+        "narration": {
+          "en": [
+            "Open App Tour any time to learn a task, resume a guide, or replay it in English or Telugu."
+          ],
+          "te": [
+            "ఏదైనా పని నేర్చుకోవడానికి, ఆపిన గైడ్‌ను కొనసాగించడానికి లేదా ఇంగ్లీష్ లేదా తెలుగులో మళ్లీ వినడానికి యాప్ టూర్‌ను తెరవండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "navigation",
+        "route": "/admission/dashboard",
+        "target": "applicant.navigation",
+        "title": {
+          "en": "Move around your portal",
+          "te": "మీ పోర్టల్‌లో ప్రయాణించండి"
+        },
+        "body": {
+          "en": "Use these navigation controls to reach your school tools. The task guides show each control on the real screen, at your own pace.",
+          "te": "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి. పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+        },
+        "narration": {
+          "en": [
+            "Use these navigation controls to reach your school tools.",
+            "The task guides show each control on the real screen, at your own pace."
+          ],
+          "te": [
+            "మీ పాఠశాల సాధనాలను తెరవడానికి ఈ నావిగేషన్ నియంత్రణలను ఉపయోగించండి.",
+            "పని గైడ్‌లు నిజమైన తెరపై ప్రతి నియంత్రణను మీ వేగంతో చూపిస్తాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "student.fees",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "student",
+    "kind": "task",
+    "title": {
+      "en": "Fees and receipts",
+      "te": "ఫీజులు మరియు రసీదులు"
+    },
+    "description": {
+      "en": "Understand your dues and payment history.",
+      "te": "మీ బకాయిలు మరియు చెల్లింపు చరిత్రను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/(tabs)/fees",
+        "target": "student.fees.summary",
+        "title": {
+          "en": "Review fee information",
+          "te": "ఫీజు వివరాలను పరిశీలించండి"
+        },
+        "body": {
+          "en": "Check the fee summary before making a payment. This guide does not start a payment.",
+          "te": "చెల్లించే ముందు ఫీజు సారాంశాన్ని పరిశీలించండి. ఈ గైడ్ చెల్లింపును ప్రారంభించదు."
+        },
+        "narration": {
+          "en": [
+            "Check the fee summary before making a payment.",
+            "This guide does not start a payment."
+          ],
+          "te": [
+            "చెల్లించే ముందు ఫీజు సారాంశాన్ని పరిశీలించండి.",
+            "ఈ గైడ్ చెల్లింపును ప్రారంభించదు."
+          ]
+        },
+        "readOnly": true,
+        "feature": "fees",
+        "featureFlag": "nav.fees"
+      },
+      {
+        "id": "step-2",
+        "route": "/(tabs)/fees",
+        "target": "student.fees.history",
+        "title": {
+          "en": "Open your receipts",
+          "te": "మీ రసీదులను తెరవండి"
+        },
+        "body": {
+          "en": "Tap Receipts to see your payment history.",
+          "te": "మీ చెల్లింపు చరిత్రను చూడటానికి రసీదులను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Tap Receipts to see your payment history."
+          ],
+          "te": [
+            "మీ చెల్లింపు చరిత్రను చూడటానికి రసీదులను నొక్కండి."
+          ]
+        },
+        "event": "student.fees.history",
+        "feature": "fees",
+        "featureFlag": "nav.fees"
+      },
+      {
+        "id": "step-3",
+        "route": "/(tabs)/fees",
+        "target": "student.fees.content",
+        "title": {
+          "en": "Review payment records",
+          "te": "చెల్లింపు రికార్డులను పరిశీలించండి"
+        },
+        "body": {
+          "en": "Your receipts appear here. If no records are available, the school has not added any yet. Exit the guide to open or download a receipt.",
+          "te": "మీ రసీదులు ఇక్కడ కనిపిస్తాయి. రికార్డులు లేకపోతే పాఠశాల ఇంకా జోడించలేదు. రసీదును తెరవడానికి లేదా డౌన్‌లోడ్ చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Your receipts appear here.",
+            "If no records are available, the school has not added any yet.",
+            "Exit the guide to open or download a receipt."
+          ],
+          "te": [
+            "మీ రసీదులు ఇక్కడ కనిపిస్తాయి.",
+            "రికార్డులు లేకపోతే పాఠశాల ఇంకా జోడించలేదు.",
+            "రసీదును తెరవడానికి లేదా డౌన్‌లోడ్ చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true,
+        "feature": "fees",
+        "featureFlag": "nav.fees"
+      }
+    ]
+  },
+  {
+    "id": "student.diary",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "student",
+    "kind": "task",
+    "title": {
+      "en": "Diary and homework",
+      "te": "డైరీ మరియు ఇంటిపని"
+    },
+    "description": {
+      "en": "Find homework by date.",
+      "te": "తేదీ ప్రకారం ఇంటిపనిని కనుగొనండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/Screen/diary",
+        "target": "student.diary.date",
+        "title": {
+          "en": "Choose a date",
+          "te": "తేదీని ఎంచుకోండి"
+        },
+        "body": {
+          "en": "Use Today and History to find homework. History provides a date selector for earlier entries. The guide leaves your selection unchanged.",
+          "te": "ఇంటిపనిని కనుగొనడానికి ఈరోజు మరియు చరిత్రను ఉపయోగించండి. పాత నమోదుల కోసం చరిత్రలో తేదీ ఎంపిక ఉంటుంది. గైడ్ మీ ఎంపికను మార్చదు."
+        },
+        "narration": {
+          "en": [
+            "Use Today and History to find homework.",
+            "History provides a date selector for earlier entries.",
+            "The guide leaves your selection unchanged."
+          ],
+          "te": [
+            "ఇంటిపనిని కనుగొనడానికి ఈరోజు మరియు చరిత్రను ఉపయోగించండి.",
+            "పాత నమోదుల కోసం చరిత్రలో తేదీ ఎంపిక ఉంటుంది.",
+            "గైడ్ మీ ఎంపికను మార్చదు."
+          ]
+        },
+        "readOnly": true,
+        "featureFlag": "topbar.diary"
+      },
+      {
+        "id": "step-2",
+        "route": "/Screen/diary",
+        "target": "student.diary.entries",
+        "title": {
+          "en": "Read your homework",
+          "te": "మీ ఇంటిపనిని చదవండి"
+        },
+        "body": {
+          "en": "Read the subject, instructions, and due date here. An empty list means no homework is available for the selected date.",
+          "te": "విషయం, సూచనలు మరియు గడువు తేదీని ఇక్కడ చదవండి. జాబితా ఖాళీగా ఉంటే ఎంచుకున్న తేదీకి ఇంటిపని అందుబాటులో లేదు."
+        },
+        "narration": {
+          "en": [
+            "Read the subject, instructions, and due date here.",
+            "An empty list means no homework is available for the selected date."
+          ],
+          "te": [
+            "విషయం, సూచనలు మరియు గడువు తేదీని ఇక్కడ చదవండి.",
+            "జాబితా ఖాళీగా ఉంటే ఎంచుకున్న తేదీకి ఇంటిపని అందుబాటులో లేదు."
+          ]
+        },
+        "readOnly": true,
+        "featureFlag": "topbar.diary"
+      }
+    ]
+  },
+  {
+    "id": "staff.attendance",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "staff",
+    "kind": "task",
+    "title": {
+      "en": "Student attendance",
+      "te": "విద్యార్థుల హాజరు"
+    },
+    "description": {
+      "en": "Learn class selection, search, and submission.",
+      "te": "తరగతి ఎంపిక, శోధన మరియు సమర్పణను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/staff/manage-students",
+        "target": "staff.attendance.class",
+        "title": {
+          "en": "Select the correct class",
+          "te": "సరైన తరగతిని ఎంచుకోండి"
+        },
+        "body": {
+          "en": "Check the class and date before marking attendance. Keep any existing marks while following this guide.",
+          "te": "హాజరు గుర్తించే ముందు తరగతి మరియు తేదీని పరిశీలించండి. ఈ గైడ్‌ను అనుసరిస్తూ ఇప్పటికే ఉన్న గుర్తులను అలాగే ఉంచండి."
+        },
+        "narration": {
+          "en": [
+            "Check the class and date before marking attendance.",
+            "Keep any existing marks while following this guide."
+          ],
+          "te": [
+            "హాజరు గుర్తించే ముందు తరగతి మరియు తేదీని పరిశీలించండి.",
+            "ఈ గైడ్‌ను అనుసరిస్తూ ఇప్పటికే ఉన్న గుర్తులను అలాగే ఉంచండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "step-2",
+        "route": "/staff/manage-students",
+        "target": "staff.attendance.search",
+        "title": {
+          "en": "Find a student",
+          "te": "విద్యార్థిని కనుగొనండి"
+        },
+        "body": {
+          "en": "Type a student name or roll number to filter the list. Then press the search or done key on your keyboard to continue.",
+          "te": "జాబితాను వడపోయడానికి విద్యార్థి పేరు లేదా రోల్ నంబర్‌ను టైప్ చేయండి. తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Type a student name or roll number to filter the list.",
+            "Then press the search or done key on your keyboard to continue."
+          ],
+          "te": [
+            "జాబితాను వడపోయడానికి విద్యార్థి పేరు లేదా రోల్ నంబర్‌ను టైప్ చేయండి.",
+            "తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+          ]
+        },
+        "event": "staff.attendance.search"
+      },
+      {
+        "id": "step-3",
+        "route": "/staff/manage-students",
+        "target": "staff.attendance.review",
+        "title": {
+          "en": "Review before submission",
+          "te": "సమర్పణకు ముందు పరిశీలించండి"
+        },
+        "body": {
+          "en": "Review the attendance summary and any unmarked students. The guide never marks or submits attendance. Exit when you are ready to continue.",
+          "te": "హాజరు సారాంశాన్ని మరియు గుర్తించని విద్యార్థులను పరిశీలించండి. గైడ్ హాజరును గుర్తించదు లేదా సమర్పించదు. కొనసాగించడానికి సిద్ధమైనప్పుడు బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Review the attendance summary and any unmarked students.",
+            "The guide never marks or submits attendance.",
+            "Exit when you are ready to continue."
+          ],
+          "te": [
+            "హాజరు సారాంశాన్ని మరియు గుర్తించని విద్యార్థులను పరిశీలించండి.",
+            "గైడ్ హాజరును గుర్తించదు లేదా సమర్పించదు.",
+            "కొనసాగించడానికి సిద్ధమైనప్పుడు బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "staff.diary",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "staff",
+    "kind": "task",
+    "title": {
+      "en": "Prepare a diary entry",
+      "te": "డైరీ నమోదు సిద్ధం చేయండి"
+    },
+    "description": {
+      "en": "Choose a class and learn the entry options.",
+      "te": "తరగతిని ఎంచుకుని నమోదు ఎంపికలను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/staff/diary",
+        "target": "staff.diary.class",
+        "title": {
+          "en": "Check your class",
+          "te": "మీ తరగతిని పరిశీలించండి"
+        },
+        "body": {
+          "en": "Choose the class that should receive the homework. Existing drafts stay in place during the guide.",
+          "te": "ఇంటిపని అందుకోవాల్సిన తరగతిని ఎంచుకోండి. గైడ్ సమయంలో ఇప్పటికే ఉన్న చిత్తుప్రతులు అలాగే ఉంటాయి."
+        },
+        "narration": {
+          "en": [
+            "Choose the class that should receive the homework.",
+            "Existing drafts stay in place during the guide."
+          ],
+          "te": [
+            "ఇంటిపని అందుకోవాల్సిన తరగతిని ఎంచుకోండి.",
+            "గైడ్ సమయంలో ఇప్పటికే ఉన్న చిత్తుప్రతులు అలాగే ఉంటాయి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "step-2",
+        "route": "/staff/diary",
+        "target": "staff.diary.compose",
+        "title": {
+          "en": "Prepare the instructions",
+          "te": "సూచనలను సిద్ధం చేయండి"
+        },
+        "body": {
+          "en": "Use the entry options to prepare clear homework instructions. This guide explains the options without opening the camera, recording audio, or publishing.",
+          "te": "స్పష్టమైన ఇంటిపని సూచనలను సిద్ధం చేయడానికి నమోదు ఎంపికలను ఉపయోగించండి. ఈ గైడ్ కెమెరాను తెరవకుండా, ఆడియోను రికార్డ్ చేయకుండా లేదా ప్రచురించకుండా ఎంపికలను వివరిస్తుంది."
+        },
+        "narration": {
+          "en": [
+            "Use the entry options to prepare clear homework instructions.",
+            "This guide explains the options without opening the camera, recording audio, or publishing."
+          ],
+          "te": [
+            "స్పష్టమైన ఇంటిపని సూచనలను సిద్ధం చేయడానికి నమోదు ఎంపికలను ఉపయోగించండి.",
+            "ఈ గైడ్ కెమెరాను తెరవకుండా, ఆడియోను రికార్డ్ చేయకుండా లేదా ప్రచురించకుండా ఎంపికలను వివరిస్తుంది."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "admin.students",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "admin",
+    "kind": "task",
+    "title": {
+      "en": "Find student records",
+      "te": "విద్యార్థుల రికార్డులను కనుగొనండి"
+    },
+    "description": {
+      "en": "Search and narrow your student list.",
+      "te": "విద్యార్థుల జాబితాను శోధించి వడపోయండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/admin/students",
+        "target": "admin.students.search",
+        "title": {
+          "en": "Search for a student",
+          "te": "విద్యార్థి కోసం శోధించండి"
+        },
+        "body": {
+          "en": "Enter a name or admission number to find a student. Then press the search or done key on your keyboard to continue.",
+          "te": "విద్యార్థిని కనుగొనడానికి పేరు లేదా ప్రవేశ సంఖ్యను నమోదు చేయండి. తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Enter a name or admission number to find a student.",
+            "Then press the search or done key on your keyboard to continue."
+          ],
+          "te": [
+            "విద్యార్థిని కనుగొనడానికి పేరు లేదా ప్రవేశ సంఖ్యను నమోదు చేయండి.",
+            "తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+          ]
+        },
+        "event": "admin.students.search",
+        "permission": "students.view",
+        "feature": "student_management"
+      },
+      {
+        "id": "step-2",
+        "route": "/admin/students",
+        "target": "admin.students.filters",
+        "title": {
+          "en": "Narrow your results",
+          "te": "మీ ఫలితాలను వడపోయండి"
+        },
+        "body": {
+          "en": "Use class, section, and status filters to narrow the list. Exit the guide before opening a record to review or edit it.",
+          "te": "జాబితాను వడపోయడానికి తరగతి, విభాగం మరియు స్థితి ఫిల్టర్‌లను ఉపయోగించండి. రికార్డును పరిశీలించడానికి లేదా సవరించడానికి తెరిచే ముందు గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Use class, section, and status filters to narrow the list.",
+            "Exit the guide before opening a record to review or edit it."
+          ],
+          "te": [
+            "జాబితాను వడపోయడానికి తరగతి, విభాగం మరియు స్థితి ఫిల్టర్‌లను ఉపయోగించండి.",
+            "రికార్డును పరిశీలించడానికి లేదా సవరించడానికి తెరిచే ముందు గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true,
+        "permission": "students.view",
+        "feature": "student_management"
+      }
+    ]
+  },
+  {
+    "id": "admin.admissions",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "admin",
+    "kind": "task",
+    "title": {
+      "en": "Review admissions",
+      "te": "ప్రవేశాలను పరిశీలించండి"
+    },
+    "description": {
+      "en": "Locate an application without changing its status.",
+      "te": "స్థితిని మార్చకుండా దరఖాస్తును కనుగొనండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/admin/admissions",
+        "target": "admin.admissions.search",
+        "title": {
+          "en": "Find an application",
+          "te": "దరఖాస్తును కనుగొనండి"
+        },
+        "body": {
+          "en": "Search by candidate name, application number, or phone number. Then press the search or done key on your keyboard to continue.",
+          "te": "అభ్యర్థి పేరు, దరఖాస్తు సంఖ్య లేదా ఫోన్ నంబర్‌తో శోధించండి. తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Search by candidate name, application number, or phone number.",
+            "Then press the search or done key on your keyboard to continue."
+          ],
+          "te": [
+            "అభ్యర్థి పేరు, దరఖాస్తు సంఖ్య లేదా ఫోన్ నంబర్‌తో శోధించండి.",
+            "తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+          ]
+        },
+        "event": "admin.admissions.search",
+        "permission": "admissions.view",
+        "feature": "admission_workflow"
+      },
+      {
+        "id": "step-2",
+        "route": "/admin/admissions",
+        "target": "admin.admissions.filters",
+        "title": {
+          "en": "Review the pipeline",
+          "te": "ప్రవేశాల క్రమాన్ని పరిశీలించండి"
+        },
+        "body": {
+          "en": "Use the class filter to focus on applications for that class. Review the stage columns for each application. Exit the guide before changing a stage or making an admission decision.",
+          "te": "ఆ తరగతికి చెందిన దరఖాస్తులను చూడటానికి తరగతి ఫిల్టర్‌ను ఉపయోగించండి. ప్రతి దరఖాస్తుకు దశల కాలమ్‌లను సమీక్షించండి. దశను మార్చడానికి లేదా ప్రవేశ నిర్ణయం తీసుకోవడానికి ముందు గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Use the class filter to focus on applications for that class.",
+            "Review the stage columns for each application.",
+            "Exit the guide before changing a stage or making an admission decision."
+          ],
+          "te": [
+            "ఆ తరగతికి చెందిన దరఖాస్తులను చూడటానికి తరగతి ఫిల్టర్‌ను ఉపయోగించండి.",
+            "ప్రతి దరఖాస్తుకు దశల కాలమ్‌లను సమీక్షించండి.",
+            "దశను మార్చడానికి లేదా ప్రవేశ నిర్ణయం తీసుకోవడానికి ముందు గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true,
+        "permission": "admissions.view",
+        "feature": "admission_workflow"
+      }
+    ]
+  },
+  {
+    "id": "accounts.collection",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "accounts",
+    "kind": "task",
+    "title": {
+      "en": "Prepare fee collection",
+      "te": "ఫీజు వసూలును సిద్ధం చేయండి"
+    },
+    "description": {
+      "en": "Find the student before collecting a payment.",
+      "te": "చెల్లింపును వసూలు చేసే ముందు విద్యార్థిని కనుగొనండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/accounts/fees",
+        "target": "accounts.fees.search",
+        "title": {
+          "en": "Find the correct student",
+          "te": "సరైన విద్యార్థిని కనుగొనండి"
+        },
+        "body": {
+          "en": "Search by student name or admission number. Verify the student before opening the fee ledger. Then press the search or done key on your keyboard to continue.",
+          "te": "విద్యార్థి పేరు లేదా ప్రవేశ సంఖ్యతో శోధించండి. ఫీజు ఖాతాను తెరిచే ముందు విద్యార్థిని ధృవీకరించండి. తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Search by student name or admission number.",
+            "Verify the student before opening the fee ledger.",
+            "Then press the search or done key on your keyboard to continue."
+          ],
+          "te": [
+            "విద్యార్థి పేరు లేదా ప్రవేశ సంఖ్యతో శోధించండి.",
+            "ఫీజు ఖాతాను తెరిచే ముందు విద్యార్థిని ధృవీకరించండి.",
+            "తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+          ]
+        },
+        "event": "accounts.fees.search",
+        "permission": "fees.view",
+        "feature": "fees"
+      },
+      {
+        "id": "step-2",
+        "route": "/accounts/fees",
+        "target": "accounts.fees.filters",
+        "title": {
+          "en": "Review fee filters",
+          "te": "ఫీజు ఫిల్టర్‌లను పరిశీలించండి"
+        },
+        "body": {
+          "en": "Use the filters to review balances. Open the student ledger after exiting the guide, then verify the amount and payment method before collecting. The guide never collects money.",
+          "te": "బకాయిలను పరిశీలించడానికి ఫిల్టర్‌లను ఉపయోగించండి. గైడ్ నుండి బయటకు వెళ్లిన తరువాత విద్యార్థి ఖాతాను తెరిచి, వసూలు చేసే ముందు మొత్తం మరియు చెల్లింపు పద్ధతిని ధృవీకరించండి. గైడ్ డబ్బు వసూలు చేయదు."
+        },
+        "narration": {
+          "en": [
+            "Use the filters to review balances.",
+            "Open the student ledger after exiting the guide, then verify the amount and payment method before collecting.",
+            "The guide never collects money."
+          ],
+          "te": [
+            "బకాయిలను పరిశీలించడానికి ఫిల్టర్‌లను ఉపయోగించండి.",
+            "గైడ్ నుండి బయటకు వెళ్లిన తరువాత విద్యార్థి ఖాతాను తెరిచి, వసూలు చేసే ముందు మొత్తం మరియు చెల్లింపు పద్ధతిని ధృవీకరించండి.",
+            "గైడ్ డబ్బు వసూలు చేయదు."
+          ]
+        },
+        "readOnly": true,
+        "permission": "fees.view",
+        "feature": "fees"
+      }
+    ]
+  },
+  {
+    "id": "accounts.receipts",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "accounts",
+    "kind": "task",
+    "title": {
+      "en": "Find receipts",
+      "te": "రసీదులను కనుగొనండి"
+    },
+    "description": {
+      "en": "Search payment records and understand filters.",
+      "te": "చెల్లింపు రికార్డులను శోధించి ఫిల్టర్‌లను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/accounts/receipts",
+        "target": "accounts.receipts.search",
+        "title": {
+          "en": "Search receipts",
+          "te": "రసీదులను శోధించండి"
+        },
+        "body": {
+          "en": "Enter a receipt number, student name, or admission number. Then press the search or done key on your keyboard to continue.",
+          "te": "రసీదు సంఖ్య, విద్యార్థి పేరు లేదా ప్రవేశ సంఖ్యను నమోదు చేయండి. తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Enter a receipt number, student name, or admission number.",
+            "Then press the search or done key on your keyboard to continue."
+          ],
+          "te": [
+            "రసీదు సంఖ్య, విద్యార్థి పేరు లేదా ప్రవేశ సంఖ్యను నమోదు చేయండి.",
+            "తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+          ]
+        },
+        "event": "accounts.receipts.search",
+        "permission": "fees.view",
+        "feature": "fees"
+      },
+      {
+        "id": "step-2",
+        "route": "/accounts/receipts",
+        "target": "accounts.receipts.filters",
+        "title": {
+          "en": "Filter payment records",
+          "te": "చెల్లింపు రికార్డులను వడపోయండి"
+        },
+        "body": {
+          "en": "Choose a date range or collection filter to narrow results. Exit the guide to print or export the records you need.",
+          "te": "ఫలితాలను వడపోయడానికి తేదీ పరిధి లేదా వసూలు ఫిల్టర్‌ను ఎంచుకోండి. మీకు అవసరమైన రికార్డులను ముద్రించడానికి లేదా ఎగుమతి చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Choose a date range or collection filter to narrow results.",
+            "Exit the guide to print or export the records you need."
+          ],
+          "te": [
+            "ఫలితాలను వడపోయడానికి తేదీ పరిధి లేదా వసూలు ఫిల్టర్‌ను ఎంచుకోండి.",
+            "మీకు అవసరమైన రికార్డులను ముద్రించడానికి లేదా ఎగుమతి చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true,
+        "permission": "fees.view",
+        "feature": "fees"
+      }
+    ]
+  },
+  {
+    "id": "driver.trips",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "driver",
+    "kind": "task",
+    "title": {
+      "en": "Review assigned trips",
+      "te": "కేటాయించిన ప్రయాణాలను పరిశీలించండి"
+    },
+    "description": {
+      "en": "Understand your route while parked.",
+      "te": "వాహనం నిలిపినప్పుడు మీ మార్గాన్ని తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/driver/dashboard",
+        "target": "driver.route",
+        "title": {
+          "en": "Review your route",
+          "te": "మీ మార్గాన్ని పరిశీలించండి"
+        },
+        "body": {
+          "en": "While parked, review the assigned route and trip direction. If no route is assigned, ask your school administrator.",
+          "te": "వాహనం నిలిపినప్పుడు కేటాయించిన మార్గం మరియు ప్రయాణ దిశను పరిశీలించండి. మార్గం కేటాయించకపోతే మీ పాఠశాల నిర్వాహకుడిని అడగండి."
+        },
+        "narration": {
+          "en": [
+            "While parked, review the assigned route and trip direction.",
+            "If no route is assigned, ask your school administrator."
+          ],
+          "te": [
+            "వాహనం నిలిపినప్పుడు కేటాయించిన మార్గం మరియు ప్రయాణ దిశను పరిశీలించండి.",
+            "మార్గం కేటాయించకపోతే మీ పాఠశాల నిర్వాహకుడిని అడగండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "step-2",
+        "route": "/driver/dashboard",
+        "target": "driver.start",
+        "title": {
+          "en": "Start only when ready",
+          "te": "సిద్ధమైనప్పుడు మాత్రమే ప్రారంభించండి"
+        },
+        "body": {
+          "en": "Check the bus, route, and location permissions before starting. This guide never starts or ends a trip. Exit the guide before operating trip controls.",
+          "te": "ప్రారంభించే ముందు బస్సు, మార్గం మరియు స్థాన అనుమతులను పరిశీలించండి. ఈ గైడ్ ప్రయాణాన్ని ప్రారంభించదు లేదా ముగించదు. ప్రయాణ నియంత్రణలను ఉపయోగించే ముందు గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Check the bus, route, and location permissions before starting.",
+            "This guide never starts or ends a trip.",
+            "Exit the guide before operating trip controls."
+          ],
+          "te": [
+            "ప్రారంభించే ముందు బస్సు, మార్గం మరియు స్థాన అనుమతులను పరిశీలించండి.",
+            "ఈ గైడ్ ప్రయాణాన్ని ప్రారంభించదు లేదా ముగించదు.",
+            "ప్రయాణ నియంత్రణలను ఉపయోగించే ముందు గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "driver.attendance",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "driver",
+    "kind": "task",
+    "title": {
+      "en": "Bus attendance",
+      "te": "బస్సు హాజరు"
+    },
+    "description": {
+      "en": "Review stops and the passenger list.",
+      "te": "స్టాప్‌లు మరియు ప్రయాణికుల జాబితాను పరిశీలించండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/driver/bus-attendance",
+        "target": "driver.attendance.stop",
+        "title": {
+          "en": "Check the stop",
+          "te": "స్టాప్‌ను పరిశీలించండి"
+        },
+        "body": {
+          "en": "Review the selected stop and trip before marking passengers. Use this guide only while parked.",
+          "te": "ప్రయాణికులను గుర్తించే ముందు ఎంచుకున్న స్టాప్ మరియు ప్రయాణాన్ని పరిశీలించండి. వాహనం నిలిపినప్పుడు మాత్రమే ఈ గైడ్‌ను ఉపయోగించండి."
+        },
+        "narration": {
+          "en": [
+            "Review the selected stop and trip before marking passengers.",
+            "Use this guide only while parked."
+          ],
+          "te": [
+            "ప్రయాణికులను గుర్తించే ముందు ఎంచుకున్న స్టాప్ మరియు ప్రయాణాన్ని పరిశీలించండి.",
+            "వాహనం నిలిపినప్పుడు మాత్రమే ఈ గైడ్‌ను ఉపయోగించండి."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "step-2",
+        "route": "/driver/bus-attendance",
+        "target": "driver.attendance.list",
+        "title": {
+          "en": "Check each passenger",
+          "te": "ప్రతి ప్రయాణికుడిని పరిశీలించండి"
+        },
+        "body": {
+          "en": "The passenger list appears here when a trip is available. Exit the guide to mark and save attendance yourself.",
+          "te": "ప్రయాణం అందుబాటులో ఉన్నప్పుడు ప్రయాణికుల జాబితా ఇక్కడ కనిపిస్తుంది. మీరే హాజరును గుర్తించి సేవ్ చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "The passenger list appears here when a trip is available.",
+            "Exit the guide to mark and save attendance yourself."
+          ],
+          "te": [
+            "ప్రయాణం అందుబాటులో ఉన్నప్పుడు ప్రయాణికుల జాబితా ఇక్కడ కనిపిస్తుంది.",
+            "మీరే హాజరును గుర్తించి సేవ్ చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "gatekeeper.visitors",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "gatekeeper",
+    "kind": "task",
+    "title": {
+      "en": "Visitor verification",
+      "te": "సందర్శకుల ధృవీకరణ"
+    },
+    "description": {
+      "en": "Learn how to locate and review a visitor.",
+      "te": "సందర్శకుడిని కనుగొని పరిశీలించడం నేర్చుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/gatekeeper/search",
+        "target": "gatekeeper.visitor.search",
+        "title": {
+          "en": "Find a visitor",
+          "te": "సందర్శకుడిని కనుగొనండి"
+        },
+        "body": {
+          "en": "Search for the visitor using the details provided at the gate. Then press the search or done key on your keyboard to continue.",
+          "te": "గేట్ వద్ద అందించిన వివరాలను ఉపయోగించి సందర్శకుడి కోసం శోధించండి. తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Search for the visitor using the details provided at the gate.",
+            "Then press the search or done key on your keyboard to continue."
+          ],
+          "te": [
+            "గేట్ వద్ద అందించిన వివరాలను ఉపయోగించి సందర్శకుడి కోసం శోధించండి.",
+            "తరువాత కొనసాగించడానికి మీ కీబోర్డ్‌లో శోధన లేదా పూర్తయింది బటన్‌ను నొక్కండి."
+          ]
+        },
+        "event": "gatekeeper.visitor.search"
+      },
+      {
+        "id": "step-2",
+        "route": "/gatekeeper/search",
+        "target": "gatekeeper.visitor.results",
+        "title": {
+          "en": "Verify before entry",
+          "te": "ప్రవేశానికి ముందు ధృవీకరించండి"
+        },
+        "body": {
+          "en": "Review the matching visit and host details. Exit the guide to open the visit and perform the required identity checks before allowing or denying entry.",
+          "te": "సరిపోలిన సందర్శన మరియు ఆతిథ్య వివరాలను పరిశీలించండి. ప్రవేశాన్ని అనుమతించే లేదా తిరస్కరించే ముందు సందర్శనను తెరిచి అవసరమైన గుర్తింపు తనిఖీలు చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Review the matching visit and host details.",
+            "Exit the guide to open the visit and perform the required identity checks before allowing or denying entry."
+          ],
+          "te": [
+            "సరిపోలిన సందర్శన మరియు ఆతిథ్య వివరాలను పరిశీలించండి.",
+            "ప్రవేశాన్ని అనుమతించే లేదా తిరస్కరించే ముందు సందర్శనను తెరిచి అవసరమైన గుర్తింపు తనిఖీలు చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "gatekeeper.pickup",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "gatekeeper",
+    "kind": "task",
+    "title": {
+      "en": "Student pickup verification",
+      "te": "విద్యార్థి పికప్ ధృవీకరణ"
+    },
+    "description": {
+      "en": "Understand pickup checks before releasing a student.",
+      "te": "విద్యార్థిని పంపే ముందు పికప్ తనిఖీలను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/gatekeeper/pickup",
+        "target": "gatekeeper.pickup.code",
+        "title": {
+          "en": "Check the pickup code",
+          "te": "పికప్ కోడ్‌ను పరిశీలించండి"
+        },
+        "body": {
+          "en": "Use the pickup code provided by the guardian. Do not release a student until the school verification process is complete.",
+          "te": "సంరక్షకుడు అందించిన పికప్ కోడ్‌ను ఉపయోగించండి. పాఠశాల ధృవీకరణ ప్రక్రియ పూర్తయ్యే వరకు విద్యార్థిని పంపవద్దు."
+        },
+        "narration": {
+          "en": [
+            "Use the pickup code provided by the guardian.",
+            "Do not release a student until the school verification process is complete."
+          ],
+          "te": [
+            "సంరక్షకుడు అందించిన పికప్ కోడ్‌ను ఉపయోగించండి.",
+            "పాఠశాల ధృవీకరణ ప్రక్రియ పూర్తయ్యే వరకు విద్యార్థిని పంపవద్దు."
+          ]
+        },
+        "readOnly": true
+      },
+      {
+        "id": "step-2",
+        "route": "/gatekeeper/pickup",
+        "target": "gatekeeper.pickup.validate",
+        "title": {
+          "en": "Verify the request",
+          "te": "అభ్యర్థనను ధృవీకరించండి"
+        },
+        "body": {
+          "en": "Validation checks the pickup request. Exit the guide before validating and reviewing the guardian. The guide never validates a code or releases a student.",
+          "te": "ధృవీకరణ పికప్ అభ్యర్థనను తనిఖీ చేస్తుంది. ధృవీకరించడానికి మరియు సంరక్షకుడిని పరిశీలించడానికి ముందు గైడ్ నుండి బయటకు వెళ్లండి. గైడ్ కోడ్‌ను ధృవీకరించదు లేదా విద్యార్థిని పంపదు."
+        },
+        "narration": {
+          "en": [
+            "Validation checks the pickup request.",
+            "Exit the guide before validating and reviewing the guardian.",
+            "The guide never validates a code or releases a student."
+          ],
+          "te": [
+            "ధృవీకరణ పికప్ అభ్యర్థనను తనిఖీ చేస్తుంది.",
+            "ధృవీకరించడానికి మరియు సంరక్షకుడిని పరిశీలించడానికి ముందు గైడ్ నుండి బయటకు వెళ్లండి.",
+            "గైడ్ కోడ్‌ను ధృవీకరించదు లేదా విద్యార్థిని పంపదు."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "applicant.form",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "applicant",
+    "kind": "task",
+    "title": {
+      "en": "Application form navigation",
+      "te": "దరఖాస్తు ఫారమ్ నావిగేషన్"
+    },
+    "description": {
+      "en": "Locate your form without changing your application.",
+      "te": "మీ దరఖాస్తును మార్చకుండా ఫారమ్‌ను కనుగొనండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/admission/dashboard",
+        "target": "applicant.form.tab",
+        "title": {
+          "en": "Open the application form",
+          "te": "దరఖాస్తు ఫారమ్‌ను తెరవండి"
+        },
+        "body": {
+          "en": "Tap Form to view the application sections.",
+          "te": "దరఖాస్తు విభాగాలను చూడటానికి ఫారమ్‌ను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Tap Form to view the application sections."
+          ],
+          "te": [
+            "దరఖాస్తు విభాగాలను చూడటానికి ఫారమ్‌ను నొక్కండి."
+          ]
+        },
+        "event": "applicant.form.tab"
+      },
+      {
+        "id": "step-2",
+        "route": "/admission/dashboard",
+        "target": "applicant.form.content",
+        "title": {
+          "en": "Review the required details",
+          "te": "అవసరమైన వివరాలను పరిశీలించండి"
+        },
+        "body": {
+          "en": "Review each section for accurate student and family details. The guide never fills or submits the form. Your existing entries remain unchanged.",
+          "te": "ఖచ్చితమైన విద్యార్థి మరియు కుటుంబ వివరాల కోసం ప్రతి విభాగాన్ని పరిశీలించండి. గైడ్ ఫారమ్‌ను నింపదు లేదా సమర్పించదు. ఇప్పటికే ఉన్న మీ నమోదులు అలాగే ఉంటాయి."
+        },
+        "narration": {
+          "en": [
+            "Review each section for accurate student and family details.",
+            "The guide never fills or submits the form.",
+            "Your existing entries remain unchanged."
+          ],
+          "te": [
+            "ఖచ్చితమైన విద్యార్థి మరియు కుటుంబ వివరాల కోసం ప్రతి విభాగాన్ని పరిశీలించండి.",
+            "గైడ్ ఫారమ్‌ను నింపదు లేదా సమర్పించదు.",
+            "ఇప్పటికే ఉన్న మీ నమోదులు అలాగే ఉంటాయి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  },
+  {
+    "id": "applicant.documents",
+    "version": 1,
+    "narrationVersion": 1,
+    "portal": "applicant",
+    "kind": "task",
+    "title": {
+      "en": "Document checklist",
+      "te": "పత్రాల జాబితా"
+    },
+    "description": {
+      "en": "Understand document requirements and upload preparation.",
+      "te": "పత్రాల అవసరాలు మరియు అప్‌లోడ్ సిద్ధతను తెలుసుకోండి."
+    },
+    "steps": [
+      {
+        "id": "step-1",
+        "route": "/admission/dashboard",
+        "target": "applicant.documents.tab",
+        "title": {
+          "en": "Open the checklist",
+          "te": "పత్రాల జాబితాను తెరవండి"
+        },
+        "body": {
+          "en": "Tap Docs to see the required documents and their review status.",
+          "te": "అవసరమైన పత్రాలు మరియు వాటి పరిశీలన స్థితిని చూడటానికి పత్రాలను నొక్కండి."
+        },
+        "narration": {
+          "en": [
+            "Tap Docs to see the required documents and their review status."
+          ],
+          "te": [
+            "అవసరమైన పత్రాలు మరియు వాటి పరిశీలన స్థితిని చూడటానికి పత్రాలను నొక్కండి."
+          ]
+        },
+        "event": "applicant.documents.tab"
+      },
+      {
+        "id": "step-2",
+        "route": "/admission/dashboard",
+        "target": "applicant.documents.content",
+        "title": {
+          "en": "Prepare clear documents",
+          "te": "స్పష్టమైన పత్రాలను సిద్ధం చేయండి"
+        },
+        "body": {
+          "en": "Check which documents are pending, submitted, or verified. Prepare a clear image or PDF of the correct document. Exit the guide to choose and upload it yourself.",
+          "te": "ఏ పత్రాలు పెండింగ్‌లో ఉన్నాయో, సమర్పించబడ్డాయో లేదా ధృవీకరించబడ్డాయో పరిశీలించండి. సరైన పత్రం యొక్క స్పష్టమైన చిత్రం లేదా పీడీఎఫ్‌ను సిద్ధం చేయండి. మీరే ఎంచుకుని అప్‌లోడ్ చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+        },
+        "narration": {
+          "en": [
+            "Check which documents are pending, submitted, or verified.",
+            "Prepare a clear image or PDF of the correct document.",
+            "Exit the guide to choose and upload it yourself."
+          ],
+          "te": [
+            "ఏ పత్రాలు పెండింగ్‌లో ఉన్నాయో, సమర్పించబడ్డాయో లేదా ధృవీకరించబడ్డాయో పరిశీలించండి.",
+            "సరైన పత్రం యొక్క స్పష్టమైన చిత్రం లేదా పీడీఎఫ్‌ను సిద్ధం చేయండి.",
+            "మీరే ఎంచుకుని అప్‌లోడ్ చేయడానికి గైడ్ నుండి బయటకు వెళ్లండి."
+          ]
+        },
+        "readOnly": true
+      }
+    ]
+  }
+]

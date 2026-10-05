@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -122,14 +123,14 @@ export default function StaffCalendarScreen() {
 
   return (
     <View style={styles.container}>
-      <StaffHeader
+      <TourTarget id="screen.staff-calendar.overview"><StaffHeader
         title="Academic Calendar"
         subtitle="School schedule & working days"
         showBackButton={true}
-      />
+      /></TourTarget>
 
       {/* Toolbar */}
-      <View style={styles.toolbar}>
+      <TourTarget id="screen.staff-calendar.workspace" native><View style={styles.toolbar}>
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, viewMode === 'MONTH' && styles.activeTab]}
@@ -178,7 +179,7 @@ export default function StaffCalendarScreen() {
           <Ionicons name="download-outline" size={16} color="#4F46E5" />
           <Text style={styles.syncBtnText}>Sync (.ics)</Text>
         </TouchableOpacity>
-      </View>
+      </View></TourTarget>
 
       {loading ? (
         <View style={styles.centeredLoader}>
@@ -186,7 +187,7 @@ export default function StaffCalendarScreen() {
           <Text style={styles.loadingLabel}>Loading Academic Calendar...</Text>
         </View>
       ) : (
-        <ScrollView
+        <TourScrollView
           style={styles.scrollContent}
           contentContainerStyle={styles.scrollInner}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -219,7 +220,7 @@ export default function StaffCalendarScreen() {
               onSelectEvent={(ev) => setSelectedEvent(ev)}
             />
           )}
-        </ScrollView>
+        </TourScrollView>
       )}
 
       <EventDetailModal

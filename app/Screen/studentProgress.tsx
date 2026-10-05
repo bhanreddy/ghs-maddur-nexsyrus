@@ -1,3 +1,4 @@
+import { TourTarget, TourScrollView } from '@/src/features/app-tour';
 import React, { useCallback, useState } from 'react';
 import {
   View,
@@ -45,8 +46,8 @@ export default function StudentProgressScreen() {
 
   return (
     <ScreenLayout>
-      <StudentHeader title="My Progress" />
-      <ScrollView
+      <TourTarget id="screen.screen-student-progress.overview"><StudentHeader title="My Progress" /></TourTarget>
+      <TourTarget id="screen.screen-student-progress.workspace" native><TourScrollView
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
@@ -115,7 +116,7 @@ export default function StudentProgressScreen() {
             ) : null}
           </>
         )}
-      </ScrollView>
+      </TourScrollView></TourTarget>
     </ScreenLayout>
   );
 }
