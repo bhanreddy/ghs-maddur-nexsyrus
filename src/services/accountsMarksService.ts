@@ -27,11 +27,16 @@ export interface AccountsMarksClassSection {
 }
 
 export type AccountsMarksResultFilter = 'all' | 'pass' | 'fail' | 'absent' | 'incomplete';
+export type AccountsMarksPrintMode = 'original' | 'passing_criteria';
 
 export interface AccountsMarksExportFilters {
   classId?: string;
   sectionId?: string;
   resultStatus: AccountsMarksResultFilter;
+}
+
+export interface AccountsMarksPrintFilters extends AccountsMarksExportFilters {
+  marksMode?: AccountsMarksPrintMode;
 }
 
 export interface AccountsMarksContext {
@@ -44,6 +49,7 @@ export interface AccountsMarksPrintDocument {
   html: string;
   page_count: number;
   student_count: number;
+  marks_mode?: AccountsMarksPrintMode;
 }
 
 const exportParams = (filters: AccountsMarksExportFilters) => {
@@ -59,10 +65,11 @@ export const AccountsMarksService = {
 
   getPrintDocument: (
     exam: AccountsMarksExam,
-    filters: AccountsMarksExportFilters,
+    filters: AccountsMarksPrintFilters,
   ): Promise<AccountsMarksPrintDocument> => {
     const params = exportParams(filters);
     params.set('format', 'print');
+    if (filters.marksMode) params.set('marks_mode', filters.marksMode);
     return api.get(`/results/accounts/exams/${exam.id}/marks/export?${params.toString()}`, undefined, { silent: true });
   },
 
