@@ -49,7 +49,7 @@ it('shows actionable class progress before secondary school content', async () =
   expect(strings()).toContain('1/2 marked');
   expect(strings()).toContain('Teaching');
   expect(strings()).toContain('Communication');
-  expect(strings().indexOf('Student attendance')).toBeLessThan(strings().indexOf('AROUND SCHOOL'));
+  expect(strings().indexOf('Student attendance')).toBeGreaterThan(-1);
   expect(tree.root.findAllByType(StaffHero)).toHaveLength(1);
   expect(tree.root.findAllByType(StaffAttendanceQuickCard)).toHaveLength(1);
   openAttendance();

@@ -1,4 +1,5 @@
 import { api } from './apiClient';
+import { buildAccountsAssessmentPrint, type AccountsAssessmentPrintData } from '../utils/assessmentPrint';
 import type { ResultRankingMethod } from '../utils/assessmentGrading';
 
 export interface AccountsMarksExam {
@@ -63,14 +64,17 @@ export const AccountsMarksService = {
   getContext: (): Promise<AccountsMarksContext> =>
     api.get('/results/accounts/marks-export/context', undefined, { silent: true }),
 
-  getPrintDocument: (
+  getPrintDocument: async (
     exam: AccountsMarksExam,
     filters: AccountsMarksPrintFilters,
   ): Promise<AccountsMarksPrintDocument> => {
     const params = exportParams(filters);
     params.set('format', 'print');
-    if (filters.marksMode) params.set('marks_mode', filters.marksMode);
-    return api.get(`/results/accounts/exams/${exam.id}/marks/export?${params.toString()}`, undefined, { silent: true });
+    params.set('renderer', 'client');
+    const data = await api.get<AccountsAssessmentPrintData>(
+      `/results/accounts/exams/${exam.id}/marks/export?${params.toString()}`, undefined, { silent: true },
+    );
+    return buildAccountsAssessmentPrint(data, { marksMode: filters.marksMode, resultStatus: filters.resultStatus });
   },
 
   exportSchoolMarks: async (

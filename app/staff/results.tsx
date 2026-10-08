@@ -24,6 +24,7 @@ import { styles as themeInputStyles } from '@/src/theme/styles';
 import { clayTokens } from '@/src/styles/clayTokens';
 import { alertCompat } from '../../src/utils/crossPlatformAlert';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeOutDown,
@@ -83,7 +84,7 @@ import { SchoolSettingsService } from '../../src/services/schoolSettingsService'
 
 import { ExamCategory, EXAM_CATEGORIES } from '@/src/constants/examCategories';
 
-const MarksRowSeparator = () => <View style={{ height: 12 }} />;
+const MarksRowSeparator = () => <View style={{ height: 14 }} />;
 
 const EXTRA_SUB_EXAMS_KEY = 'staffExtraSubExams';
 const ASSESSMENT_DRAFTS_KEY = 'staffAssessmentDraftsV1';
@@ -681,9 +682,9 @@ function ProgressTrack({ progress, accent }: { progress: number; accent: string 
 
 const progressStyles = StyleSheet.create({
   track: {
-    height: 8,
+    height: 7,
     borderRadius: 99,
-    backgroundColor: 'rgba(76,90,120,0.12)',
+    backgroundColor: 'rgba(76,90,120,0.16)',
     overflow: 'hidden',
   },
   fill: {
@@ -807,7 +808,7 @@ function MarkField({
   const fieldAbsent = isAbsentAssessmentInput(value);
   const invalid = !isValidAssessmentInput(value, Number(max));
   return (
-    <View style={{ flexGrow: 1, flexBasis: compact ? '46%' : 72, minWidth: compact ? 118 : 72 }}>
+    <View style={[markFieldStyles.shell, compact ? markFieldStyles.shellCompact : markFieldStyles.shellScore]}>
       {label ? (
         <View style={markFieldStyles.labelRow}>
           <Text style={markFieldStyles.label} numberOfLines={1}>{label}</Text>
@@ -837,8 +838,8 @@ function MarkField({
           focused && { borderColor: fieldAbsent ? clayTokens.colors.absent.bg : accent },
           invalid && { borderColor: clayTokens.colors.absent.bg },
         ]}
-        placeholder="—"
-        placeholderTextColor="#9AA3B8"
+        placeholder="–"
+        placeholderTextColor="#C3C9D6"
         keyboardType={Platform.OS === 'web' ? 'default' : 'decimal-pad'}
         inputMode="decimal"
         autoCapitalize="characters"
@@ -866,6 +867,19 @@ function MarkField({
 }
 
 const markFieldStyles = StyleSheet.create({
+  shell: {
+    flexGrow: 1,
+    minWidth: 72,
+  },
+  shellCompact: {
+    flexBasis: '46%',
+    minWidth: 118,
+  },
+  shellScore: {
+    width: 96,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   hint: {
     fontSize: 11,
     fontWeight: '600',
@@ -907,19 +921,20 @@ const markFieldStyles = StyleSheet.create({
     backgroundColor: clayTokens.colors.brand.roseSoft,
   },
   input: {
-    height: 52,
+    height: 58,
     paddingVertical: 0,
+    paddingHorizontal: 8,
     borderWidth: 1.5,
     borderColor: 'rgba(76,90,120,0.16)',
-    borderRadius: clayTokens.radii.input,
+    borderRadius: 18,
     textAlign: 'center',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
     color: clayTokens.colors.text.primary,
-    backgroundColor: clayTokens.colors.inset.light,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(76,90,120,0.12)',
+    borderBottomColor: 'rgba(76,90,120,0.10)',
   },
   inputCompact: {
     height: 48,
@@ -938,6 +953,20 @@ const markFieldStyles = StyleSheet.create({
   },
 });
 
+const AVATAR_PALETTE = [
+  { bg: '#EEF0FF', fg: '#4338CA' },
+  { bg: '#E8F1FC', fg: '#1D4ED8' },
+  { bg: '#E7F6F1', fg: '#0F766E' },
+  { bg: '#FBF3E4', fg: '#B45309' },
+  { bg: '#F4E8FF', fg: '#7E22CE' },
+  { bg: '#FDECEC', fg: '#BE123C' },
+] as const;
+
+function avatarTint(name: string) {
+  const index = (name.trim().charCodeAt(0) || 65) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[index];
+}
+
 const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
   student,
   assessmentSchema,
@@ -952,6 +981,7 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
   rankingMethod,
   entered,
   isAbsent,
+  isFocused = false,
   accent,
   isDark,
   styles,
@@ -975,6 +1005,7 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
   rankingMethod: ResultRankingMethod;
   entered: boolean;
   isAbsent: boolean;
+  isFocused?: boolean;
   accent: string;
   isDark: boolean;
   styles: Record<string, any>;
@@ -988,22 +1019,46 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
   const displayName = student.person.display_name ??
     `${student.person.first_name} ${student.person.last_name}`;
   const componentResult = calculateComponentAssessment(componentMarks, componentMaximums);
+  const tint = avatarTint(displayName);
+  const railColor = isAbsent
+    ? clayTokens.colors.absent.bg
+    : entered
+      ? accent
+      : (isDark ? 'rgba(255,255,255,0.18)' : 'rgba(148,163,184,0.55)');
 
   return (
-    <View style={[styles.assessmentStudentCard, isAbsent && styles.assessmentStudentCardAbsent]}>
+    <View
+      style={[
+        styles.assessmentStudentShadow,
+        Platform.OS === 'web' && ({
+          boxShadow: isDark
+            ? '0 12px 28px -12px rgba(0,0,0,0.55)'
+            : '0 16px 32px -18px rgba(76,90,120,0.45), 0 2px 6px rgba(76,90,120,0.05)',
+        } as object),
+      ]}
+    >
+    <View style={[
+      styles.assessmentStudentCard,
+      isAbsent && styles.assessmentStudentCardAbsent,
+      isFocused && { borderColor: accent },
+      entered && !isAbsent && !isFocused && { borderColor: `${accent}44` },
+    ]}>
+      <View style={[styles.statusRail, { backgroundColor: railColor }]} />
       <View style={styles.assessmentStudentHeader}>
-        <View style={styles.studentAvatar}>
+        <View style={[styles.studentAvatar, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : tint.bg }]}>
           <StudentPhoto
             photoUrl={student.person.photo_url}
             displayName={displayName}
-            size={40}
-            borderRadius={12}
-            fallbackTextStyle={styles.studentAvatarText}
+            size={44}
+            borderRadius={16}
+            fallbackTextStyle={[styles.studentAvatarText, { color: isDark ? '#E2E8F0' : tint.fg }]}
           />
         </View>
         <View style={styles.studentInfo}>
           <Text style={styles.studentName} numberOfLines={1}>{displayName}</Text>
-          <Text style={styles.studentRoll}>#{student.admission_no}</Text>
+          <View style={styles.rollPill}>
+            <Text style={styles.studentRoll} numberOfLines={1}>#{student.admission_no}</Text>
+          </View>
         </View>
         {entered && !isAbsent ? (
           <View style={[styles.gradeBadge, { backgroundColor: `${accent}18` }]}>
@@ -1018,14 +1073,16 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
             <Ionicons
               name={isAbsent ? 'close-circle' : 'remove-circle-outline'}
               size={14}
-              color={isAbsent ? '#FFFFFF' : clayTokens.colors.absent.bg}
+              color={isAbsent ? '#FFFFFF' : (isDark ? '#94A3B8' : '#7B8499')}
             />
             <Text style={[styles.absentChipText, isAbsent && styles.absentChipTextActive]}>
-              {isAbsent ? 'Absent' : 'Absent'}
+              Absent
             </Text>
           </View>
         </PressScale>
       </View>
+
+      <View style={styles.cardDivider} />
 
       {assessmentSchema === 'component' ? (
         <View style={styles.componentGrid}>
@@ -1070,46 +1127,51 @@ const StudentAssessmentCard = React.memo(function StudentAssessmentCard({
       )}
 
       {entered ? (
-        <View style={styles.liveTotalsRow}>
-          <Text style={styles.liveTotalStrong}>
-            {isAbsent
-              ? 'Absent'
-              : `${result.obtained}/${result.maximum}`}
-          </Text>
+        <View style={styles.scoreStrip}>
+          <View style={[styles.scoreChip, styles.scoreChipStrong]}>
+            <Text style={styles.scoreChipValue}>
+              {isAbsent ? 'Absent' : `${result.obtained}/${result.maximum}`}
+            </Text>
+          </View>
           {!isAbsent ? (
             <>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTotalMuted}>{result.percentage.toFixed(1)}%</Text>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTotalMuted}>
-                {assessmentSchema === 'component' ? `GPA ${result.gpa.toFixed(1)}` : result.grade}
-              </Text>
+              <View style={styles.scoreChip}>
+                <Text style={styles.scoreChipMuted}>{result.percentage.toFixed(1)}%</Text>
+              </View>
+              <View style={styles.scoreChip}>
+                <Text style={styles.scoreChipMuted}>
+                  {assessmentSchema === 'component' ? `GPA ${result.gpa.toFixed(1)}` : result.grade}
+                </Text>
+              </View>
               {assessmentSchema === 'component' ? (
-                <>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveTotalMuted}>{componentResult.weightage.toFixed(1)}/20</Text>
-                </>
+                <View style={styles.scoreChip}>
+                  <Text style={styles.scoreChipMuted}>{componentResult.weightage.toFixed(1)}/20</Text>
+                </View>
               ) : null}
             </>
           ) : null}
-          <View style={styles.liveDot} />
-          <Text style={[styles.liveTotalStrong, { color: accent }]}>#{rank ?? '—'}</Text>
+          <View style={[styles.scoreChip, { backgroundColor: `${accent}16` }]}>
+            <Text style={[styles.scoreChipValue, { color: accent }]}>#{rank ?? '—'}</Text>
+          </View>
           {rankingMethod === 'attendance_tiebreak' ? (
-            <>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTotalMuted}>
+            <View style={styles.scoreChip}>
+              <Text style={styles.scoreChipMuted}>
                 {attendance == null ? 'Att —' : `${Number(attendance).toFixed(0)}% att`}
               </Text>
-            </>
+            </View>
           ) : null}
         </View>
       ) : (
-        <Text style={styles.pendingHint}>
-          {assessmentSchema === 'component'
-            ? `Still to enter: ${COMPONENT_FIELDS.filter(({ field }) => componentMarks[field] === '').map(({ shortLabel }) => shortLabel).join(', ')}. Tap AB only for a missed part.`
-            : 'Enter the score, or tap Absent if the test was missed.'}
-        </Text>
+        <View style={styles.cardStatusRow}>
+          <View style={[styles.pendingDot, { backgroundColor: railColor }]} />
+          <Text style={styles.pendingHint} numberOfLines={2}>
+            {assessmentSchema === 'component'
+              ? `Still to enter: ${COMPONENT_FIELDS.filter(({ field }) => componentMarks[field] === '').map(({ shortLabel }) => shortLabel).join(', ')}`
+              : 'Waiting for a score'}
+          </Text>
+        </View>
       )}
+    </View>
     </View>
   );
 }, (previous, next) => {
@@ -2251,6 +2313,7 @@ export default function UploadMarks() {
         rankingMethod={rankingMethod}
         entered={entered}
         isAbsent={isAbsent}
+        isFocused={focusedStudentId === student.id}
         accent={accentColor}
         isDark={isDark}
         styles={styles}
@@ -2346,6 +2409,13 @@ export default function UploadMarks() {
                     ? 'Students appear once a class is selected'
                     : `${remainingCount} left · ${filledCount} ready to upload`}
                 </Text>
+                {students.length > 0 ? (
+                  <Text style={styles.studentsGuide}>
+                    {assessmentSchema === 'component'
+                      ? 'Enter each part. Use AB for a missed part, and Absent only if they missed the whole exam.'
+                      : 'Enter the score, or tap Absent if the test was missed.'}
+                  </Text>
+                ) : null}
               </View>
               {dataLoading && students.length > 0 ? (
                 <View style={styles.syncPill} accessibilityLiveRegion="polite">
@@ -2496,9 +2566,24 @@ export default function UploadMarks() {
           style={styles.ctaDockWrap}
           pointerEvents="box-none"
         >
+          <LinearGradient
+            colors={isDark
+              ? ['rgba(11,16,32,0)', 'rgba(11,16,32,0.94)']
+              : ['rgba(233,237,246,0)', 'rgba(233,237,246,0.97)']}
+            style={styles.ctaScrim}
+            pointerEvents="none"
+          />
           <View style={[styles.ctaDock, isDark && styles.ctaDockDark]}>
+            <BlurView
+              intensity={Platform.OS === 'ios' ? 32 : Platform.OS === 'web' ? 18 : 0}
+              tint={isDark ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
             <LinearGradient
-              colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.04)']}
+              colors={isDark
+                ? ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0)']
+                : ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0.2)']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -2507,30 +2592,47 @@ export default function UploadMarks() {
             <View style={styles.ctaProgressBlock}>
               <View style={styles.ctaProgressRow}>
                 <Text style={styles.ctaProgressLabel} numberOfLines={1}>
-                  {students.length === 0 ? 'Select a class' : `${remainingCount} left`}
+                  {students.length === 0
+                    ? 'Select a class'
+                    : remainingCount === 0
+                      ? 'Ready to upload'
+                      : `${remainingCount} remaining`}
                 </Text>
-                <Text style={[styles.ctaProgressPct, { color: accentColor }]}>
-                  {Math.round(fillPercent * 100)}%
-                </Text>
+                <View style={[styles.pctPill, { backgroundColor: `${accentColor}16` }]}>
+                  <Text style={[styles.ctaProgressPct, { color: accentColor }]}>
+                    {Math.round(fillPercent * 100)}%
+                  </Text>
+                </View>
               </View>
               <ProgressTrack progress={fillPercent} accent={accentColor} />
             </View>
             <View style={styles.ctaActionWrap}>
               <PressScale onPress={handleSubmit} disabled={!canUpload} accessibilityLabel={uploadLabel}>
-                <View style={[styles.ctaButton, { backgroundColor: canUpload ? accentColor : theme.colors.primaryLight, opacity: canUpload ? 1 : 0.45 }]}>
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                    pointerEvents="none"
-                  />
+                <View style={[
+                  styles.ctaButton,
+                  canUpload
+                    ? { backgroundColor: accentColor, borderBottomWidth: 1.5, borderBottomColor: 'rgba(0,0,0,0.14)' }
+                    : styles.ctaButtonIdle,
+                ]}>
+                  {canUpload ? (
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                      pointerEvents="none"
+                    />
+                  ) : null}
                   {uploading ? (
                     <LogoLoader size={26} color="#fff" />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-                      <Text style={styles.submitText}>{uploadLabel}</Text>
+                      <Ionicons
+                        name="cloud-upload-outline"
+                        size={18}
+                        color={canUpload ? '#fff' : (isDark ? '#94A3B8' : '#5C657A')}
+                      />
+                      <Text style={[styles.submitText, !canUpload && styles.submitTextIdle]}>{uploadLabel}</Text>
                     </>
                   )}
                 </View>
@@ -2859,7 +2961,7 @@ const getStyles = (
       alignSelf: 'center',
       paddingHorizontal: isPhone ? 12 : 20,
       paddingTop: isPhone ? 10 : 16,
-      paddingBottom: STAFF_TAB_BAR_HEIGHT + 148,
+      paddingBottom: STAFF_TAB_BAR_HEIGHT + 188,
     },
     workspace: {
       backgroundColor: cardBg,
@@ -3144,6 +3246,13 @@ const getStyles = (
       marginTop: 4,
       fontWeight: '600',
     },
+    studentsGuide: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 17,
+      fontWeight: '600',
+      color: theme.colors.textTertiary,
+    },
     marksCapPill: {
       paddingHorizontal: 12,
       paddingVertical: 8,
@@ -3195,34 +3304,43 @@ const getStyles = (
       borderBottomWidth: 0,
     },
     studentAvatar: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : 'rgba(255,255,255,0.7)',
+      width: 44,
+      height: 44,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(139,92,246,0.16)' : '#EEF0FF',
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'hidden',
     },
     studentAvatarText: {
-      fontSize: 16,
-      fontWeight: '900',
-      color: '#7C3AED',
+      fontSize: 17,
+      fontWeight: '800',
+      color: '#4338CA',
     },
     studentInfo: {
       flex: 1,
       minWidth: 0,
     },
     studentName: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '800',
       color: theme.colors.text,
-      letterSpacing: -0.1,
+      letterSpacing: -0.3,
+    },
+    rollPill: {
+      alignSelf: 'flex-start',
+      maxWidth: '100%',
+      marginTop: 5,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 999,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : clayTokens.colors.inset.light,
     },
     studentRoll: {
-      fontSize: 12,
+      fontSize: 11,
       color: theme.colors.textSecondary,
-      marginTop: 3,
-      fontWeight: '600',
+      fontWeight: '700',
+      letterSpacing: 0.2,
     },
     markInput: {
       borderWidth: 1.5,
@@ -3242,19 +3360,83 @@ const getStyles = (
       backgroundColor: isDark ? 'rgba(139,92,246,0.14)' : '#F5F3FF',
       color: '#7C3AED',
     },
+    assessmentStudentShadow: {
+      flex: 1,
+      borderRadius: 22,
+      backgroundColor: isDark ? clayTokens.colors.card.dark : '#FFFFFF',
+      shadowColor: '#6B7A99',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isDark ? 0.32 : 0.12,
+      shadowRadius: 18,
+      elevation: 3,
+    },
     assessmentStudentCard: {
       flex: 1,
-      padding: isPhone ? 12 : 14,
-      borderRadius: clayTokens.radii.card,
+      padding: isPhone ? 14 : 16,
+      paddingLeft: isPhone ? 16 : 18,
+      borderRadius: 22,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(76,90,120,0.10)',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : clayTokens.colors.card.light,
-      borderBottomWidth: 1.5,
-      borderBottomColor: isDark ? 'rgba(0,0,0,0.28)' : 'rgba(76,90,120,0.10)',
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)',
+      backgroundColor: isDark ? clayTokens.colors.card.dark : '#FFFFFF',
+      overflow: 'hidden',
     },
     assessmentStudentCardAbsent: {
-      backgroundColor: isDark ? 'rgba(210,65,81,0.10)' : clayTokens.colors.brand.roseSoft,
-      borderColor: isDark ? 'rgba(210,65,81,0.28)' : 'rgba(210,65,81,0.18)',
+      backgroundColor: isDark ? 'rgba(210,65,81,0.12)' : '#FFF7F8',
+      borderColor: isDark ? 'rgba(210,65,81,0.32)' : 'rgba(210,65,81,0.16)',
+    },
+    statusRail: {
+      position: 'absolute',
+      left: 0,
+      top: 16,
+      bottom: 16,
+      width: 3,
+      borderTopRightRadius: 3,
+      borderBottomRightRadius: 3,
+    },
+    cardDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(76,90,120,0.10)',
+      marginBottom: 12,
+    },
+    cardStatusRow: {
+      marginTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    pendingDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    scoreStrip: {
+      marginTop: 12,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 6,
+    },
+    scoreChip: {
+      minHeight: 28,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : clayTokens.colors.inset.light,
+    },
+    scoreChipStrong: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F4F6FB',
+    },
+    scoreChipValue: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.colors.text,
+      letterSpacing: -0.2,
+    },
+    scoreChipMuted: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.colors.textSecondary,
     },
     assessmentStudentHeader: {
       flexDirection: 'row',
@@ -3276,21 +3458,24 @@ const getStyles = (
       letterSpacing: -0.3,
     },
     absentChip: {
-      minHeight: 34,
+      minHeight: 32,
       paddingHorizontal: 10,
-      borderRadius: 12,
+      borderRadius: 999,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      backgroundColor: isDark ? 'rgba(210,65,81,0.12)' : clayTokens.colors.brand.roseSoft,
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(76,90,120,0.16)',
     },
     absentChipActive: {
       backgroundColor: clayTokens.colors.absent.bg,
+      borderColor: clayTokens.colors.absent.bg,
     },
     absentChipText: {
       fontSize: 12,
-      fontWeight: '800',
-      color: clayTokens.colors.absent.bg,
+      fontWeight: '700',
+      color: isDark ? '#CBD5E1' : '#5C657A',
     },
     absentChipTextActive: {
       color: '#FFFFFF',
@@ -3303,11 +3488,10 @@ const getStyles = (
       marginBottom: 2,
     },
     pendingHint: {
-      marginTop: 10,
+      flex: 1,
       fontSize: 12,
       fontWeight: '600',
       color: theme.colors.textTertiary,
-      paddingHorizontal: 2,
     },
     liveTotalsRow: {
       marginTop: 12,
@@ -3418,14 +3602,18 @@ const getStyles = (
       flex: 1,
     },
     consolidatedLabel: {
-      color: theme.colors.text,
-      fontSize: 14,
+      color: theme.colors.textSecondary,
+      fontSize: 11,
       fontWeight: '800',
+      letterSpacing: 0.7,
+      textTransform: 'uppercase',
     },
     consolidatedHint: {
-      color: theme.colors.textTertiary,
-      fontSize: 12,
-      marginTop: 3,
+      color: theme.colors.text,
+      fontSize: 16,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+      marginTop: 4,
     },
     consolidatedInput: {
       width: 92,
@@ -3509,6 +3697,13 @@ const getStyles = (
       alignItems: 'center',
       paddingHorizontal: 16,
     },
+    ctaScrim: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: -8,
+      height: 132,
+    },
     ctaDock: {
       width: '100%',
       maxWidth: 440,
@@ -3516,19 +3711,19 @@ const getStyles = (
       gap: isPhone ? 12 : 10,
       flexDirection: isPhone ? 'row' : 'column',
       alignItems: isPhone ? 'center' : 'stretch',
-      backgroundColor: isDark ? 'rgba(21,29,45,0.92)' : 'rgba(255,255,255,0.72)',
-      borderRadius: 22,
-      borderWidth: 1.5,
-      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.85)',
+      backgroundColor: isDark ? 'rgba(21,29,45,0.94)' : 'rgba(255,255,255,0.96)',
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.98)',
       overflow: 'hidden',
-      shadowColor: '#6B7A99',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: isDark ? 0.32 : 0.16,
-      shadowRadius: 16,
-      elevation: 6,
+      shadowColor: '#4C5A78',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: isDark ? 0.4 : 0.18,
+      shadowRadius: 24,
+      elevation: 8,
     },
     ctaDockDark: {
-      backgroundColor: 'rgba(21,29,45,0.94)',
+      backgroundColor: 'rgba(21,29,45,0.96)',
     },
     keyboardAccessory: {
       flexDirection: 'row',
@@ -3592,12 +3787,19 @@ const getStyles = (
       paddingHorizontal: 4,
     },
     ctaProgressLabel: {
+      flex: 1,
       fontSize: 13,
       fontWeight: '700',
-      color: theme.colors.textSecondary,
+      color: theme.colors.text,
+      letterSpacing: -0.2,
+    },
+    pctPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
     },
     ctaProgressPct: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
     },
@@ -3609,14 +3811,18 @@ const getStyles = (
       justifyContent: 'center',
       alignItems: 'center',
       gap: 8,
-      borderBottomWidth: 1.5,
-      borderBottomColor: 'rgba(0,0,0,0.14)',
+    },
+    ctaButtonIdle: {
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#E6EAF3',
     },
     submitText: {
       color: '#fff',
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '700',
-      letterSpacing: 0.2,
+      letterSpacing: 0.1,
+    },
+    submitTextIdle: {
+      color: isDark ? '#94A3B8' : '#5C657A',
     },
   });
 };

@@ -233,8 +233,8 @@ export default function AccountsMarksExportScreen() {
               <View style={styles.modeNote}>
                 <Text style={styles.modeTitle}>{printMarksMode === 'passing_criteria' ? 'Passing criteria (36%)' : 'Original marks'}</Text>
                 <Text style={styles.actionHint}>{printMarksMode === 'passing_criteria'
-                  ? 'Low Slip Test or direct marks print at 36%, with totals, grades and ranks recalculated. Saved marks stay original; absent and missing entries stay unchanged.'
-                  : 'Print the saved marks. Choose Passing criteria (36%) above to adjust low marks for printing.'}</Text>
+                  ? 'Marks round down to half marks. Low Slip Test or direct marks use the smallest half mark meeting 36%. Totals, grades and ranks are recalculated; saved marks, absent and missing entries stay unchanged.'
+                  : 'Print marks rounded down to half marks (7.2 → 7; 7.8 → 7.5). Percentages and GPA calculate normally. Saved marks stay unchanged.'}</Text>
               </View>
               <TouchableOpacity accessibilityRole="button" disabled={preparingPrint} style={[styles.printButton, preparingPrint && styles.disabled]} onPress={previewPrint}>
                 {preparingPrint ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="print-outline" size={20} color="#FFFFFF" />}

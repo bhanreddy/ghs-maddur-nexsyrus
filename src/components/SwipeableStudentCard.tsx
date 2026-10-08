@@ -5,9 +5,8 @@ import {
     StyleSheet,
     useWindowDimensions,
     Platform,
-    TouchableOpacity,
 } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { GestureDetector, Gesture, TouchableOpacity } from 'react-native-gesture-handler';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -139,8 +138,8 @@ const SwipeableStudentCard: React.FC<Props> = ({
 
     const panGesture = Gesture.Pan()
         .enabled(!disabled)
-        .activeOffsetX([-20, 20])
-        .failOffsetY([-12, 12])
+        .activeOffsetX([-24, 24])
+        .failOffsetY([-16, 16])
         .onUpdate((event) => {
             translateX.value = event.translationX;
         })

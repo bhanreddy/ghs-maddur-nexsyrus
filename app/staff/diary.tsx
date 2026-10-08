@@ -61,7 +61,7 @@ import {
   toYmd,
   type DiaryHistoryTabId,
 } from '../../src/components/diary/DiaryHistoryChrome';
-import { classLabel, formatClock, greetingForHour } from '../../src/utils/smartDiary/currentClass';
+import { classLabel, formatClock, greetingForHour, parseTimeToMinutes } from '../../src/utils/smartDiary/currentClass';
 import {
   composeDiaryContent,
   composeHomeworkLine,
@@ -173,6 +173,21 @@ function teacherFirstName(name?: string | null) {
   if (!clean) return 'Teacher';
   const parts = clean.split(/\s+/);
   return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+}
+
+function classScheduleLine(current: SmartCurrentClass | null): string {
+  if (!current) return 'Pick the class this homework is for';
+  const period = current.period_number ? `Period ${current.period_number}` : '';
+  const start = formatClock(parseTimeToMinutes(current.start_time));
+  const end = formatClock(parseTimeToMinutes(current.end_time));
+  const window = start && end ? `${start} – ${end}` : start;
+  const when =
+    current.match === 'current' ? 'Now' :
+    current.match === 'next' ? 'Up next' :
+    current.match === 'previous' ? 'Earlier today' :
+    '';
+  const line = [when, period, window].filter(Boolean).join(' · ');
+  return line || 'Homework goes to this class';
 }
 
 function relativeDayLabel(ymd: string) {
@@ -292,8 +307,7 @@ export default function StaffDiary() {
   const ss = getSubjectStyle(current?.subject_name);
   const greeting = `${greetingForHour()}, ${teacherFirstName(user?.displayName)}`;
   const canWrite = !isViewingAsAdmin || user?.role?.code === 'admin' || user?.roles?.includes('admin') === true;
-  const clockLabel = current?.display_time || formatClock(new Date().getHours() * 60 + new Date().getMinutes());
-  const periodLabel = current?.period_number ? `Period ${current.period_number}` : 'Not in a period';
+  const scheduleLine = classScheduleLine(current);
 
   // Today's entries & class completion stats
   const todayEntries = useMemo(() => diaryEntries.filter((e) => e.entry_date === todayYmd), [diaryEntries, todayYmd]);
@@ -359,7 +373,6 @@ export default function StaffDiary() {
           subject_id: unique[0].subject_id,
           subject_name: unique[0].subject_name,
           display_class: classLabel(unique[0]),
-          display_time: formatClock(new Date().getHours() * 60 + new Date().getMinutes()),
           source: 'manual',
         });
       }
@@ -551,18 +564,6 @@ export default function StaffDiary() {
     setPhotoNote('');
   };
 
-  const captureOcr = async (fromLibrary = false) => {
-    if (!canWrite || !requireClass()) return;
-    try {
-      const uris = await pickDiaryImages(fromLibrary);
-      if (!uris.length) return;
-      setPhotoUris(uris);
-      void extractPhoto(uris);
-    } catch {
-      toast('Could not capture photo for scanning.', 'error');
-    }
-  };
-
   const extractPhoto = async (uris = photoUris) => {
     if (!uris.length) return;
     setBusy(true);
@@ -620,42 +621,6 @@ export default function StaffDiary() {
     } catch {
       toast('Could not start microphone recording.', 'error');
       setVoiceMode('idle');
-    }
-  };
-
-  const stopVoice = async () => {
-    const rec = recordingRef.current;
-    if (!rec) { setVoiceMode('idle'); return; }
-    try {
-      await rec.stopAndUnloadAsync();
-      const uri = rec.getURI();
-      recordingRef.current = null;
-      if (!uri) { setVoiceMode('idle'); return; }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await processVoiceUri(uri);
-    } catch {
-      setVoiceMode('idle');
-    }
-  };
-
-  const processVoiceUri = async (uri: string) => {
-    setBusy(true);
-    try {
-      const result = await SmartDiaryService.transcribe(uri, {
-        class_name: current?.class_name,
-        section_name: current?.section_name,
-        subject_name: current?.subject_name,
-      });
-      setExtraction(result.extraction);
-      setVoiceText(result.transcription || result.preview?.content || '');
-      setPreviewContent(result.preview?.content || composeDiaryContent(result.extraction));
-      setOcrMessage(result.message || null);
-      setVoiceMode('review');
-    } catch {
-      toast("We couldn't catch every word. You can speak again or type.", 'error');
-      setVoiceMode('idle');
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -815,17 +780,6 @@ export default function StaffDiary() {
         },
       },
     ]);
-  };
-
-  const openClassDiary = () => {
-    if (!canWrite) return;
-    if (classTeacherSections.length === 0) return;
-    if (classTeacherSections.length === 1) {
-      setClassDiaryClass(classTeacherSections[0]);
-      void captureClassDiary(classTeacherSections[0]);
-      return;
-    }
-    setClassDiaryPickerOpen(true);
   };
 
   const captureClassDiary = async (section: ClassTeacherSection, fromLibrary = false) => {
@@ -1006,64 +960,69 @@ export default function StaffDiary() {
 
         {activeTab === 'today' ? (
           <>
-            {/* Header Greeting & Progress Summary */}
             <Animated.View entering={FadeInDown.delay(70).duration(280)} style={styles.greetingHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.greeting, { color: theme.colors.textStrong }]}>{greeting}</Text>
-                <Text style={[styles.greetingHint, { color: theme.colors.textTertiary }]}>
-                  Capture blackboard notes, type directly, or pick templates.
-                </Text>
-              </View>
+              <Text style={[styles.greeting, { color: theme.colors.textStrong }]}>{greeting}</Text>
+              <Text style={[styles.greetingHint, { color: theme.colors.textTertiary }]}>
+                Write the homework, or photograph the board.
+              </Text>
               {assignments.length > 0 && (
-                <View style={[styles.progressBadge, { backgroundColor: postedClassesCount === assignments.length ? 'rgba(5,150,105,0.12)' : isDark ? 'rgba(79,70,229,0.16)' : '#EEF2FF' }]}>
-                  <Ionicons
-                    name={postedClassesCount === assignments.length ? 'checkmark-circle' : 'time-outline'}
-                    size={16}
-                    color={postedClassesCount === assignments.length ? '#059669' : theme.colors.primary}
-                  />
-                  <Text style={[styles.progressBadgeText, { color: postedClassesCount === assignments.length ? '#059669' : theme.colors.primary }]}>
-                    {postedClassesCount}/{assignments.length} Posted
-                  </Text>
+                <View style={styles.progressBlock}>
+                  <View style={styles.progressMeta}>
+                    <Text style={[styles.progressLabel, { color: postedClassesCount === assignments.length ? '#059669' : theme.colors.textSecondary }]}>
+                      {postedClassesCount === assignments.length ? 'All classes posted' : `${postedClassesCount} of ${assignments.length} classes posted`}
+                    </Text>
+                  </View>
+                  <View style={[styles.progressTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(79,70,229,0.10)' }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.round((postedClassesCount / assignments.length) * 100)}%`,
+                          backgroundColor: postedClassesCount === assignments.length ? '#059669' : theme.colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
                 </View>
               )}
             </Animated.View>
 
-            {/* Current Class Card */}
             <TourTarget id="staff.diary.class" native><Animated.View entering={FadeInDown.delay(100).duration(280)} style={[styles.currentCard, clayCard(isDark, 'md')]}>
               <ClaySheen isDark={isDark} radius={Radii.xxl} />
-              <View style={[styles.currentIcon, { backgroundColor: isDark ? ss.softDark : ss.soft }]}>
-                <MaterialIcons name={ss.icon} size={24} color={ss.color} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.currentKicker}>ACTIVE CLASS</Text>
-                  {current && postedClassIds.has(current.class_section_id) && (
-                    <View style={styles.cardStatusChip}>
-                      <Ionicons name="checkmark" size={10} color="#059669" />
-                      <Text style={styles.cardStatusText}>Posted</Text>
-                    </View>
-                  )}
+              <View style={styles.currentTop}>
+                <View style={[styles.currentIcon, { backgroundColor: isDark ? ss.softDark : ss.soft }]}>
+                  <MaterialIcons name={ss.icon} size={22} color={ss.color} />
                 </View>
-                <Text style={[styles.currentTitle, { color: theme.colors.textStrong }]} numberOfLines={1}>
-                  {current ? `${classLabel(current)} · ${current.subject_name || 'Subject'}` : 'Choose a class'}
-                </Text>
-                <Text style={[styles.currentMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                  {periodLabel} · {clockLabel}
-                </Text>
-              </View>
-              <PressScale onPress={() => setClassPickerOpen(true)}>
-                <View style={[styles.changeChip, { backgroundColor: isDark ? 'rgba(79,70,229,0.18)' : '#EEF2FF' }]}>
-                  <Text style={[styles.changeText, { color: theme.colors.primary }]}>Switch</Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.currentKicker}>POSTING TO</Text>
+                    {current && postedClassIds.has(current.class_section_id) && (
+                      <View style={styles.cardStatusChip}>
+                        <Ionicons name="checkmark" size={10} color="#059669" />
+                        <Text style={styles.cardStatusText}>Posted</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.currentTitle, { color: theme.colors.textStrong }]} numberOfLines={1}>
+                    {current ? `${classLabel(current)} · ${current.subject_name || 'Subject'}` : 'Choose a class'}
+                  </Text>
+                  <Text style={[styles.currentMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                    {scheduleLine}
+                  </Text>
                 </View>
-              </PressScale>
-            </Animated.View></TourTarget>
+                <PressScale onPress={() => setClassPickerOpen(true)}>
+                  <View style={[styles.changeChip, { backgroundColor: isDark ? 'rgba(79,70,229,0.18)' : '#EEF2FF' }]}>
+                    <Text style={[styles.changeText, { color: theme.colors.primary }]}>Switch</Text>
+                  </View>
+                </PressScale>
+              </View>
 
-            {/* Horizontal Quick Class Selector Strip */}
-            {assignments.length > 1 && (
-              <View style={styles.classStripWrap}>
+              {assignments.length > 1 && (
                 <TourScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.classStripScroll}>
                   {assignments.map((item) => {
-                    const isSelected = current?.class_section_id === item.class_section_id;
+                    const isSelected =
+                      current?.class_section_id === item.class_section_id &&
+                      (current?.subject_id || '') === (item.subject_id || '');
                     const itemStyle = getSubjectStyle(item.subject_name);
                     const isPosted = postedClassIds.has(item.class_section_id);
                     return (
@@ -1078,7 +1037,6 @@ export default function StaffDiary() {
                             subject_id: item.subject_id,
                             subject_name: item.subject_name,
                             display_class: classLabel(item),
-                            display_time: formatClock(new Date().getHours() * 60 + new Date().getMinutes()),
                             source: 'manual',
                           });
                         }}
@@ -1086,37 +1044,37 @@ export default function StaffDiary() {
                         <View
                           style={[
                             styles.classStripPill,
-                            clayCard(isDark, isSelected ? 'md' : 'sm'),
-                            isSelected && {
-                              borderColor: itemStyle.color,
-                              borderWidth: 1.5,
-                              backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                            {
+                              backgroundColor: isSelected
+                                ? (isDark ? itemStyle.softDark : itemStyle.soft)
+                                : (isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC'),
+                              borderColor: isSelected
+                                ? itemStyle.color
+                                : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(148,163,184,0.28)'),
                             },
                           ]}
                         >
-                          <ClaySheen isDark={isDark} radius={Radii.pill} />
                           <View style={[styles.classPillDot, { backgroundColor: itemStyle.color }]} />
                           <Text
                             style={[
                               styles.classPillText,
-                              { color: isSelected ? theme.colors.textStrong : theme.colors.textSecondary },
+                              { color: isSelected ? itemStyle.color : theme.colors.textSecondary },
                               isSelected && { fontWeight: '800' },
                             ]}
+                            numberOfLines={1}
                           >
-                            {item.class_name}{item.section_name} • {item.subject_name}
+                            {item.class_name}{item.section_name} · {item.subject_name}
                           </Text>
                           {isPosted ? (
-                            <View style={styles.postedDot}>
-                              <Ionicons name="checkmark" size={11} color="#059669" />
-                            </View>
+                            <Ionicons name="checkmark-circle" size={14} color="#059669" />
                           ) : null}
                         </View>
                       </PressScale>
                     );
                   })}
                 </TourScrollView>
-              </View>
-            )}
+              )}
+            </Animated.View></TourTarget>
 
             {suggestion && suggestionId ? (
               <PressScale onPress={() => {
@@ -1145,7 +1103,6 @@ export default function StaffDiary() {
 
             {/* Enhanced Hero Action Bento Grid */}
             <TourTarget id="staff.diary.compose" native><Animated.View entering={FadeInDown.delay(140).duration(280)} style={styles.heroGrid}>
-              {/* Card 1: Type Homework (Primary) */}
               <PressScale
                 style={styles.heroGridItem}
                 onPress={() => {
@@ -1159,104 +1116,55 @@ export default function StaffDiary() {
                 }}
                 disabled={!canWrite}
               >
-                <View style={[styles.typeCtaCard, clayCard(isDark, 'md')]}>
-                  <ClaySheen isDark={isDark} radius={Radii.xxl} />
+                <View style={[styles.typeCtaCard, clayCard(isDark, 'md'), { backgroundColor: isDark ? '#1A2332' : '#FFFFFF' }]}>
                   <View style={[styles.heroIconBadge, { backgroundColor: isDark ? 'rgba(79,70,229,0.22)' : '#EEF2FF' }]}>
-                    <Ionicons name="create" size={24} color={theme.colors.primary} />
+                    <Ionicons name="create-outline" size={22} color={theme.colors.primary} />
                   </View>
-                  <Text style={[styles.heroCardTitle, { color: theme.colors.textStrong }]}>Type Diary</Text>
-                  <Text style={[styles.heroCardHint, { color: theme.colors.textTertiary }]}>
-                    Write homework with formatting shortcuts
-                  </Text>
+                  <View>
+                    <Text style={[styles.heroCardTitle, { color: theme.colors.textStrong }]}>Type Diary</Text>
+                    <Text style={[styles.heroCardHint, { color: theme.colors.textTertiary }]}>
+                      Write it here
+                    </Text>
+                  </View>
                   <View style={[styles.heroCardPill, { backgroundColor: isDark ? 'rgba(79,70,229,0.18)' : '#EEF2FF' }]}>
-                    <Text style={[styles.heroCardPillText, { color: theme.colors.primary }]}>Fast Entry →</Text>
+                    <Text style={[styles.heroCardPillText, { color: theme.colors.primary }]}>Open editor</Text>
+                    <Ionicons name="arrow-forward" size={12} color={theme.colors.primary} />
                   </View>
                 </View>
               </PressScale>
 
-              {/* Card 2: Photo Diary */}
-              <View style={styles.heroGridItem}>
-                <PressScale fill onPress={() => void capturePhoto(false)} disabled={!canWrite || busy}>
-                  <View style={[styles.photoCtaCard, clay(isDark, 'lg')]}>
-                    <LinearGradient colors={['#312E81', '#4F46E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-                    <LinearGradient colors={['rgba(255,255,255,0.24)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 0.35, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
-                    <View style={styles.photoIconWrap}>
-                      <Ionicons name="camera" size={26} color="#FFFFFF" />
+              <View style={[styles.heroGridItem, styles.photoCtaCard]}>
+                <LinearGradient colors={['#312E81', '#4F46E5']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+                <View style={styles.photoIconWrap}>
+                  <Ionicons name="camera-outline" size={22} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.photoCtaTitle}>Photo Diary</Text>
+                  <Text style={styles.photoCtaHint}>Board or notebook</Text>
+                </View>
+                <View style={styles.photoActions}>
+                  <PressScale fill onPress={() => void capturePhoto(false)} disabled={!canWrite || busy}>
+                    <View style={styles.photoAction}>
+                      <Ionicons name="camera" size={13} color="#FFFFFF" />
+                      <Text style={styles.photoActionText}>Camera</Text>
                     </View>
-                    <Text style={styles.photoCtaTitle}>Photo Diary</Text>
-                    <Text style={styles.photoCtaHint}>Snap blackboard or notebook</Text>
-                  </View>
-                </PressScale>
-                <PressScale onPress={() => void capturePhoto(true)} disabled={!canWrite} style={styles.galleryFab}>
-                  <View style={styles.galleryChip}>
-                    <Ionicons name="images-outline" size={13} color="#FFFFFF" />
-                    <Text style={styles.galleryChipText}>Gallery</Text>
-                  </View>
-                </PressScale>
+                  </PressScale>
+                  <PressScale fill onPress={() => void capturePhoto(true)} disabled={!canWrite || busy}>
+                    <View style={styles.photoAction}>
+                      <Ionicons name="images-outline" size={13} color="#FFFFFF" />
+                      <Text style={styles.photoActionText}>Gallery</Text>
+                    </View>
+                  </PressScale>
+                </View>
               </View>
             </Animated.View></TourTarget>
 
-            {/* Secondary Action Row: Scan Blackboard OCR + Voice */}
-            <View style={styles.secondaryActionRow}>
-              <PressScale fill onPress={() => void captureOcr(false)} disabled={!canWrite || busy}>
-                <View style={[styles.miniCtaCard, clayCard(isDark, 'sm')]}>
-                  <ClaySheen isDark={isDark} radius={Radii.xl} />
-                  <View style={[styles.miniIconWrap, { backgroundColor: isDark ? 'rgba(37,99,235,0.16)' : '#EFF6FF' }]}>
-                    <Ionicons name="scan-outline" size={20} color="#2563EB" />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[styles.miniCtaTitle, { color: theme.colors.textStrong }]}>Scan Board (OCR)</Text>
-                    <Text style={[styles.miniCtaHint, { color: theme.colors.textTertiary }]} numberOfLines={1}>
-                      AI reads board to text
-                    </Text>
-                  </View>
-                </View>
-              </PressScale>
-
-              <PressScale fill onPress={() => void (voiceMode === 'recording' ? stopVoice() : startVoice())} disabled={!canWrite || busy}>
-                <View style={[styles.miniCtaCard, clayCard(isDark, 'sm')]}>
-                  <ClaySheen isDark={isDark} radius={Radii.xl} />
-                  <View style={[styles.miniIconWrap, { backgroundColor: voiceMode === 'recording' ? 'rgba(220,38,38,0.16)' : isDark ? 'rgba(16,185,129,0.16)' : '#ECFDF5' }]}>
-                    <Ionicons name={voiceMode === 'recording' ? 'stop-circle' : 'mic'} size={20} color={voiceMode === 'recording' ? '#DC2626' : '#059669'} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[styles.miniCtaTitle, { color: theme.colors.textStrong }]}>
-                      {voiceMode === 'recording' ? 'Stop Recording' : 'Speak Diary'}
-                    </Text>
-                    <Text style={[styles.miniCtaHint, { color: theme.colors.textTertiary }]} numberOfLines={1}>
-                      {voiceMode === 'recording' ? 'Tap to finish' : 'Speech to text'}
-                    </Text>
-                  </View>
-                </View>
-              </PressScale>
-            </View>
-
-            {/* Homeroom class diary if assigned */}
-            {classTeacherSections.length > 0 && (
-              <PressScale onPress={openClassDiary} disabled={!canWrite || busy}>
-                <View style={[styles.classDiaryCta, clayCard(isDark, 'md')]}>
-                  <ClaySheen isDark={isDark} radius={Radii.xxl} />
-                  <View style={[styles.secondaryIcon, { backgroundColor: isDark ? 'rgba(79,70,229,0.18)' : '#EEF2FF' }]}>
-                    <Ionicons name="library-outline" size={22} color={theme.colors.primary} />
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[styles.secondaryTitle, { color: theme.colors.textStrong, textAlign: 'left' }]}>Upload Homeroom Class Diary</Text>
-                    <Text style={[styles.currentMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                      {classTeacherSections.length === 1
-                        ? `${classLabel(classTeacherSections[0])} · All subjects in one blackboard photo`
-                        : 'Choose a homeroom section to photograph all subjects'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
-                </View>
-              </PressScale>
-            )}
-
             {/* Today&apos;s Posted Homework Feed */}
-            <View style={styles.sectionRow}>
+            <View style={styles.sectionBlock}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.textStrong, marginVertical: 0 }]}>
-                  Today&apos;s Posted Homework
+                  Today&apos;s homework
                 </Text>
                 {todayEntries.length > 0 && (
                   <View style={[styles.countPill, { backgroundColor: theme.colors.primary }]}>
@@ -1265,19 +1173,15 @@ export default function StaffDiary() {
                 )}
               </View>
               <Text style={[styles.alertTimeNotice, { color: theme.colors.textTertiary }]}>
-                Alerts send at 5:30 PM
+                Parents are notified at 5:30 PM
               </Text>
             </View>
 
             {todayEntries.length === 0 ? (
-              <View style={[styles.emptyRecent, clayCard(isDark, 'sm')]}>
-                <ClaySheen isDark={isDark} radius={Radii.xl} />
-                <View style={[styles.emptyIcon, { backgroundColor: isDark ? 'rgba(79,70,229,0.16)' : '#EEF2FF' }]}>
-                  <Ionicons name="pencil-outline" size={24} color={theme.colors.primary} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: theme.colors.textStrong }]}>No diary entries yet today</Text>
+              <View style={[styles.emptyRecent, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.55)' }]}>
+                <Text style={[styles.emptyTitle, { color: theme.colors.textStrong }]}>Nothing posted yet</Text>
                 <Text style={[styles.emptyText, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
-                  Select your class above and tap Type Diary, Photo, or a Quick Template to post.
+                  Use Type or Photo above. It will show up here.
                 </Text>
               </View>
             ) : (
@@ -2400,35 +2304,27 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
 
   // Greeting & Progress Header
   greetingHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-    gap: 12,
+    marginBottom: Spacing.md,
+    gap: 4,
   },
-  greeting: { ...Typography.heading, fontWeight: '800', marginBottom: 2 },
-  greetingHint: { ...Typography.caption, fontWeight: '500' },
-  progressBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radii.pill,
-    marginTop: 2,
-  },
-  progressBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
+  greeting: { ...Typography.heading, fontWeight: '800', letterSpacing: -0.6 },
+  greetingHint: { ...Typography.caption, fontWeight: '500', lineHeight: 18 },
+  progressBlock: { marginTop: 10, gap: 8 },
+  progressMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  progressLabel: { fontSize: 12, fontWeight: '700', letterSpacing: -0.1 },
+  progressTrack: { height: 6, borderRadius: 999, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 999, minWidth: 0 },
 
   // Active Class Card
   currentCard: {
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: 14,
+  },
+  currentTop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.md,
-    marginBottom: 10,
   },
   currentIcon: {
     width: 48,
@@ -2477,12 +2373,9 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
   changeText: { fontSize: 13, fontWeight: '800' },
 
   // Horizontal Class Switcher Strip
-  classStripWrap: {
-    marginBottom: Spacing.md,
-  },
   classStripScroll: {
     gap: 8,
-    paddingVertical: 2,
+    paddingRight: 4,
   },
   classStripPill: {
     flexDirection: 'row',
@@ -2490,7 +2383,9 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: Radii.pill,
+    borderWidth: 1,
     gap: 6,
+    maxWidth: 220,
   },
   classPillDot: {
     width: 8,
@@ -2525,7 +2420,8 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
   },
   typeCtaCard: {
     padding: Spacing.md,
-    minHeight: 168,
+    minHeight: 176,
+    height: 176,
     justifyContent: 'space-between',
     borderRadius: Radii.xxl,
   },
@@ -2537,10 +2433,9 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
     justifyContent: 'center',
   },
   heroCardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.3,
-    marginTop: 6,
   },
   heroCardHint: {
     fontSize: 12,
@@ -2550,10 +2445,12 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
   },
   heroCardPill: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: Radii.pill,
-    marginTop: 8,
   },
   heroCardPillText: {
     fontSize: 11.5,
@@ -2562,37 +2459,36 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
 
   photoCtaCard: {
     padding: Spacing.md,
-    minHeight: 168,
-    height: 168,
-    justifyContent: 'center',
-    alignItems: 'center',
+    minHeight: 176,
+    height: 176,
+    justifyContent: 'space-between',
     borderRadius: Radii.xxl,
     overflow: 'hidden',
   },
   photoIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
-  photoCtaTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', letterSpacing: -0.2, textAlign: 'center' },
-  photoCtaHint: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600', marginTop: 4, textAlign: 'center' },
-  galleryFab: { position: 'absolute', right: 8, top: 8, zIndex: 2 },
-  galleryChip: {
+  photoCtaTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
+  photoCtaHint: { color: 'rgba(255,255,255,0.82)', fontSize: 12, fontWeight: '600', marginTop: 2 },
+  photoActions: { flexDirection: 'row', gap: 8 },
+  photoAction: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    width: '100%',
+    paddingVertical: 7,
     borderRadius: Radii.pill,
-    backgroundColor: 'rgba(15,23,42,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
   },
-  galleryChipText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  photoActionText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
 
   // Secondary Action Row (OCR + Voice)
   secondaryActionRow: {
@@ -2678,6 +2574,7 @@ const getStyles = (theme: Theme, isDark: boolean, isWide: boolean) => StyleSheet
   panel: { padding: Spacing.md, marginBottom: Spacing.md },
   sectionTitle: { ...Typography.title, fontWeight: '800', letterSpacing: -0.3, marginBottom: 10 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, marginBottom: Spacing.sm },
+  sectionBlock: { marginTop: 4, marginBottom: Spacing.sm, gap: 2 },
   sectionHint: { fontSize: 12, fontWeight: '700', marginBottom: Spacing.xs, marginTop: Spacing.sm },
   countPill: {
     paddingHorizontal: 8,

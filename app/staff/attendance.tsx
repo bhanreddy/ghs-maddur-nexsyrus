@@ -561,10 +561,10 @@ export default function StaffMyAttendanceScreen() {
         <TourTarget id="screen.staff-attendance.workspace" native><View style={[styles.container, { backgroundColor: pageBg }]}>
             <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={pageBg} />
 
-            <View style={[styles.orb1, { backgroundColor: orb1Color }]} />
-            <View style={[styles.orb2, { backgroundColor: orb2Color }]} />
+            <View pointerEvents="none" style={[styles.orb1, { backgroundColor: orb1Color }]} />
+            <View pointerEvents="none" style={[styles.orb2, { backgroundColor: orb2Color }]} />
 
-            <TourTarget id="screen.staff-attendance.overview"><StaffHeader title="My Attendance" scrollY={scrollY} onBack={() => router.back()} showMenuButton={false} /></TourTarget>
+            <TourTarget id="screen.staff-attendance.overview" style={styles.headerLayer}><StaffHeader title="My Attendance" scrollY={scrollY} onBack={() => router.back()} showMenuButton={false} /></TourTarget>
             {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
             {loading && !refreshing ? (
@@ -691,6 +691,9 @@ export default function StaffMyAttendanceScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
+    // The header is absolutely positioned. On web every view is its own stacking
+    // context, so the scroll view painted over these buttons and swallowed taps.
+    headerLayer: { zIndex: 20, elevation: 20 },
     orb1: { position: 'absolute', width: 350, height: 350, borderRadius: 175, top: -100, right: -120 },
     orb2: { position: 'absolute', width: 250, height: 250, borderRadius: 125, bottom: 100, left: -100 },
 

@@ -18,8 +18,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
-  FadeInDown, FadeIn, useAnimatedScrollHandler, useSharedValue,
-  useAnimatedStyle, interpolate, Extrapolation, withRepeat, withSequence,
+  FadeInDown, FadeIn, useSharedValue,
+  useAnimatedStyle, withRepeat, withSequence,
   withTiming, withDelay, withSpring, Easing } from
 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
@@ -99,17 +99,6 @@ function clayCard(isDark: boolean, raised: 'sm' | 'md' | 'lg' = 'md'): any {
   };
 }
 
-// ─── Dynamic Gradient By Time of Day ───────────────────────────────
-const getTimeGradient = (hour: number, isDark: boolean): string[] => {
-  if (isDark) return ['#070512', '#110D2A', '#0A0818'];
-  if (hour < 6) return ['#0A0F1E', '#141B3A', '#1E1050'];
-  if (hour < 10) return ['#FEF9F0', '#FEF0DC', '#FAF5FF'];
-  if (hour < 14) return ['#EEF9FF', '#E6F4F9', '#F0F7FF'];
-  if (hour < 17) return ['#FFFBEE', '#FFF5D6', '#F7EEFF'];
-  if (hour < 20) return ['#F2EFFF', '#EBE5FF', '#FCF0FF'];
-  return ['#0C0920', '#150E35', '#0A0818'];
-};
-
 // ─── Subject Themes ────────────────────────────────────────────────
 const getSubjectTheme = (name: string) => {
   const lower = name.toLowerCase();
@@ -120,7 +109,7 @@ const getSubjectTheme = (name: string) => {
   if (lower.includes('eng'))
   return { bg: 'rgba(139,92,246,0.10)', bgStrong: 'rgba(139,92,246,0.18)', text: '#581C87', accent: '#8B5CF6', glow: 'rgba(139,92,246,0.25)', label: 'English' };
   if (lower.includes('hind'))
-  return { bg: 'rgba(79,70,229,0.10)', bgStrong: 'rgba(79,70,229,0.18)', text: '#3730A3', accent: '#4F46E5', glow: 'rgba(79,70,229,0.25)', label: 'Hindi' };
+  return { bg: 'rgba(107,47,160,0.10)', bgStrong: 'rgba(107,47,160,0.18)', text: '#4A1A75', accent: '#6B2FA0', glow: 'rgba(107,47,160,0.25)', label: 'Hindi' };
   if (lower.includes('hist'))
   return { bg: 'rgba(236,72,153,0.10)', bgStrong: 'rgba(236,72,153,0.18)', text: '#9D174D', accent: '#EC4899', glow: 'rgba(236,72,153,0.25)', label: 'History' };
   if (lower.includes('geo'))
@@ -313,7 +302,8 @@ const AnimatedProgressBar = ({ progress, accent }: {progress: number;accent: str
 };
 
 // ─── Live Time Indicator ───────────────────────────────────────────
-const LiveTimeIndicator = ({ isDark }: {isDark: boolean;}) => {
+const LiveTimeIndicator = ({ isDark: _isDark }: {isDark: boolean;}) => {
+  const { theme } = useTheme();
   const pulse = useSharedValue(0.5);
   useEffect(() => {
     pulse.value = withRepeat(
@@ -327,8 +317,8 @@ const LiveTimeIndicator = ({ isDark }: {isDark: boolean;}) => {
 
   return (
     <Animated.View style={[styles.liveIndicator, pulseStyle]}>
-      <View style={[styles.liveIndicatorDiamond, { backgroundColor: isDark ? '#818CF8' : '#4F46E5' }]} />
-      <View style={[styles.liveIndicatorLine, { backgroundColor: isDark ? '#818CF8' : '#4F46E5' }]} />
+      <View style={[styles.liveIndicatorDiamond, { backgroundColor: theme.colors.primary }]} />
+      <View style={[styles.liveIndicatorLine, { backgroundColor: theme.colors.primary }]} />
     </Animated.View>);
 
 };
@@ -336,7 +326,7 @@ const LiveTimeIndicator = ({ isDark }: {isDark: boolean;}) => {
 // ─── Slot Item Component ───────────────────────────────────────────
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendance
+const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendance, isUpNext
 
 }: {
   item: TimetableSlot;
@@ -345,7 +335,9 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
   isDark: boolean;
   totalSlots: number;
   onOpenAttendance?: () => void;
+  isUpNext?: boolean;
 }) => {
+  const { theme } = useTheme();
   const router = useRouter();
   const status = getPeriodStatus(item.start_time, item.end_time, currentTime);
   const isActive = status === 'active';
@@ -380,7 +372,7 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
       <View style={styles.timeColumn}>
         <Text style={[
         styles.startTime,
-        { color: isActive ? subjectTheme.accent : isDark ? '#8892A4' : '#64748B' },
+        { color: isActive ? subjectTheme.accent : theme.colors.textSecondary },
         isActive && styles.activeStartTime]
         }>
           {item.start_time.substring(0, 5)}
@@ -458,7 +450,7 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
       <AnimatedPressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={[styles.cardWrapper, animatedPressableStyle, isCompleted && { opacity: 0.5 }]}>
+        style={[styles.cardWrapper, animatedPressableStyle, isCompleted && { opacity: 0.72 }]}>
 
         {/* Active glow bloom */}
         {isActive &&
@@ -474,13 +466,26 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
         <View
           style={[
           styles.cardBlur,
-          clayCard(isDark, isActive ? 'lg' : 'md'),
           {
-            borderColor: isActive ?
-            subjectTheme.accent + '28' :
-            isDark ?
-            'rgba(255,255,255,0.06)' :
-            'rgba(255,255,255,0.65)'
+            backgroundColor: theme.colors.card,
+            borderColor: isActive
+              ? subjectTheme.accent + '66'
+              : theme.colors.border,
+            ...(Platform.OS === 'web'
+              ? {
+                  boxShadow: isActive
+                    ? `0 14px 32px ${subjectTheme.glow}`
+                    : isDark
+                      ? '0 10px 24px rgba(0,0,0,0.28)'
+                      : '0 10px 24px rgba(15,23,42,0.06)',
+                }
+              : {
+                  shadowColor: isActive ? subjectTheme.accent : '#0F172A',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: isDark ? 0.28 : isActive ? 0.16 : 0.06,
+                  shadowRadius: 16,
+                  elevation: isActive ? 5 : 2,
+                }),
           }]
           }>
 
@@ -514,9 +519,9 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
                 </Text>
               </View>
               {item.is_substitution && (
-                <View style={[styles.coverInlineTag, { backgroundColor: isDark ? 'rgba(129,140,248,0.16)' : '#EEF2FF' }]}>
-                  <Ionicons name="swap-horizontal" size={11} color={isDark ? '#A5B4FC' : '#4338CA'} />
-                  <Text style={[styles.coverInlineTagText, { color: isDark ? '#A5B4FC' : '#4338CA' }]}>
+                <View style={[styles.coverInlineTag, { backgroundColor: theme.colors.alertBg }]}>
+                  <Ionicons name="swap-horizontal" size={11} color={theme.colors.primary} />
+                  <Text style={[styles.coverInlineTagText, { color: theme.colors.primary }]}>
                     One-day cover
                   </Text>
                 </View>
@@ -530,24 +535,39 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
                   <Text style={[styles.activeTagText, { color: subjectTheme.accent, fontFamily: FONT_FAMILY }]}>Live</Text>
                 </Animated.View>
               }
+              {isUpNext && !isActive &&
+              <View style={[styles.activeTag, { backgroundColor: theme.colors.navPill, borderColor: theme.colors.border, borderWidth: 1 }]}>
+                  <Text style={[styles.activeTagText, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>Up next</Text>
+                </View>
+              }
             </View>
 
             {/* Card body */}
             <View style={styles.cardBodyRow}>
               <View style={styles.cardTextContent}>
-                <Text style={[styles.subjectName, { color: isDark ? '#EEF2FF' : '#08101E', fontFamily: FONT_FAMILY }]}>
+                <Text style={[styles.subjectName, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]}>
                   {item.subject_name}
                 </Text>
-                <View style={styles.detailItem}>
-                  <Ionicons name="people-outline" size={12} color={isDark ? '#556070' : '#9DAFC4'} />
-                  <Text style={[styles.detailText, { color: isDark ? '#556070' : '#9DAFC4', fontFamily: FONT_FAMILY }]}>
-                    {item.class_name} · {item.section_name}
-                  </Text>
+                <View style={styles.metaRow}>
+                  <View style={[styles.classChip, { backgroundColor: subjectTheme.bg }]}>
+                    <Ionicons name="people" size={12} color={subjectTheme.accent} />
+                    <Text style={[styles.classChipText, { color: isDark ? '#E2E8F0' : subjectTheme.text, fontFamily: FONT_FAMILY }]}>
+                      {item.class_name} · {item.section_name}
+                    </Text>
+                  </View>
+                  {item.room_no ? (
+                    <View style={[styles.classChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F8FAFC' }]}>
+                      <Ionicons name="location-outline" size={12} color={theme.colors.textSecondary} />
+                      <Text style={[styles.classChipText, { color: isDark ? '#CBD5E1' : '#475569', fontFamily: FONT_FAMILY }]}>
+                        {item.room_no}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
                 {item.is_substitution && item.absent_teacher_name ? (
                   <View style={[styles.detailItem, { marginTop: 4 }]}>
-                    <Ionicons name="person-outline" size={12} color={isDark ? '#A5B4FC' : '#6366F1'} />
-                    <Text style={[styles.detailText, { color: isDark ? '#A5B4FC' : '#6366F1', fontFamily: FONT_FAMILY }]}>
+                    <Ionicons name="person-outline" size={12} color={theme.colors.primary} />
+                    <Text style={[styles.detailText, { color: theme.colors.primary, fontFamily: FONT_FAMILY }]}>
                       Covering for {item.absent_teacher_name}
                     </Text>
                   </View>
@@ -567,9 +587,13 @@ const SlotItem = ({ item, index, currentTime, isDark, totalSlots, onOpenAttendan
 
             <Pressable
               onPress={() => router.push('/staff/academic-today')}
-              style={{ marginTop: 10, alignSelf: 'flex-start', backgroundColor: subjectTheme.accent, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999 }}
+              style={[styles.openClassButton, { backgroundColor: subjectTheme.accent }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${item.subject_name || 'class'}`}
             >
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>Open class</Text>
+              <Ionicons name="enter-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.openClassText}>Open class</Text>
+              <Ionicons name="chevron-forward" size={14} color="#FFFFFF" />
             </Pressable>
 
             {item.attendance_session ? (
@@ -641,7 +665,8 @@ const BreakRow = ({ period, index, isDark }: {period: Period;index: number;isDar
 };
 
 // ─── Premium Stats Capsule ─────────────────────────────────────────
-const StatsCapsule = ({ completed, total, isDark }: {completed: number;total: number;isDark: boolean;}) => {
+const StatsCapsule = ({ completed, total }: {completed: number;total: number;}) => {
+  const { theme, isDark } = useTheme();
   const progress = total > 0 ? completed / total : 0;
 
   const capsuleScale = useSharedValue(0.90);
@@ -676,17 +701,15 @@ const StatsCapsule = ({ completed, total, isDark }: {completed: number;total: nu
   };
   const arcEnd = Math.max(0.01, progress) * 360;
 
-  const accent = isDark ? '#818CF8' : '#4F46E5';
-  const accentLight = isDark ? '#A5B4FC' : '#6366F1';
-  const trackColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(99,102,241,0.12)';
-  const borderColor = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(200,210,245,0.60)';
+  const accent = theme.colors.primary;
+  const accentLight = theme.colors.primary;
+  const trackColor = isDark ? 'rgba(255,255,255,0.12)' : theme.colors.alertBg;
+  const borderColor = theme.colors.border;
 
   return (
     <Animated.View style={[capsuleStyles.outerWrap, containerStyle, { shadowColor: accent }]}>
       {/* Soft ambient glow */}
-      <View style={[capsuleStyles.ambientGlow, { backgroundColor: accent + (isDark ? '28' : '18') }]} />
-
-      <View style={[capsuleStyles.blurWrap, clayCard(isDark, 'sm'), { borderColor }]}>
+      <View style={[capsuleStyles.blurWrap, { borderColor, backgroundColor: theme.colors.card, borderRadius: 22, borderWidth: 1 }]}>
 
         <View style={[capsuleStyles.inner, {
           backgroundColor: isDark ? 'transparent' : 'transparent'
@@ -725,22 +748,22 @@ const StatsCapsule = ({ completed, total, isDark }: {completed: number;total: nu
 
           {/* ── DIVIDER ── */}
           <View style={[capsuleStyles.divider, {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(99,102,241,0.12)'
+            backgroundColor: theme.colors.border
           }]} />
 
           {/* ── RIGHT: total ── */}
           <View style={capsuleStyles.side}>
             <Animated.Text style={[capsuleStyles.totalNumber, numStyle, {
-              color: isDark ? '#CBD5E1' : '#1E293B', fontFamily: FONT_FAMILY
+              color: theme.colors.textStrong, fontFamily: FONT_FAMILY
             }]}>
               {total}
             </Animated.Text>
             <View style={[capsuleStyles.labelPill, {
-              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+              backgroundColor: theme.colors.navPill,
+              borderColor: theme.colors.border
             }]}>
               <Text style={[capsuleStyles.labelText, {
-                color: isDark ? '#475569' : '#94A3B8', fontFamily: FONT_FAMILY
+                color: theme.colors.textMuted, fontFamily: FONT_FAMILY
               }]}>TOTAL</Text>
             </View>
           </View>
@@ -779,15 +802,15 @@ const capsuleStyles = StyleSheet.create({
   inner: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
     borderRadius: 26
   },
   side: {
     alignItems: 'center',
-    gap: 7,
-    width: 60
+    gap: 6,
+    width: 52
   },
   // Mini ring
   miniRingWrap: {
@@ -845,7 +868,7 @@ const capsuleStyles = StyleSheet.create({
 
 // ─── Main Screen ───────────────────────────────────────────────────
 const TimeTableScreen = () => {
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   const router = useRouter();
   const { staffId, isViewingAsAdmin, viewAsName } = useEffectiveStaffId();
   const [loading, setLoading] = useState(true);
@@ -955,11 +978,6 @@ const TimeTableScreen = () => {
     return items;
   }, [visibleSlots, breakPeriods]);
 
-  const scrollY = useSharedValue(0);
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {scrollY.value = event.contentOffset.y;}
-  });
-
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
@@ -1034,11 +1052,6 @@ const TimeTableScreen = () => {
     });
   };
 
-  const headerAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(scrollY.value, [0, 100], [0, -30], Extrapolation.CLAMP) }],
-    opacity: interpolate(scrollY.value, [0, 100], [1, 0.82], Extrapolation.CLAMP)
-  }));
-
   const getGreeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return 'Good Morning';
@@ -1046,19 +1059,14 @@ const TimeTableScreen = () => {
     return 'Good Evening';
   };
 
-  const getGreetingEmoji = () => {
+  const greetingIcon = (): keyof typeof Ionicons.glyphMap => {
     const hour = currentTime.getHours();
-    if (hour < 6) return '🌙';
-    if (hour < 12) return '☀️';
-    if (hour < 17) return '🌤️';
-    if (hour < 20) return '🌅';
-    return '🌙';
+    if (hour < 6) return 'moon-outline';
+    if (hour < 12) return 'sunny-outline';
+    if (hour < 17) return 'partly-sunny-outline';
+    if (hour < 20) return 'cloudy-night-outline';
+    return 'moon-outline';
   };
-
-  const gradientColors = useMemo(
-    () => getTimeGradient(currentTime.getHours(), isDark),
-    [currentTime.getHours(), isDark]
-  );
 
   const totalPeriods = todayScheduleSlots.length;
   const completedPeriods = todayScheduleSlots.filter(
@@ -1067,36 +1075,52 @@ const TimeTableScreen = () => {
   const activePeriod = todayScheduleSlots.find(
     (slot) => getPeriodStatus(slot.start_time, slot.end_time, currentTime) === 'active'
   );
+  const upNextId = useMemo(() => {
+    if (selectedDay !== todayDay) return null;
+    const next = visibleSlots.find(
+      (slot) => getPeriodStatus(slot.start_time, slot.end_time, currentTime) === 'upcoming'
+    );
+    return next?.id ?? null;
+  }, [selectedDay, todayDay, visibleSlots, currentTime]);
+  const remainingToday = todayScheduleSlots.filter(
+    (slot) => getPeriodStatus(slot.start_time, slot.end_time, currentTime) !== 'completed'
+  ).length;
 
   return (
-    <TourTarget id="screen.staff-timetable.overview" native><View style={[styles.container, { backgroundColor: isDark ? '#0B1020' : '#EFF2F9' }]}>
-      {/* Background Sparkles */}
-      <FloatingElement delay={0} top={height * 0.11} left={width * 0.76} size={42} color={isDark ? '#6366F1' : '#BFCFFE'} opacity={0.30} />
-      <FloatingElement delay={900} top={height * 0.54} left={width * 0.07} size={52} color={isDark ? '#A855F7' : '#DDD6FE'} opacity={0.20} />
+    <TourTarget id="screen.staff-timetable.overview" native><View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <FloatingElement delay={0} top={height * 0.18} left={width * 0.78} size={36} color={theme.colors.primaryLight} opacity={0.28} />
+      <FloatingElement delay={900} top={height * 0.62} left={width * 0.06} size={28} color={theme.colors.primary} opacity={0.12} />
 
       <TourTarget id="screen.staff-timetable.workspace" style={{ flex: 1 }}><Animated.ScrollView
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 140 }}>
 
         {/* ── Header ── */}
-        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+        <View style={styles.headerContainer}>
           <View style={styles.headerContent}>
-            <View>
-              <Text style={[styles.greeting, { color: isDark ? '#8892A4' : '#7080A0', fontFamily: FONT_FAMILY }]}>
-                {getGreeting()} {getGreetingEmoji()}
+            <View style={styles.headerTextCol}>
+              <View style={styles.greetingRow}>
+                <Ionicons name={greetingIcon()} size={14} color={theme.colors.primary} />
+                <Text style={[styles.greeting, { color: theme.colors.primary, fontFamily: FONT_FAMILY }]} numberOfLines={1}>
+                  {getGreeting()}
+                </Text>
+              </View>
+              <Text
+                style={[styles.dateText, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+              >
+                {format(currentTime, 'EEEE')}
               </Text>
-              <Text style={[styles.dateText, { color: isDark ? '#EEF2FF' : '#06101E', fontFamily: FONT_FAMILY }]}>
-                {format(currentTime, 'EEEE, dd MMM')}
+              <Text style={[styles.monthText, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]} numberOfLines={1}>
+                {format(currentTime, 'd MMMM')}
               </Text>
             </View>
 
-            {/* Stats Capsule */}
             <StatsCapsule
               completed={completedPeriods}
-              total={totalPeriods}
-              isDark={isDark} />
+              total={totalPeriods} />
 
           </View>
 
@@ -1105,40 +1129,40 @@ const TimeTableScreen = () => {
           <Animated.View entering={FadeInDown.delay(260).duration(320)} style={[
           styles.activeBanner,
           {
-            backgroundColor: isDark ? 'rgba(67,56,202,0.14)' : 'rgba(67,56,202,0.07)',
-            borderColor: isDark ? 'rgba(99,102,241,0.20)' : 'rgba(99,102,241,0.16)',
+            backgroundColor: theme.colors.alertBg,
+            borderColor: theme.colors.alertBorder,
             borderWidth: 1
           }]
           }>
-              <View style={styles.activeBannerDot} />
-              <Text style={[styles.activeBannerText, { color: isDark ? '#A5B4FC' : '#4338CA', fontFamily: FONT_FAMILY }]}>
+              <View style={[styles.activeBannerDot, { backgroundColor: theme.colors.primary }]} />
+              <Text style={[styles.activeBannerText, { color: theme.colors.alertText, fontFamily: FONT_FAMILY }]}>
                 Now: {activePeriod.subject_name} · {activePeriod.class_name} – {activePeriod.section_name}
               </Text>
             </Animated.View>
           }
-        </Animated.View>
+        </View>
 
         {isViewingAsAdmin && <ViewAsBanner name={viewAsName} />}
 
         {todaySubstitutions.length > 0 && (
           <Animated.View
             entering={FadeInDown.delay(120).duration(360)}
-            style={[styles.coverDutyPanel, { backgroundColor: isDark ? '#1A2332' : '#FFFFFF' }]}
+            style={[styles.coverDutyPanel, { backgroundColor: theme.colors.card, borderColor: theme.colors.alertBorder }]}
           >
             <View style={styles.coverDutyHeader}>
               <View style={styles.coverDutyIcon}>
                 <Ionicons name="swap-horizontal" size={17} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.coverDutyEyebrow, { color: isDark ? '#A5B4FC' : '#4338CA' }]}>
+                <Text style={[styles.coverDutyEyebrow, { color: theme.colors.primary }]}>
                   TODAY&apos;S COVER {todaySubstitutions.length === 1 ? 'DUTY' : 'DUTIES'}
                 </Text>
-                <Text style={[styles.coverDutyTitle, { color: isDark ? '#EEF2FF' : '#0F172A' }]}>
+                <Text style={[styles.coverDutyTitle, { color: theme.colors.textStrong }]}>
                   You&apos;re helping another class today
                 </Text>
               </View>
-              <View style={[styles.coverDutyCount, { backgroundColor: isDark ? 'rgba(129,140,248,0.16)' : '#EEF2FF' }]}>
-                <Text style={{ color: isDark ? '#A5B4FC' : '#4338CA', fontWeight: '900' }}>
+              <View style={[styles.coverDutyCount, { backgroundColor: theme.colors.alertBg }]}>
+                <Text style={{ color: theme.colors.primary, fontWeight: '900' }}>
                   {todaySubstitutions.length}
                 </Text>
               </View>
@@ -1150,20 +1174,20 @@ const TimeTableScreen = () => {
                   styles.coverDutyRow,
                   index > 0 && {
                     borderTopWidth: 1,
-                    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : '#E8ECF4',
+                    borderTopColor: theme.colors.border,
                   },
                 ]}
               >
-                <View style={[styles.coverDutyPeriod, { backgroundColor: isDark ? 'rgba(129,140,248,0.14)' : '#EEF2FF' }]}>
-                  <Text style={[styles.coverDutyPeriodText, { color: isDark ? '#A5B4FC' : '#4338CA' }]}>
+                <View style={[styles.coverDutyPeriod, { backgroundColor: theme.colors.alertBg }]}>
+                  <Text style={[styles.coverDutyPeriodText, { color: theme.colors.primary }]}>
                     {shortPeriodLabel(cover.period_name, cover.period_number)}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.coverDutyClass, { color: isDark ? '#EEF2FF' : '#0F172A' }]}>
+                  <Text style={[styles.coverDutyClass, { color: theme.colors.textStrong }]}>
                     {cover.class_name}-{cover.section_name} · {cover.subject_name}
                   </Text>
-                  <Text style={[styles.coverDutyMeta, { color: isDark ? '#8892A4' : '#64748B' }]}>
+                  <Text style={[styles.coverDutyMeta, { color: theme.colors.textSecondary }]}>
                     {timeLabel(cover.start_time)}–{timeLabel(cover.end_time)} · for {cover.absent_teacher_name}
                   </Text>
                 </View>
@@ -1184,36 +1208,45 @@ const TimeTableScreen = () => {
                 ) : null}
               </View>
             ))}
-            <Text style={[styles.coverDutyExpiry, { color: isDark ? '#6B7890' : '#94A3B8' }]}>
+            <Text style={[styles.coverDutyExpiry, { color: theme.colors.textSecondary }]}>
               These duties and class access expire automatically after today.
             </Text>
           </Animated.View>
         )}
 
         {/* ── Class / Exams toggle ── */}
-        <View style={[styles.modeToggle, { backgroundColor: isDark ? '#1F2937' : '#E4E9F5' }]}>
+        <View style={[styles.modeToggle, { backgroundColor: theme.colors.navPill, borderColor: theme.colors.border }]}>
           {(
             [
-              ['class', 'My Classes'],
-              ['exam', 'Exams'],
+              ['class', 'My Classes', 'book-outline'],
+              ['exam', 'Exams', 'document-text-outline'],
             ] as const
-          ).map(([value, label]) => {
+          ).map(([value, label, icon]) => {
             const active = viewMode === value;
             return (
-              <Text
+              <Pressable
                 key={value}
                 onPress={() => setViewMode(value)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
                 style={[
                   styles.modeBtn,
-                  {
-                    backgroundColor: active ? (isDark ? '#818CF8' : '#4338CA') : 'transparent',
-                    color: active ? '#FFFFFF' : (isDark ? '#818CF8' : '#4338CA'),
-                    fontFamily: FONT_FAMILY,
-                  },
+                  active && { backgroundColor: theme.colors.primary },
                 ]}
               >
-                {label}
-              </Text>
+                <Ionicons name={icon} size={15} color={active ? '#FFFFFF' : theme.colors.primary} />
+                <Text
+                  style={[
+                    styles.modeBtnText,
+                    {
+                      color: active ? '#FFFFFF' : theme.colors.primary,
+                      fontFamily: FONT_FAMILY,
+                    },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
             );
           })}
         </View>
@@ -1221,97 +1254,108 @@ const TimeTableScreen = () => {
         {viewMode === 'exam' ? (
           examLoading && !examLoaded ? (
             <View style={styles.center}>
-              <LogoLoader size={60} color={isDark ? '#818CF8' : '#4338CA'} />
+              <LogoLoader size={60} color={theme.colors.primary} />
             </View>
           ) : examGroups.length === 0 && duties.length === 0 ? (
-            <Animated.View entering={FadeInDown.duration(380)} style={styles.emptyState}>
-              <View style={styles.emptyIconContainer}>
-                <Ionicons name="document-text-outline" size={60} color={isDark ? '#2C3A50' : '#CDD7E6'} />
+            <Animated.View entering={FadeInDown.duration(380)} style={[styles.emptyCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <View style={[styles.emptyIconBadge, { backgroundColor: theme.colors.alertBg }]}>
+                <Ionicons name="document-text-outline" size={26} color={theme.colors.primary} />
               </View>
-              <Text style={[styles.emptyTitle, { color: isDark ? '#E0E8F8' : '#0D1726', fontFamily: FONT_FAMILY }]}>
+              <Text style={[styles.emptyTitle, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]}>
                 No exam timetable yet
               </Text>
-              <Text style={[styles.emptySubtitle, { color: isDark ? '#4E5A6E' : '#9DAFC4', fontFamily: FONT_FAMILY }]}>
-                Published exam schedules for your classes will appear here
+              <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>
+                Published papers and invigilation duties for your classes will show up here.
               </Text>
             </Animated.View>
           ) : (
             <View style={styles.examWrapper}>
+              <Text style={[styles.sectionHint, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>
+                {examSlots.length} {examSlots.length === 1 ? 'paper' : 'papers'}
+                {duties.length > 0 ? ` · ${duties.length} ${duties.length === 1 ? 'duty' : 'duties'}` : ''}
+              </Text>
               {duties.length > 0 && (
                 <Animated.View entering={FadeInDown.duration(400)} style={styles.examGroup}>
                   <View style={styles.examGroupHeader}>
-                    <View style={[styles.examTypeChip, { backgroundColor: isDark ? 'rgba(129,140,248,0.18)' : 'rgba(67,56,202,0.10)' }]}>
-                      <Ionicons name="shield-checkmark" size={13} color={isDark ? '#818CF8' : '#4338CA'} />
+                    <View style={[styles.examTypeChip, { backgroundColor: theme.colors.alertBg }]}>
+                      <Ionicons name="shield-checkmark" size={14} color={theme.colors.primary} />
                     </View>
-                    <Text style={[styles.examGroupTitle, { color: isDark ? '#EEF2FF' : '#0D1726', fontFamily: FONT_FAMILY }]}>
+                    <Text style={[styles.examGroupTitle, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]}>
                       Invigilation duties
                     </Text>
+                    <View style={[styles.countPill, { backgroundColor: theme.colors.alertBg }]}>
+                      <Text style={[styles.countPillText, { color: theme.colors.primary }]}>{duties.length}</Text>
+                    </View>
                   </View>
-                  <View
-                    style={[
-                      styles.examCard,
-                      {
-                        backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
-                        borderColor: isDark ? 'rgba(129,140,248,0.25)' : 'rgba(67,56,202,0.22)',
-                      },
-                    ]}
-                  >
-                    {duties.map((duty, di) => {
+                  <View style={styles.examStack}>
+                    {duties.map((duty) => {
                       const dutyDate = ymd(duty.exam_date);
                       const isToday = dutyDate === todayIso;
                       const isPastDuty = !!dutyDate && dutyDate < todayIso;
                       const d = dutyDate ? new Date(`${dutyDate}T00:00:00`) : null;
-                      const accent = isDark ? '#818CF8' : '#4338CA';
+                      const accent = theme.colors.primary;
                       const untimed = duty.session_start === '00:00:00';
+                      const dutyTime = untimed
+                        ? 'Time TBA'
+                        : `${format(new Date(`2000-01-01T${duty.session_start}`), 'h:mm a')}${
+                            duty.session_end
+                              ? ` – ${format(new Date(`2000-01-01T${duty.session_end}`), 'h:mm a')}`
+                              : ''
+                          }`;
                       return (
                         <View
                           key={duty.id}
                           style={[
-                            styles.examRow,
-                            di > 0 && {
-                              borderTopWidth: 1,
-                              borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                            styles.examPaper,
+                            {
+                              backgroundColor: theme.colors.card,
+                              borderColor: isToday ? accent : (theme.colors.border),
                             },
-                            isPastDuty && { opacity: 0.5 },
+                            isPastDuty && { opacity: 0.72 },
                           ]}
                         >
+                          <View style={[styles.examAccent, { backgroundColor: accent }]} />
                           <View
                             style={[
                               styles.examDateBox,
-                              { backgroundColor: isToday ? accent : isDark ? 'rgba(255,255,255,0.06)' : '#F5F7FC' },
+                              { backgroundColor: isToday ? accent : theme.colors.navPill },
                             ]}
                           >
-                            <Text style={[styles.examDateDay, { color: isToday ? '#FFFFFF' : isDark ? '#8892A4' : '#7080A0' }]}>
+                            <Text style={[styles.examDateDay, { color: isToday ? '#FFFFFF' : theme.colors.textSecondary }]}>
                               {d ? format(d, 'EEE').toUpperCase() : '—'}
                             </Text>
-                            <Text style={[styles.examDateNum, { color: isToday ? '#FFFFFF' : isDark ? '#EEF2FF' : '#0D1726' }]}>
+                            <Text style={[styles.examDateNum, { color: isToday ? '#FFFFFF' : theme.colors.textStrong }]}>
                               {d ? format(d, 'dd') : ''}
                             </Text>
-                            <Text style={[styles.examDateDay, { color: isToday ? '#FFFFFF' : isDark ? '#8892A4' : '#7080A0' }]}>
+                            <Text style={[styles.examDateDay, { color: isToday ? 'rgba(255,255,255,0.85)' : theme.colors.textSecondary }]}>
                               {d ? format(d, 'MMM') : ''}
                             </Text>
                           </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.examSubject, { color: isDark ? '#EEF2FF' : '#0D1726', fontFamily: FONT_FAMILY }]}>
-                              {duty.room_name} · {t_field(duty.exam_name, duty.exam_name_te)}
-                            </Text>
-                            <Text style={[styles.examMeta, { color: isDark ? '#8892A4' : '#7080A0', fontFamily: FONT_FAMILY }]}>
-                              {untimed
-                                ? 'Time TBA'
-                                : `${format(new Date(`2000-01-01T${duty.session_start}`), 'h:mm a')}${
-                                    duty.session_end
-                                      ? ` – ${format(new Date(`2000-01-01T${duty.session_end}`), 'h:mm a')}`
-                                      : ''
-                                  }`}
-                              {` · ${duty.seats_count} students`}
-                              {duty.class_names ? ` · ${duty.class_names}` : ''}
-                            </Text>
-                          </View>
-                          {isToday && (
-                            <View style={[styles.mySubjectBadge, { backgroundColor: isDark ? 'rgba(129,140,248,0.18)' : 'rgba(67,56,202,0.10)' }]}>
-                              <Text style={[styles.mySubjectText, { color: accent }]}>TODAY</Text>
+                          <View style={styles.examBody}>
+                            <View style={styles.examTitleRow}>
+                              <Text style={[styles.examSubject, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]} numberOfLines={2}>
+                                {duty.room_name}
+                              </Text>
+                              {isToday && (
+                                <View style={[styles.mySubjectBadge, { backgroundColor: theme.colors.alertBg }]}>
+                                  <Text style={[styles.mySubjectText, { color: accent }]}>Today</Text>
+                                </View>
+                              )}
                             </View>
-                          )}
+                            <Text style={[styles.examExamName, { color: theme.colors.primary, fontFamily: FONT_FAMILY }]} numberOfLines={1}>
+                              {t_field(duty.exam_name, duty.exam_name_te)}
+                            </Text>
+                            <View style={styles.examMetaRow}>
+                              <Ionicons name="time-outline" size={13} color={theme.colors.textSecondary} />
+                              <Text style={[styles.examMeta, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>{dutyTime}</Text>
+                            </View>
+                            <View style={styles.examMetaRow}>
+                              <Ionicons name="people-outline" size={13} color={theme.colors.textSecondary} />
+                              <Text style={[styles.examMeta, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]} numberOfLines={1}>
+                                {duty.seats_count} students{duty.class_names ? ` · ${duty.class_names}` : ''}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
                       );
                     })}
@@ -1328,113 +1372,124 @@ const TimeTableScreen = () => {
                   >
                     <View style={styles.examGroupHeader}>
                       <View style={[styles.examTypeChip, { backgroundColor: `${category.color}18` }]}>
-                        <Ionicons name={category.icon} size={13} color={category.color} />
+                        <Ionicons name={category.icon} size={14} color={category.color} />
                       </View>
-                      <Text style={[styles.examGroupTitle, { color: isDark ? '#EEF2FF' : '#0D1726', fontFamily: FONT_FAMILY }]}>
+                      <Text style={[styles.examGroupTitle, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]} numberOfLines={1}>
                         {t_field(group.examName, group.examNameTe)}
                       </Text>
+                      <View style={[styles.countPill, { backgroundColor: `${category.color}16` }]}>
+                        <Text style={[styles.countPillText, { color: category.color }]}>{group.slots.length}</Text>
+                      </View>
                     </View>
-                    <View
-                      style={[
-                        styles.examCard,
-                        {
-                          backgroundColor: isDark ? '#1A2332' : '#FFFFFF',
-                          borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#EBEFF7',
-                        },
-                      ]}
-                    >
-                      {group.slots.map((slot, si) => {
+                    <View style={styles.examStack}>
+                      {group.slots.map((slot) => {
                         const slotDate = ymd(slot.exam_date);
                         const isToday = !!slotDate && slotDate === todayIso;
                         const isPastExam = !!slotDate && slotDate < todayIso;
                         const d = slotDate ? new Date(`${slotDate}T00:00:00`) : null;
                         const topics = slot.syllabus || [];
                         const syllabusOpen = openSyllabusId === slot.id;
+                        const slotTime = slot.start_time
+                          ? `${format(new Date(`2000-01-01T${slot.start_time}`), 'h:mm a')} – ${format(new Date(`2000-01-01T${slot.end_time || slot.start_time}`), 'h:mm a')}`
+                          : 'Time TBA';
                         return (
-                          <View key={slot.id}>
                           <View
+                            key={slot.id}
                             style={[
-                              styles.examRow,
-                              si > 0 && {
-                                borderTopWidth: 1,
-                                borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                              styles.examPaper,
+                              {
+                                backgroundColor: theme.colors.card,
+                                borderColor: isToday ? category.color : (theme.colors.border),
                               },
-                              isPastExam && { opacity: 0.5 },
+                              isPastExam && { opacity: 0.72 },
                             ]}
                           >
+                            <View style={[styles.examAccent, { backgroundColor: category.color }]} />
                             <View
                               style={[
                                 styles.examDateBox,
-                                { backgroundColor: isToday ? category.color : isDark ? 'rgba(255,255,255,0.06)' : '#F5F7FC' },
+                                { backgroundColor: isToday ? category.color : theme.colors.navPill },
                               ]}
                             >
-                              <Text style={[styles.examDateDay, { color: isToday ? '#FFFFFF' : isDark ? '#8892A4' : '#7080A0' }]}>
+                              <Text style={[styles.examDateDay, { color: isToday ? '#FFFFFF' : theme.colors.textSecondary }]}>
                                 {d ? format(d, 'EEE').toUpperCase() : '—'}
                               </Text>
-                              <Text style={[styles.examDateNum, { color: isToday ? '#FFFFFF' : isDark ? '#EEF2FF' : '#0D1726' }]}>
+                              <Text style={[styles.examDateNum, { color: isToday ? '#FFFFFF' : theme.colors.textStrong }]}>
                                 {d ? format(d, 'dd') : ''}
                               </Text>
-                              <Text style={[styles.examDateDay, { color: isToday ? '#FFFFFF' : isDark ? '#8892A4' : '#7080A0' }]}>
+                              <Text style={[styles.examDateDay, { color: isToday ? 'rgba(255,255,255,0.85)' : theme.colors.textSecondary }]}>
                                 {d ? format(d, 'MMM') : ''}
                               </Text>
                             </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={[styles.examSubject, { color: isDark ? '#EEF2FF' : '#0D1726', fontFamily: FONT_FAMILY }]}>
-                                {t_field(slot.subject_name, slot.subject_name_te)}
-                              </Text>
-                              <Text style={[styles.examMeta, { color: isDark ? '#8892A4' : '#7080A0', fontFamily: FONT_FAMILY }]}>
-                                {slot.class_name}
-                                {slot.start_time
-                                  ? ` · ${format(new Date(`2000-01-01T${slot.start_time}`), 'h:mm a')} – ${format(new Date(`2000-01-01T${slot.end_time || slot.start_time}`), 'h:mm a')}`
-                                  : ' · Time TBA'}
-                              </Text>
-                            </View>
-                            {slot.is_my_subject && (
-                              <View style={[styles.mySubjectBadge, { backgroundColor: `${category.color}18` }]}>
-                                <Text style={[styles.mySubjectText, { color: category.color }]}>YOURS</Text>
-                              </View>
-                            )}
-                          </View>
-                          {(topics.length > 0 || slot.is_my_subject) && (
-                            <View style={styles.syllabusWrap}>
-                              <View style={styles.syllabusHeaderRow}>
-                                {topics.length > 0 ? (
-                                  <Text
-                                    onPress={() => setOpenSyllabusId(syllabusOpen ? null : slot.id)}
-                                    style={[styles.syllabusToggle, { color: category.color, fontFamily: FONT_FAMILY }]}
-                                  >
-                                    {syllabusOpen ? '▾' : '▸'} Syllabus · {topics.length} topics
-                                  </Text>
-                                ) : (
-                                  <View style={{ flex: 1 }} />
-                                )}
+                            <View style={styles.examBody}>
+                              <View style={styles.examTitleRow}>
+                                <Text style={[styles.examSubject, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]} numberOfLines={2}>
+                                  {t_field(slot.subject_name, slot.subject_name_te)}
+                                </Text>
                                 {slot.is_my_subject && (
-                                  <Text
-                                    onPress={() => setEditSlot(slot)}
-                                    style={[styles.syllabusEditLink, { color: category.color, fontFamily: FONT_FAMILY }]}
-                                  >
-                                    {topics.length > 0 ? '✎ Edit syllabus' : '＋ Add syllabus & weightage'}
-                                  </Text>
+                                  <View style={[styles.mySubjectBadge, { backgroundColor: `${category.color}18` }]}>
+                                    <Text style={[styles.mySubjectText, { color: category.color }]}>Yours</Text>
+                                  </View>
                                 )}
                               </View>
-                              {syllabusOpen &&
-                                topics.map((item, ti) => (
-                                  <View key={ti} style={styles.syllabusItemRow}>
-                                    <View style={[styles.syllabusBullet, { backgroundColor: category.color }]} />
-                                    <Text
-                                      style={[styles.syllabusTopic, { color: isDark ? '#8892A4' : '#7080A0', fontFamily: FONT_FAMILY }]}
+                              <View style={styles.examMetaRow}>
+                                <Ionicons name="time-outline" size={13} color={theme.colors.textSecondary} />
+                                <Text style={[styles.examMeta, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>{slotTime}</Text>
+                              </View>
+                              {!!slot.class_name && (
+                                <View style={styles.examMetaRow}>
+                                  <Ionicons name="school-outline" size={13} color={theme.colors.textSecondary} />
+                                  <Text style={[styles.examMeta, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]} numberOfLines={1}>
+                                    {slot.class_name}
+                                  </Text>
+                                </View>
+                              )}
+                              {(topics.length > 0 || slot.is_my_subject) && (
+                                <View style={styles.examActions}>
+                                  {topics.length > 0 && (
+                                    <Pressable
+                                      onPress={() => setOpenSyllabusId(syllabusOpen ? null : slot.id)}
+                                      style={[styles.examAction, { backgroundColor: `${category.color}14` }]}
+                                      accessibilityRole="button"
                                     >
-                                      {item.topic}
-                                    </Text>
-                                    {item.marks != null && (
-                                      <Text style={[styles.syllabusMarksBadge, { color: category.color }]}>
-                                        {item.marks}m
+                                      <Ionicons name={syllabusOpen ? 'chevron-up' : 'list-outline'} size={14} color={category.color} />
+                                      <Text style={[styles.examActionText, { color: category.color, fontFamily: FONT_FAMILY }]}>
+                                        {topics.length} {topics.length === 1 ? 'topic' : 'topics'}
                                       </Text>
-                                    )}
-                                  </View>
-                                ))}
+                                    </Pressable>
+                                  )}
+                                  {slot.is_my_subject && (
+                                    <Pressable
+                                      onPress={() => setEditSlot(slot)}
+                                      style={[styles.examAction, { backgroundColor: theme.colors.navPill, borderColor: theme.colors.border, borderWidth: 1 }]}
+                                      accessibilityRole="button"
+                                    >
+                                      <Ionicons name={topics.length > 0 ? 'create-outline' : 'add'} size={14} color={category.color} />
+                                      <Text style={[styles.examActionText, { color: category.color, fontFamily: FONT_FAMILY }]}>
+                                        {topics.length > 0 ? 'Edit syllabus' : 'Add syllabus'}
+                                      </Text>
+                                    </Pressable>
+                                  )}
+                                </View>
+                              )}
+                              {syllabusOpen && (
+                                <View style={[styles.syllabusPanel, { backgroundColor: theme.colors.navPill }]}>
+                                  {topics.map((item, ti) => (
+                                    <View key={ti} style={styles.syllabusItemRow}>
+                                      <View style={[styles.syllabusBullet, { backgroundColor: category.color }]} />
+                                      <Text style={[styles.syllabusTopic, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>
+                                        {item.topic}
+                                      </Text>
+                                      {item.marks != null && (
+                                        <View style={[styles.marksChip, { backgroundColor: `${category.color}16` }]}>
+                                          <Text style={[styles.syllabusMarksBadge, { color: category.color }]}>{item.marks}m</Text>
+                                        </View>
+                                      )}
+                                    </View>
+                                  ))}
+                                </View>
+                              )}
                             </View>
-                          )}
                           </View>
                         );
                       })}
@@ -1448,37 +1503,61 @@ const TimeTableScreen = () => {
         <>
         {/* ── Day selector (per-day schools only) ── */}
         {isPerDay && !loading && (
-          <Animated.ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.dayTabs}
-            contentContainerStyle={{ paddingHorizontal: 12 }}
-          >
-            {TIMETABLE_DAYS.map((d) => {
-              const activeDay = selectedDay === d;
-              return (
-                <Text
-                  key={d}
-                  onPress={() => setSelectedDay(d)}
-                  style={[
-                    styles.dayTab,
-                    {
-                      backgroundColor: activeDay ? (isDark ? '#818CF8' : '#4338CA') : (isDark ? '#1F2937' : '#EEF2FF'),
-                      color: activeDay ? '#FFFFFF' : (isDark ? '#818CF8' : '#4338CA'),
-                    },
-                  ]}
-                >
-                  {TIMETABLE_DAY_LABELS[d]}
-                </Text>
-              );
-            })}
-          </Animated.ScrollView>
+          <View>
+            <Animated.ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.dayTabs}
+              contentContainerStyle={styles.dayTabsContent}
+            >
+              {TIMETABLE_DAYS.map((d) => {
+                const activeDay = selectedDay === d;
+                const isTodayChip = d === todayDay;
+                return (
+                  <Pressable
+                    key={d}
+                    onPress={() => setSelectedDay(d)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: activeDay }}
+                    style={[
+                      styles.dayTab,
+                      {
+                        backgroundColor: activeDay ? theme.colors.primary : theme.colors.card,
+                        borderColor: activeDay ? 'transparent' : theme.colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dayTabText,
+                        { color: activeDay ? '#FFFFFF' : theme.colors.primary, fontFamily: FONT_FAMILY },
+                      ]}
+                    >
+                      {TIMETABLE_DAY_LABELS[d]}
+                    </Text>
+                    {isTodayChip && (
+                      <View style={[styles.todayDot, { backgroundColor: activeDay ? '#FFFFFF' : theme.colors.primary }]} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </Animated.ScrollView>
+            <Text style={[styles.sectionHint, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY, marginTop: -4 }]}>
+              {visibleSlots.length} {visibleSlots.length === 1 ? 'class' : 'classes'}
+              {selectedDay === todayDay ? ' today' : ` on ${TIMETABLE_DAY_LABELS[selectedDay]}`}
+              {selectedDay === todayDay && totalPeriods > 0
+                ? remainingToday === 0
+                  ? ' · all finished'
+                  : ` · ${remainingToday} still ahead`
+                : ''}
+            </Text>
+          </View>
         )}
 
         {/* ── Content ── */}
         {loading ?
         <View style={styles.center}>
-            <LogoLoader size={60} color={isDark ? '#818CF8' : '#4338CA'} />
+            <LogoLoader size={60} color={theme.colors.primary} />
           </View> :
         visibleSlots.length > 0 ?
         <View style={styles.timelineWrapper}>
@@ -1497,6 +1576,7 @@ const TimeTableScreen = () => {
             currentTime={currentTime}
             isDark={isDark}
             totalSlots={visibleSlots.length}
+            isUpNext={row.slot.id === upNextId}
             onOpenAttendance={
               row.slot.is_substitution && row.slot.attendance_session
                 ? () => openSubstitutionAttendance(row.slot)
@@ -1506,15 +1586,15 @@ const TimeTableScreen = () => {
           )}
           </View> :
 
-        <Animated.View entering={FadeInDown.duration(380)} style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="calendar-outline" size={60} color={isDark ? '#2C3A50' : '#CDD7E6'} />
+        <Animated.View entering={FadeInDown.duration(380)} style={[styles.emptyCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <View style={[styles.emptyIconBadge, { backgroundColor: theme.colors.alertBg }]}>
+              <Ionicons name="calendar-outline" size={26} color={theme.colors.primary} />
             </View>
-            <Text style={[styles.emptyTitle, { color: isDark ? '#E0E8F8' : '#0D1726', fontFamily: FONT_FAMILY }]}>
-              No classes today
+            <Text style={[styles.emptyTitle, { color: theme.colors.textStrong, fontFamily: FONT_FAMILY }]}>
+              No classes this day
             </Text>
-            <Text style={[styles.emptySubtitle, { color: isDark ? '#4E5A6E' : '#9DAFC4', fontFamily: FONT_FAMILY }]}>
-              Enjoy your free time ✨
+            <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary, fontFamily: FONT_FAMILY }]}>
+              Pick another day, or enjoy the free time.
             </Text>
           </Animated.View>
         }
@@ -1540,7 +1620,7 @@ const TimeTableScreen = () => {
 // ─── Teacher syllabus editor ───────────────────────────────────────
 function SyllabusEditorModal({
   slot,
-  isDark,
+  isDark: _isDark,
   onClose,
   onSaved,
 }: {
@@ -1564,10 +1644,11 @@ function SyllabusEditorModal({
   const hasWeightage = rows.some((r) => r.marks.trim() !== '');
   const matches = total === Number(slot.max_marks || 0);
 
-  const cardBg = isDark ? '#1A2332' : '#FFFFFF';
-  const textStrong = isDark ? '#EEF2FF' : '#0D1726';
-  const textMuted = isDark ? '#8892A4' : '#7080A0';
-  const border = isDark ? 'rgba(255,255,255,0.08)' : '#E4E9F5';
+  const { theme } = useTheme();
+  const cardBg = theme.colors.card;
+  const textStrong = theme.colors.textStrong;
+  const textMuted = theme.colors.textSecondary;
+  const border = theme.colors.border;
 
   const save = async () => {
     const bad = rows.find(
@@ -1639,6 +1720,7 @@ function SyllabusEditorModal({
         style={editorStyles.backdrop}
       >
         <View style={[editorStyles.card, { backgroundColor: cardBg }]}>
+          <View style={[editorStyles.accentBar, { backgroundColor: category.color }]} />
           <View style={editorStyles.header}>
             <View style={{ flex: 1 }}>
               <Text style={[editorStyles.title, { color: textStrong, fontFamily: FONT_FAMILY }]}>
@@ -1708,9 +1790,15 @@ const editorStyles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  accentBar: {
+    height: 4,
+    borderRadius: 999,
+    marginBottom: 14,
+    width: 42,
+  },
   card: {
-    borderRadius: 22,
-    padding: 20,
+    borderRadius: 28,
+    padding: 22,
     width: '100%',
     maxWidth: 520,
     alignSelf: 'center',
@@ -1763,19 +1851,35 @@ const styles = StyleSheet.create({
   modeToggle: {
     flexDirection: 'row',
     marginHorizontal: 20,
-    marginBottom: 16,
-    borderRadius: 14,
+    marginBottom: 14,
+    borderRadius: 16,
     padding: 4,
-    gap: 4
+    gap: 4,
+    borderWidth: 1,
+    ...Platform.select({
+      web: { boxShadow: '0 8px 20px rgba(15,23,42,0.04)' } as object,
+      default: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 1,
+      },
+    }),
   },
   modeBtn: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 13,
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+  },
+  modeBtnText: {
+    fontSize: 13.5,
     fontWeight: '700',
-    paddingVertical: 9,
-    borderRadius: 11,
-    overflow: 'hidden'
+    letterSpacing: -0.1,
   },
   /* Exam schedule */
   examWrapper: {
@@ -1784,23 +1888,110 @@ const styles = StyleSheet.create({
   examGroup: {
     marginBottom: 18
   },
+  sectionHint: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    marginBottom: 12,
+    letterSpacing: -0.1,
+  },
   examGroupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8
+    marginBottom: 10
   },
   examTypeChip: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center'
   },
   examGroupTitle: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3
+  },
+  countPill: {
+    minWidth: 26,
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  examStack: {
+    gap: 10,
+  },
+  examPaper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: { boxShadow: '0 10px 24px rgba(15,23,42,0.05)' } as object,
+      default: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 14,
+        elevation: 2,
+      },
+    }),
+  },
+  examAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 14,
+    bottom: 14,
+    width: 3,
+    borderRadius: 3,
+  },
+  examBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  examTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  examExamName: {
+    fontSize: 12.5,
     fontWeight: '700',
-    letterSpacing: -0.2
+    letterSpacing: -0.1,
+  },
+  examMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  examActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  examAction: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  examActionText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   examCard: {
     borderRadius: 18,
@@ -1815,10 +2006,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   examDateBox: {
-    width: 48,
-    borderRadius: 10,
+    width: 58,
+    borderRadius: 16,
     alignItems: 'center',
-    paddingVertical: 6
+    justifyContent: 'center',
+    paddingVertical: 8,
   },
   examDateDay: {
     fontSize: 9,
@@ -1832,24 +2024,32 @@ const styles = StyleSheet.create({
     marginVertical: 1
   },
   examSubject: {
-    fontSize: 14.5,
-    fontWeight: '700',
-    letterSpacing: -0.2
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+    lineHeight: 20,
   },
   examMeta: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   mySubjectBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8
+    borderRadius: 999,
   },
   mySubjectText: {
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.5
+    letterSpacing: 0.2,
+  },
+  syllabusPanel: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   syllabusWrap: {
     paddingLeft: 72,
@@ -1890,8 +2090,13 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '500'
   },
+  marksChip: {
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
   syllabusMarksBadge: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '800'
   },
   noiseOverlay: {
@@ -1906,25 +2111,42 @@ const styles = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────────────
   headerContainer: {
-    paddingTop: Platform.OS === 'ios' ? 68 : 50,
-    paddingBottom: 28,
-    paddingHorizontal: 22
+    paddingTop: 22,
+    paddingBottom: 18,
+    paddingHorizontal: 20
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
   },
   greeting: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    marginBottom: 5
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   dateText: {
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: '800',
-    letterSpacing: -0.8
+    letterSpacing: -1,
+    lineHeight: 34,
+  },
+  monthText: {
+    marginTop: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
 
   // ── Active Banner ────────────────────────────────────────────────
@@ -1941,7 +2163,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#4F46E5'
+    backgroundColor: '#6B2FA0'
   },
   activeBannerText: {
     fontSize: 13,
@@ -1953,16 +2175,32 @@ const styles = StyleSheet.create({
   // ── Timeline Layout ──────────────────────────────────────────────
   dayTabs: {
     flexGrow: 0,
-    marginBottom: 14,
+    marginBottom: 8,
+  },
+  dayTabsContent: {
+    paddingHorizontal: 16,
+    gap: 8,
   },
   dayTab: {
-    fontSize: 13,
-    fontWeight: '700',
+    minHeight: 40,
+    minWidth: 52,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 9,
-    marginHorizontal: 4,
-    overflow: 'hidden',
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  dayTabText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: -0.1,
+  },
+  todayDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
   },
   timelineWrapper: {
     paddingHorizontal: 18,
@@ -2241,6 +2479,39 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     letterSpacing: -0.5
   },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  classChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  classChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  openClassButton: {
+    marginTop: 12,
+    minHeight: 36,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  openClassText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12.5,
+    letterSpacing: -0.1,
+  },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2300,6 +2571,24 @@ const styles = StyleSheet.create({
   },
 
   // ── Empty State ──────────────────────────────────────────────────
+  emptyCard: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 28,
+    gap: 6,
+  },
+  emptyIconBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -2330,7 +2619,7 @@ const styles = StyleSheet.create({
     backgroundColor: Platform.OS === 'web' ? 'rgba(255,255,255,0.92)' : '#FFFFFF',
     borderWidth: 1,
     borderColor: 'rgba(99,102,241,0.18)',
-    shadowColor: '#4338CA',
+    shadowColor: '#6B2FA0',
     shadowOpacity: 0.1,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -2348,7 +2637,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1'
+    backgroundColor: '#6B2FA0',
   },
   coverDutyEyebrow: {
     fontSize: 8,
@@ -2399,7 +2688,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#4F46E5'
+    backgroundColor: '#6B2FA0'
   },
   coverAttendanceText: {
     color: '#FFFFFF',

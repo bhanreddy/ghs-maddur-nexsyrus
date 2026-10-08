@@ -693,11 +693,39 @@ export default function ManageStudents() {
       <View accessibilityLiveRegion="polite" style={[styles.statusPanel, styles.surface]}>
         <Text style={styles.contextTitle}>{detectedClassLabel ? `Class ${detectedClassLabel}` : 'Class assignment'} · {session === 'morning' ? 'Morning' : 'Afternoon'}</Text>
         <Text style={styles.statusText}>{!detectedClassId ? (loadError ? 'Attendance unavailable' : 'No class assigned for this session') : !total ? 'No enrolled students' : submitting ? 'Submitting to the server…' : queued ? 'Waiting to sync · saved on this device' : draftCount ? 'Unsubmitted changes' : submissionConfirmed ? 'Submitted to the server' : marked ? 'Loaded attendance records' : 'Ready to mark attendance'}</Text>
-        <Text style={styles.statusHint}>{submissionMessage || (draftCount ? 'Edits are kept while this portal is open. Submit to save them to the server.' : queued ? 'Reconnect and retry sync to confirm these records on the server.' : 'Marking a student does not submit attendance.')}</Text>
+        <Text style={styles.statusHint}>{submissionMessage || (draftCount ? 'Edits are kept while this portal is open. Submit to save them to the server.' : queued ? 'Reconnect and retry sync to confirm these records on the server.' : 'Tap a student card to change status. Submit when the list is ready.')}</Text>
         {!!loadError && <Text style={[styles.statusHint, { color: theme.colors.alertText }]}>{loadError}</Text>}
         <TouchableOpacity accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }} onPress={() => void loadStudents()} style={styles.statusAction}>
           <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>{refreshing ? 'Refreshing and checking queue…' : queued ? 'Retry sync and refresh' : 'Refresh server records'}</Text>
         </TouchableOpacity>
+        {total > 0 && (
+          <>
+            <View accessibilityRole="tablist" style={styles.filterRow}>
+              {([
+                { key: 'all' as const, label: 'All', count: total, color: theme.colors.primary, wash: isDark ? 'rgba(108,99,255,0.2)' : 'rgba(108,99,255,0.1)' },
+                { key: 'unmarked' as const, label: 'Unmarked', count: unmarked, color: ACCENT.amber, wash: isDark ? 'rgba(217,119,6,0.2)' : 'rgba(217,119,6,0.1)' },
+                { key: 'present' as const, label: 'Present', count: present, color: ACCENT.emerald, wash: isDark ? 'rgba(5,150,105,0.2)' : 'rgba(5,150,105,0.1)' },
+                { key: 'absent' as const, label: 'Absent', count: absent, color: ACCENT.rose, wash: isDark ? 'rgba(225,29,72,0.2)' : 'rgba(225,29,72,0.1)' },
+              ]).map((filter) => {
+                const selected = statusFilter === filter.key;
+                return (
+                  <TouchableOpacity
+                    key={filter.key}
+                    onPress={() => { setStatusFilter(filter.key); setFilterChronicAbsent(false); }}
+                    accessibilityRole="tab"
+                    accessibilityLabel={`${filter.label}, ${filter.count}`}
+                    accessibilityState={{ selected }}
+                    style={[styles.filterChip, { borderColor: selected ? filter.color : theme.colors.border, backgroundColor: selected ? filter.wash : 'transparent' }]}
+                  >
+                    <Text numberOfLines={1} style={[styles.filterCount, { color: selected ? filter.color : theme.colors.textStrong }]}>{filter.count}</Text>
+                    <Text numberOfLines={1} style={[styles.filterLabel, { color: selected ? filter.color : theme.colors.textSecondary }]}>{filter.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {renderBulkActions()}
+          </>
+        )}
       </View>
 
       {/* Offline Cached Indicator */}
@@ -743,26 +771,6 @@ export default function ManageStudents() {
         </TouchableOpacity>
       )}
 
-      {total > 0 && (
-        <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-          {(['all', 'unmarked', 'present', 'absent'] as const).map(filter => (
-            <TouchableOpacity
-              key={filter}
-              onPress={() => { setStatusFilter(filter); setFilterChronicAbsent(false); }}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: statusFilter === filter }}
-              style={{ minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: statusFilter === filter ? theme.colors.primary : theme.colors.border, backgroundColor: theme.colors.surface }}
-            >
-              <Text style={{ color: statusFilter === filter ? theme.colors.primary : theme.colors.textSecondary, fontSize: 14, fontWeight: '600' }}>
-                {filter === 'all' ? `All (${total})` : filter === 'unmarked' ? `Unmarked (${unmarked})` : filter === 'present' ? `Present (${present})` : `Absent (${absent})`}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {total > 0 && <View style={{ marginHorizontal: 16, marginTop: 12 }}>{renderBulkActions()}</View>}
-
       {/* Search Bar */}
       {total > 0 && (
         <View style={styles.searchContainer}>
@@ -782,7 +790,7 @@ export default function ManageStudents() {
       )}
 
       {/* List Meta */}
-      <Text style={[styles.statusHint, { marginHorizontal: 16, marginTop: 12 }]}>Use Present or Absent. Tap the selected button to unmark. You can also swipe right for present or left for absent.</Text>
+      <Text style={[styles.statusHint, { marginHorizontal: 16, marginTop: 12 }]}>Tap a student to switch present, absent, and unmarked. Swipe right for present or left for absent.</Text>
       <TourTarget id="staff.attendance.review" native><View style={styles.listMeta}>
         <View style={styles.listMetaLeft}>
           <LinearGradient colors={[ACCENT.violet, ACCENT.emerald]} style={styles.sectionAccent} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} />
@@ -803,7 +811,7 @@ export default function ManageStudents() {
         <TouchableOpacity
           disabled={editingDisabled || refreshing}
           accessibilityState={{ disabled: editingDisabled || refreshing }}
-          style={[styles.quickBtn, { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.shape.borderRadiusMD, opacity: editingDisabled ? 0.5 : 1 }]}
+          style={[styles.quickBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.shape.borderRadiusMD, opacity: editingDisabled ? 0.5 : 1 }]}
           activeOpacity={0.85}
           onPress={() => setAllForSession('present')}
           accessibilityRole="button"
@@ -815,7 +823,7 @@ export default function ManageStudents() {
         <TouchableOpacity
           disabled={editingDisabled || refreshing}
           accessibilityState={{ disabled: editingDisabled || refreshing }}
-          style={[styles.quickBtn, { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.shape.borderRadiusMD, opacity: editingDisabled ? 0.5 : 1 }]}
+          style={[styles.quickBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : theme.colors.background, borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.shape.borderRadiusMD, opacity: editingDisabled ? 0.5 : 1 }]}
           activeOpacity={0.85}
           onPress={() => alertCompat('Reset local marks?', 'This unmarks the current session on this screen. It does not remove records already on the server. Use the day menu to clear saved attendance.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Reset local marks', onPress: () => setAllForSession('unmarked') }])}
           accessibilityRole="button"
@@ -1029,7 +1037,11 @@ const getStyles = (theme: SchoolTheme, isDark: boolean) => StyleSheet.create({
   contextTitle: { color: theme.colors.textStrong, fontSize: theme.typography.fontSizeLG, fontWeight: '700' },
   statusText: { color: theme.colors.textStrong, fontSize: theme.typography.fontSizeMD, fontWeight: '600' },
   statusHint: { color: theme.colors.textSecondary, fontSize: theme.typography.fontSizeSM, lineHeight: 20 },
-  statusAction: { minHeight: 44, justifyContent: 'center' },
+  statusAction: { minHeight: 36, justifyContent: 'center' },
+  filterRow: { flexDirection: 'row', gap: 6 },
+  filterChip: { flex: 1, minWidth: 0, minHeight: 52, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2, paddingVertical: 6 },
+  filterCount: { fontSize: 15, fontWeight: '800' },
+  filterLabel: { fontSize: 10, fontWeight: '700', marginTop: 1 },
   loadingText: { marginTop: 16, fontSize: 16, color: theme.colors.textSecondary, fontWeight: '600' },
   emptyWithPicker: { flexGrow: 1, width: '100%', maxWidth: 900, alignSelf: 'center' },
   emptyState: { minHeight: 240, paddingVertical: 24, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
@@ -1120,9 +1132,9 @@ const getStyles = (theme: SchoolTheme, isDark: boolean) => StyleSheet.create({
 
   actionFooter: { width: '100%', maxWidth: 900, alignSelf: 'center', gap: 8, padding: 12 },
   quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  quickBtn: { flex: 1, minWidth: 120, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  quickBtn: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, minHeight: 40 },
   quickBtnText: { fontSize: 14, fontWeight: '800' },
-  submitBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, minHeight: 56 },
+  submitBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 8, minHeight: 40 },
   submitText: { flexShrink: 1, textAlign: 'center', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
 
   chronicAlertBanner: {
