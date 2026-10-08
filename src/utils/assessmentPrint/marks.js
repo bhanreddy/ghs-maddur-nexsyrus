@@ -16,6 +16,8 @@ export function assessmentPrintSubjects(papers = [], subjects = [], marksMode = 
   const identity = (row) => String(row.exam_subject_id ?? row.subject_id);
   const byId = new Map(papers.map((paper) => [identity(paper), paper]));
   return normalizeAssessmentSubjects(papers, subjects).map((subject) => {
+    const paper = byId.get(identity(subject));
+    if (paper?.print_component_recovery) subject = { ...subject, passing_marks: paper.passing_marks };
     if (!hasSavedMark(subject) || subject.is_absent || subject.isAbsent) return subject;
     const component = subject.assessment_schema === 'component';
     const adjusted = { ...subject };

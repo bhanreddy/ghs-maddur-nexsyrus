@@ -2,7 +2,8 @@ import { buildAssessmentMarksPrint } from './render.js';
 import { assessmentPrintSubjects } from './marks.js';
 import { displayAssessmentPapers, selectScoringSubjects, summarizeStudentMarks } from './totals.js';
 import { rankResultRows } from './ranking.js';
-import { prepareSummativeMarksSection, usesSummativeMarksRegister } from './summative.js';
+import { isSecondaryAssessmentClass, prepareSummativeMarksSection, usesSummativeMarksRegister } from './summative.js';
+import { resolveFormativePrintPapers } from './papers.js';
 
 const matchesFilter = (student, filter) => filter === 'pass' ? student.result_status === 'Pass'
   : filter === 'fail' ? student.result_status.startsWith('Fail')
@@ -16,7 +17,8 @@ export function prepareAccountsAssessmentPrint(data, { marksMode = 'original', r
   }
   if (!['original', 'passing_criteria'].includes(marksMode)) throw new Error('Invalid print marks mode');
   return data.sections.map((section) => {
-    const papers = section.papers || [];
+    const papers = data.exam?.exam_type === 'fa_results' && isSecondaryAssessmentClass(section.classSection)
+      ? resolveFormativePrintPapers(section.papers, section.students) : section.papers || [];
     if (usesSummativeMarksRegister(data.exam, section.classSection)) {
       return prepareSummativeMarksSection(section, data.exam, data.formativeRows || [],
         data.rankingMethod, resultStatus, marksMode);
@@ -37,7 +39,7 @@ export function prepareAccountsAssessmentPrint(data, { marksMode = 'original', r
     // Rank and decide alternative columns across the full cohort before filtering.
     const ranks = new Map(rankResultRows(students.filter((student) => student.percentage != null), data.rankingMethod)
       .map((student) => [String(student.student_id), student.rank]));
-    return { ...section, displayPapers: displayAssessmentPapers(papers, students),
+    return { ...section, papers, displayPapers: displayAssessmentPapers(papers, students),
       students: students.map((student) => ({ ...student, rank: ranks.get(String(student.student_id)) ?? null }))
         .filter((student) => matchesFilter(student, resultStatus)),
     };

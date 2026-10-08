@@ -35,6 +35,55 @@ const deepFreeze = <T,>(value: T): T => {
   return value;
 };
 
+it('recovers the screenshot English components and 50-mark maximum per section without changing saved data', () => {
+  const english = paper('eng', 'English', false, 20);
+  english.passing_marks = 7.2;
+  const a = fixture('9', [english, paper('math', 'Maths')], [student('1', [mark('eng', {
+    marks_obtained: '43.5', participation_marks: '10', written_work_marks: '10',
+    project_work_marks: '10', slip_test_marks: '13.5',
+  }), mark('math', { participation_marks: 10, written_work_marks: 10, project_work_marks: 10, slip_test_marks: 20 })])]);
+  const b = { ...a.sections[0], classSection: { ...a.sections[0].classSection, id: '9b', section_name: 'B' },
+    students: [student('2', [mark('eng', { marks_obtained: 17 }), mark('math')])] };
+  a.sections.push(b);
+  const frozen = deepFreeze(a);
+  const before = JSON.stringify(frozen);
+  const sections = prepareAccountsAssessmentPrint(frozen);
+  expect(sections[0].papers[0]).toMatchObject({ assessment_schema: 'component', max_marks: 50, passing_marks: 18 });
+  expect(sections[0].students[0]).toMatchObject({ total_obtained: 93.5, total_max: 100, percentage: 93.5 });
+  expect(rowCells(doc(frozen)).slice(2, 9)).toEqual(['10', '10', '10', '13.5', '43.5', 'A2', '9']);
+  expect(sections[1].papers[0]).toMatchObject({ assessment_schema: 'consolidated', max_marks: 20 });
+  expect(sections[1].students[0].subjects[0].marks_obtained).toBe(17);
+  expect(doc(frozen).querySelector('.legend')?.textContent).toContain('English (out of 50)');
+  expect(JSON.stringify(frozen)).toBe(before);
+});
+
+it('resolves English before result filtering and passing-mode adjustment', () => {
+  const english = paper('eng', 'English', false, 20);
+  english.passing_marks = 7.2;
+  const data = fixture('9', [english], [student('1', [mark('eng', { marks_obtained: 31,
+    participation_marks: 10, written_work_marks: 10, project_work_marks: 10, slip_test_marks: 1 })]),
+  student('2', [mark('eng', { marks_obtained: 13, participation_marks: 4, written_work_marks: 4,
+    project_work_marks: 4, slip_test_marks: 1 })])]);
+  expect(prepareAccountsAssessmentPrint(data, { resultStatus: 'fail' })[0].students.map((s) => [s.student_id, s.rank])).toEqual([['2', 2]]);
+  const adjusted = prepareAccountsAssessmentPrint(data, { marksMode: 'passing_criteria' })[0].students[0];
+  expect(adjusted.subjects[0].slip_test_marks).toBe(7.5);
+  expect(adjusted.total_obtained).toBe(37.5);
+  expect(adjusted.total_max).toBe(50);
+});
+
+it('keeps the widest fractional columns on every page, including values first appearing on page two', () => {
+  const papers = ['Telugu', 'Hindi', 'English', 'Maths', 'Physics', 'Biology', 'Social'].map((name, id) => paper(String(id), name));
+  const data = fixture('9', papers, Array.from({ length: 30 }, (_, index) => student(String(index), papers.map((p) => mark(p.exam_subject_id, {
+    participation_marks: 10, written_work_marks: 10, project_work_marks: 10, slip_test_marks: index === 29 ? 19.5 : 10,
+  })))));
+  const document = doc(data);
+  const tables = [...document.querySelectorAll('table')];
+  expect(tables).toHaveLength(2);
+  const widths = (table: HTMLTableElement) => [...table.querySelectorAll('col')].map((col) => col.style.width);
+  expect(widths(tables[0])).toEqual(widths(tables[1]));
+  expect(parseFloat(widths(tables[0])[5])).toBeGreaterThanOrEqual(4.8);
+});
+
 it.each([[0, 0], [7.2, 7], [7.3, 7], [7.49, 7], [7.5, 7.5], [7.51, 7.5], [7.99, 7.5], [8, 8], ['7.30', 7]])(
   'prints direct mark %s as %s in every class, with matching totals', (original, expected) => {
     for (const className of ['4', '8', '9', '10']) {

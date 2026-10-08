@@ -22,6 +22,14 @@ component/direct configurations. A direct-only subject shows its saved score in
 Total and leaves component cells empty. Its configured schema remains authoritative;
 leftover component fields must not override a deliberate direct assessment.
 
+For a secondary FA print, an inconsistent legacy direct paper is recovered for
+one section only when at least one saved total exceeds its configured maximum,
+and every scored row matches all four valid saved components. The print then
+uses the component maximum and reports the recovery in its legend. A section
+with genuine direct scores keeps its configured schema. This runs before
+rounding, ranking and filtering, and never changes database configuration or marks.
+Column widths reserve room for the longest printed decimals across all pages.
+
 `totals.js`, `ranking.js` and `componentMaximums.js` adapt print rows to the
 existing frontend arithmetic and validation. The renderer keeps the photographed
 register's separate A2-inclusive grade policy. Tests exercise frozen inputs,
